@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Response } from 'src/utils/response';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class TaskService {
@@ -32,8 +33,14 @@ export class TaskService {
         return Response("Fait");
     }
 
-    async find() {
-        return await this.repo.find();
+    async find({ skip, take }: PaginationDto) {
+        return await this.repo.find({
+            skip: skip ? +skip : 0,
+            take: take ? +take : 1,
+            order: {
+                updatedAt: "desc",
+            }
+        });
     }
 
     async findOne(data: CreateTaskDto["content"]) {

@@ -1,15 +1,16 @@
-import { Body, Controller, Delete, Param, Patch, Post, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Patch, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('task')
 export class TaskController {
     constructor(private readonly service: TaskService) { }
 
     @Post("list")
-    tasks() {
-        return this.service.find();
+    tasks(@Query() { skip, take }: PaginationDto) {
+        return this.service.find({ skip, take });
     }
 
     @Post("find/:value")
