@@ -4,7 +4,7 @@ import "dotenv/config";
 export const Config: PostgresConnectionOptions = {
     type: "postgres",
     url: process.env.DATABASE_URL,
-    port: 5432,
+    port: Number(process.env.DATABASE_PORT),
     entities: [__dirname + "/**/*.entity{.ts,.js}"],
-    synchronize: true,
+    synchronize: Boolean(Number(process.env.PRODUCTION)),
 }
