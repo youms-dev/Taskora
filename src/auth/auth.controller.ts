@@ -1,15 +1,28 @@
-import { Controller, HttpCode, HttpStatus, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth/local-auth.guard';
+import { SupabaseAuthGuard } from './guards/auth/auth.guard';
+import { RegisterDTO } from './dto/register.dto';
+import { LoginDTO } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(LocalAuthGuard)
   @Post("login")
-  async login(@Request() req) {
+  async login(@Body() datas: LoginDTO) {
+    return this.authService.login(datas);
+  }
+
+  @Post("register")
+  register(@Body() datas: RegisterDTO) {
+    return this.authService.register(datas);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SupabaseAuthGuard)
+  @Post("session")
+  session(@Req() req) {
+    // return this.authService.session();
     return req.user;
   }
 }
