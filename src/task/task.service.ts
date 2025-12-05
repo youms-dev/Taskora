@@ -54,15 +54,16 @@ export class TaskService {
         return task;
     }
 
-    async delete(value: CreateTaskDto["content"]) {
-        const task = await this.findOne(value);
+    async delete(id: UpdateTaskDto["idTask"]) {
+        const task = await this.repo.findOne({
+            where: {
+                idTask: id,
+            }
+        });
 
-        if (task) {
-            await this.repo.delete({
-                content: value
-            })
-
-            return Response("Suppression effectuée");
-        }
+        if (!task) throw new NotFoundException();
+        return await this.repo.delete({
+            idTask: id
+        })
     }
 }
