@@ -66,4 +66,8 @@ export class TaskService {
             idTask: id
         })
     }
+
+    async count() {
+        return await this.repo.count();
+    }
 }

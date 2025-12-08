@@ -33,4 +33,9 @@ export class TaskController {
     delete(@Param("id") id: UpdateTaskDto["idTask"]) {
         return this.service.delete(id);
     }
+
+    @Post("count")
+    count() {
+        return this.service.count();
+    }
 }
