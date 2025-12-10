@@ -6,6 +6,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Response } from 'src/utils/response';
 import { PaginationDto } from './dto/pagination.dto';
+import { DeleteTaskDto } from './dto/delete-task.dto copy';
 
 @Injectable()
 export class TaskService {
@@ -54,17 +55,11 @@ export class TaskService {
         return task;
     }
 
-    async delete(id: UpdateTaskDto["idTask"]) {
-        const task = await this.repo.findOne({
-            where: {
-                idTask: id,
-            }
-        });
+    async delete(datas: DeleteTaskDto[]) {
+        const tasks = await this.repo.find();
 
-        if (!task) throw new NotFoundException();
-        return await this.repo.delete({
-            idTask: id
-        })
+        if(!tasks) throw new NotFoundException();
+        return await this.repo.delete(datas)
     }
 
     async count() {

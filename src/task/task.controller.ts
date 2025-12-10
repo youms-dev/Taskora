@@ -3,6 +3,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
 import { PaginationDto } from './dto/pagination.dto';
+import { DeleteTaskDto } from './dto/delete-task.dto copy';
 
 @Controller('task')
 export class TaskController {
@@ -29,9 +30,9 @@ export class TaskController {
         return this.service.update(content, datas);
     }
 
-    @Delete("delete/:id")
-    delete(@Param("id") id: UpdateTaskDto["idTask"]) {
-        return this.service.delete(id);
+    @Delete("delete")
+    delete(@Body() datas: { tasks: DeleteTaskDto[] }) {
+        return this.service.delete(datas.tasks);
     }
 
     @Post("count")
