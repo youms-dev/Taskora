@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post, Query, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
@@ -13,10 +13,11 @@ export class TaskController {
     tasks(@Query() { skip, take }: PaginationDto) {
         return this.service.find({ skip, take });
     }
-
-    @Post("find/:value")
-    task(@Param("value") value: CreateTaskDto["content"]) {
-        return this.service.findOne(value);
+    
+    @HttpCode(HttpStatus.OK)
+    @Post("find/:id")
+    task(@Param("id") id: UpdateTaskDto["idTask"]) {
+        return this.service.findOne(id);
     }
 
     @Post("create")
@@ -24,9 +25,9 @@ export class TaskController {
         return this.service.create(datas);
     }
 
-    @Patch("update/:content")
-    update(@Param("content") content: string, @Body() datas: UpdateTaskDto) {
-        return this.service.update(content, datas);
+    @Patch("update/:id")
+    update(@Param("id") id: string, @Body() datas: UpdateTaskDto) {
+        return this.service.update(id, datas);
     }
 
     @Delete("delete")

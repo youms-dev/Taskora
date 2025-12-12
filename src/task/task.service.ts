@@ -16,10 +16,10 @@ export class TaskService {
         return await this.repo.save(datas);
     }
 
-    async update(content: string, datas: UpdateTaskDto) {
+    async update(id: UpdateTaskDto["idTask"], datas: UpdateTaskDto) {
         const task = await this.repo.findOne({
             where: {
-                content
+                idTask: id
             }
         })
 
@@ -44,10 +44,10 @@ export class TaskService {
         });
     }
 
-    async findOne(data: CreateTaskDto["content"]) {
+    async findOne(data: UpdateTaskDto["idTask"]) {
         const task = await this.repo.findOne({
             where: {
-                content: String(data)
+                idTask: String(data)
             }
         })
 
