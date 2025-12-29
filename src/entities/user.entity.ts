@@ -15,8 +15,17 @@ export class User {
     })
     email: string;
 
-    @Column()
-    password: string;
+    @Column({
+        name: "photo_url",
+        default: "",
+    })
+    photoUrl: string;
+
+    @Column({
+        name: "onboarding_complete",
+        default: false
+    })
+    onBoardingComplete: boolean;
 
     @CreateDateColumn({
         name: "created_at",

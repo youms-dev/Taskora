@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { User } from '@supabase/supabase-js';
 import supabase from 'src/lib/supabase';
 
 @Injectable()
@@ -9,19 +9,18 @@ export class SupabaseAuthGuard implements CanActivate {
         const authHeader = req.headers?.authorization as string | undefined;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new UnauthorizedException('Missing or invalid authorization header');
+            throw new UnauthorizedException();
         }
 
-        const token = authHeader.split(' ')[1];
-        if (!token) throw new UnauthorizedException('Missing token');
-
+        const token = authHeader.split(" ").pop();
+        if (!token) throw new UnauthorizedException();
         const { data: { user }, error } = await supabase.auth.getUser(token);
-
+        
         if (error || !user) {
-            throw new UnauthorizedException('Invalid or expired token');
+            throw new UnauthorizedException();
         }
+        req.user = user as User;
 
-        req.user = user;
         return true;
     }
 }
