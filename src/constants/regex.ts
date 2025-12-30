@@ -1,0 +1,2 @@
+export const NAME_REGEX = /^([a-zA-Z]+|[a-zA-Z]+('|_|-))+(\s(([a-zA-Z]*('|_|-)?[a-zA-Z]+)*|[a-zA-Z]*)\d{0,2})*$/;
+export const EMAIL_REGEX = /^[a-zA-Z]+(.)*@[a-zA-Z]{2,}(\.[a-zA-Z]{2,})*\.[a-zA-Z]{2,}$/;

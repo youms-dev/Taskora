@@ -7,25 +7,10 @@ export class User {
     })
     iduser: string;
 
-    @Column()
-    name: string;
-
     @Column({
         unique: true
     })
     email: string;
-
-    @Column({
-        name: "photo_url",
-        default: "",
-    })
-    photoUrl: string;
-
-    @Column({
-        name: "onboarding_complete",
-        default: false
-    })
-    onBoardingComplete: boolean;
 
     @CreateDateColumn({
         name: "created_at",
