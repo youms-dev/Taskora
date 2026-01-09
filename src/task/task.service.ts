@@ -7,26 +7,55 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { Response } from 'src/utils/response';
 import { PaginationDto } from './dto/pagination.dto';
 import { DeleteTaskDto } from './dto/delete-task.dto copy';
+import { AuthUser } from '@supabase/supabase-js';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class TaskService {
-    constructor(@InjectRepository(Task) private repo: Repository<Task>) { }
+    constructor(
+        @InjectRepository(Task) private repo: Repository<Task>,
+        @InjectRepository(User) private userRepo: Repository<User>
+    ) { }
 
-    async create(datas: CreateTaskDto) {
-        return await this.repo.save(datas);
+    async create(datas: CreateTaskDto, authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!authUser) throw new NotFoundException("User not found");
+
+        const task = this.repo.create({
+            ...datas,
+            user: {
+                ...user
+            }
+        });
+
+        return await this.repo.save(task);
     }
 
-    async update(id: UpdateTaskDto["idTask"], datas: UpdateTaskDto) {
+    async update(id: UpdateTaskDto["idTask"], datas: UpdateTaskDto, authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
         const task = await this.repo.findOne({
             where: {
                 idTask: id
             }
-        })
-
+        });
         if (!task) throw new NotFoundException("Tâche inexistante");
 
         await this.repo.update({
-            idTask: task.idTask
+            idTask: task.idTask,
+            user: {
+                email: user.email
+            }
         },
             datas
         )
@@ -34,35 +63,89 @@ export class TaskService {
         return Response("Fait");
     }
 
-    async find({ skip, take }: PaginationDto) {
+    async find({ skip, take }: PaginationDto, authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
         return await this.repo.find({
             skip: skip ? +skip : 0,
             take: take ? +take : 1,
             order: {
                 updatedAt: "desc",
+            },
+            relations: {
+                user: true,
+            },
+            where: {
+                user: {
+                    email: user.email
+                }
             }
         });
     }
 
-    async findOne(data: UpdateTaskDto["idTask"]) {
+    async findOne(data: UpdateTaskDto["idTask"], authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
         const task = await this.repo.findOne({
             where: {
-                idTask: String(data)
+                idTask: String(data),
+                user: {
+                    email: user.email,
+                }
+            },
+            relations: {
+                user: true,
             }
-        })
+        });
 
         if (!task) throw new NotFoundException("Tâche inexistante");
         return task;
     }
 
-    async delete(datas: DeleteTaskDto[]) {
+    async delete(datas: DeleteTaskDto[], authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
         const tasks = await this.repo.find();
 
-        if(!tasks) throw new NotFoundException();
-        return await this.repo.delete(datas)
+        if (!tasks) throw new NotFoundException();
+        return await this.repo.delete({
+            ...datas,
+            user: {
+                email: user.email
+            }
+        });
     }
 
-    async count() {
-        return await this.repo.count();
+    async count(authUser: AuthUser) {
+        const user = await this.userRepo.findOne({
+            where: {
+                email: authUser.email,
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+        return await this.repo.count({
+            where: {
+                user: {
+                    email: user.email,
+                }
+            }
+        });
     }
 }

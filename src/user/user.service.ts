@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { supabaseAdmin } from 'src/lib/supabase';
+import { AuthUser } from "@supabase/supabase-js";
 
 @Injectable()
 export class UserService {
@@ -12,20 +13,14 @@ export class UserService {
 
   async create(datas: CreateUserDto) {
     const users = await this.supabaseList();
-
-    if (users.length > 0) {
-      const user = users.find((user) => user.email == datas.email);
-
-      if (user) throw new ConflictException("This user already exists");
-    }
-
-    const user = await this.repo.findOne({
+    const authUser = users.find((user: AuthUser) => user.email == datas.email);
+    const ormUser = await this.repo.findOne({
       where: {
         email: datas.email,
       }
     });
 
-    if (user) throw new ConflictException("This user already exists");
+    if (authUser || ormUser) throw new ConflictException("This user already exists");
     await this.repo.save(datas);
 
     return true;
@@ -34,7 +29,9 @@ export class UserService {
   async supabaseList() {
     const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (error) throw new Error("An error occurred");
+    if (error) throw new InternalServerErrorException();
+    else if (users.length == 0) throw new NotFoundException("No user found");
+
     return users;
   }
 
