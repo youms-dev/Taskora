@@ -19,10 +19,4 @@ export class UserController {
   complete(@Param("id") id: UpdateUserDto["iduser"], @Body() datas: Omit<UpdateUserDto, "iduser" | "email">) {
     return this.userService.update(id, datas);
   }
-
-  @UseGuards(SupabaseAuthGuard)
-  @Post("list")
-  list() {
-    return this.userService.supabaseList();
-  }
 }
