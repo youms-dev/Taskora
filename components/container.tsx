@@ -32,23 +32,6 @@ export const Container = ({ children, center = false, centerX = false, centerY =
   }));
 
   useEffect(() => {
-    (
-      async () => {
-        const { getItem } = useAsyncStorage(AUTH_STORAGE);
-        const exists = await getItem();
-
-        if (exists != null) {
-          const { verified } = JSON.parse(exists);
-
-          if (!verified && !["/hardware-auth", "/login", "/register", "/"].includes(pathname)) {
-            router.replace("/hardware-auth");
-          }
-        }
-      }
-    )();
-  }, [pathname]);
-
-  useEffect(() => {
     const handleLocalAuth = async () => {
       const { getItem, setItem } = useAsyncStorage(AUTH_STORAGE);
       const exists = await getItem();
@@ -73,7 +56,7 @@ export const Container = ({ children, center = false, centerX = false, centerY =
     const { remove } = AppState.addEventListener("change", handleLocalAuth);
 
     return () => remove();
-  }, []);
+  }, [pathname]);
 
   return (
     <Animated.View

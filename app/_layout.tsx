@@ -20,7 +20,7 @@ export default function Layout() {
         const { data } = supabase.auth.onAuthStateChange((event, session) => {
             setUser(session?.user);
         });
-
+        
         return () => data.subscription.unsubscribe();
     }, []);
 

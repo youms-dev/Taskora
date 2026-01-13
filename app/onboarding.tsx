@@ -23,6 +23,7 @@ import { useRouter } from "expo-router";
 import { File } from "expo-file-system";
 import { createId } from "@paralleldrive/cuid2";
 import { decode } from "base64-arraybuffer";
+import { ApiError } from "@/types/errors";
 
 export default function Onboarding() {
     const [page, setPage] = useState<number>(0);
@@ -179,35 +180,35 @@ export default function Onboarding() {
         };
 
         try {
-            const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
             const nameFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
-            const base64 = new File(image).base64Sync();
-
-            if (!fileName || !fileExt) {
-                return setToast({
-                    show: true,
-                    message: "Fichier corrompu ou illisible !",
-                    type: "error",
-                    top: -100,
-                    onCancel: () => setToast({
-                        ...toast,
-                        show: false,
-                    })
-                });
-            }
-
-            const date = new Date();
-            const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
-            const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
-                upsert: true,
-            });
-
+            
             if (image.trim().length == 0) {
                 await api.patch(`/user/update/${user?.id}`, {
                     name: nameFormatted,
                 });
             }
             else {
+                const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
+                const base64 = new File(image).base64Sync();
+    
+                if (!fileName || !fileExt) {
+                    return setToast({
+                        show: true,
+                        message: "Fichier corrompu ou illisible !",
+                        type: "error",
+                        top: -100,
+                        onCancel: () => setToast({
+                            ...toast,
+                            show: false,
+                        })
+                    });
+                }
+    
+                const date = new Date();
+                const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
+                const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
+                    upsert: true,
+                });
                 await api.patch(`/user/update/${user?.id}`, {
                     name: nameFormatted,
                     photoUrl: data?.path,
@@ -229,7 +230,10 @@ export default function Onboarding() {
                 setLoading(false);
             }, 500);
         }
-        catch (error) {
+        catch (e) {
+            const error = e as ApiError;
+            console.clear()
+            console.log(error);
             setLoading(false);
             setToast({
                 show: true,

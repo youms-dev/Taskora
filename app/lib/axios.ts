@@ -8,19 +8,17 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (axios.isAxiosError(error)) {
-            const message =
-                error.response?.data?.message ||
-                "Erreur serveur";
-
             return Promise.reject({
-                status: error.response?.status,
-                message,
                 data: error.response?.data,
+                status: error.response?.status,
             });
         }
 
         return Promise.reject({
-            message: "Erreur inconnue",
+            data: {
+                error: "Une erreur s'est produite",
+            },
+            status: 500,
         });
     }
 );
