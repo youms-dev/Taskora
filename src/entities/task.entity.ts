@@ -8,7 +8,7 @@ export class Task {
     })
     idTask: string;
 
-    @Column({ unique: true })
+    @Column()
     content: string;
 
     @Column({ default: false })

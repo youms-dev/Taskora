@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from 'src/entities/task.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Response } from 'src/utils/response';
@@ -25,6 +25,16 @@ export class TaskService {
         });
 
         if (!authUser) throw new NotFoundException("User not found");
+        const taskSearched = await this.repo.findOne({
+            where: {
+                content: datas.content,
+                user: {
+                    email: authUser.email,
+                }
+            }
+        });
+
+        if (taskSearched) throw new ConflictException("Cette tâche existe déjà !");
 
         const task = this.repo.create({
             ...datas,
@@ -121,14 +131,18 @@ export class TaskService {
         });
 
         if (!user) throw new NotFoundException("User not found");
-        const tasks = await this.repo.find();
-
-        if (!tasks) throw new NotFoundException();
-        return await this.repo.delete({
-            ...datas,
-            user: {
-                email: user.email
+        const tasks = await this.repo.find({
+            where: {
+                idTask: In([...datas]),
+                user: {
+                    email: user.email
+                }
             }
+        });
+
+        if (!tasks) throw new NotFoundException("Aucune tâche trouvée");
+        return this.repo.delete({
+            idTask: In([...tasks.map(task => task.idTask)]),
         });
     }
 
