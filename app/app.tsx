@@ -1,43 +1,42 @@
+import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
+import { Input } from "@/components/input";
+import { Message, MessageProps } from "@/components/message";
+import { Modal } from "@/components/modal";
 import { NavButton } from "@/components/nav-bar";
+import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable";
 import { Skeleton } from "@/components/skeleton";
 import { Task } from "@/components/task";
 import { ThemeCard } from "@/components/theme-card";
+import { Toast, ToastType } from "@/components/toast";
+import { Toggle } from "@/components/toggle";
 import { colors } from "@/constants/colors";
+import { AUTH_STORAGE, CONFIRM_STORAGE, THEME_STORAGE } from "@/constants/names";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import { Task as TaskType } from "@/types/task";
+import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import clsx from "clsx";
+import { hasHardwareAsync, isEnrolledAsync } from "expo-local-authentication";
 import { router, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, BackHandler, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import PagerView from "react-native-pager-view";
 import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
-import { PageTitle } from "@/components/page-title";
-import { Modal } from "@/components/modal";
-import { Input } from "@/components/input";
-import { Button } from "@/components/Button";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { Toast, ToastType } from "@/components/toast";
 import { api } from "./lib/axios";
-import { checkLength } from "@/utils/tools";
 import { supabase } from "./lib/supabase";
-import { Toggle } from "@/components/toggle";
-import { hasHardwareAsync, isEnrolledAsync } from "expo-local-authentication";
-import { AUTH_STORAGE, CONFIRM_STORAGE, THEME_STORAGE } from "@/constants/names";
-import { Message, MessageProps } from "@/components/message";
-import { useAuth } from "@/hooks/auth-provider";
 
 const List = () => {
-    const { width, height } = Dimensions.get("window");
+    const { height } = Dimensions.get("window");
     const { theme } = useTheme();
     const [loading, setLoading] = useState<boolean>(false);
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [tasksFilter, setTasksFilter] = useState<TaskType[] | null>([]);
     const [value, setValue] = useState<string>("");
-    const [page, setPage] = useState<number>(1);
     const perPage = 10;
     const [count, setCount] = useState<number>(0);
     const [tasksPressed, setTasksPressed] = useState<TaskType[]>([]);
@@ -62,24 +61,33 @@ const List = () => {
         action: () => { },
     });
 
-    const getTasks = async (pagination: boolean = true) => {
+    const getTasks = async () => {
         try {
-            if (loading || (page >= 2 && tasks.length >= count)) return;
+            if (loading || tasks.length >= perPage) return;
             setLoading(true);
-            const { data } = await api.post(`/task/list?skip=${(page - 1) * perPage}&take=${perPage}`);
+            const { data } = await api.post(`/task/list?skip=${tasks.length}&take=${perPage}`);
 
-            if (pagination) {
-                setTasks([...tasks, ...data]);
-            }
-            else {
-                setTasks(data);
-            }
-            setPage(page + 1);
+            setTasks([...tasks, ...data]);
             setLoading(false);
         }
-        catch (error) {
-            console.log(error);
+        catch (e) {
+            const { data } = e as { data: any };
+
             setLoading(false);
+            if (data.message) {
+                setToast({
+                    message: data.message,
+                    show: true,
+                    type: "error",
+                });
+            }
+            else {
+                setToast({
+                    message: "Une erreur d'est produite",
+                    show: true,
+                    type: "error",
+                });
+            }
         }
     }
 
@@ -87,16 +95,30 @@ const List = () => {
         setTasks([]);
         setTasksPressed([]);
         try {
-            setPage(1);
             setRefreshing(true);
-            const { data } = await api.post(`/task/list?skip=0&take=${perPage}`);
+            const { data } = await api.post(`/task/list?skip=0&take=${tasks.length}`);
 
             setTasks(data);
             setRefreshing(false);
         }
-        catch (error) {
-            console.log(error);
-            setRefreshing(false);
+        catch (e) {
+            const { data } = e as { data: any };
+
+            setLoading(false);
+            if (data.message) {
+                setToast({
+                    message: data.message,
+                    show: true,
+                    type: "error",
+                });
+            }
+            else {
+                setToast({
+                    message: "Une erreur d'est produite",
+                    show: true,
+                    type: "error",
+                });
+            }
         }
     }
 
@@ -105,8 +127,24 @@ const List = () => {
             const { data } = await api.post("/task/count");
             setCount(data);
         }
-        catch (error) {
-            console.log(error);
+        catch (e) {
+            const { data } = e as { data: any };
+
+            setLoading(false);
+            if (data.message) {
+                setToast({
+                    message: data.message,
+                    show: true,
+                    type: "error",
+                });
+            }
+            else {
+                setToast({
+                    message: "Une erreur d'est produite",
+                    show: true,
+                    type: "error",
+                });
+            }
         }
     }
 
@@ -218,18 +256,24 @@ const List = () => {
                 router.replace("/app");
             }, 500);
         }
-        catch (error) {
-            console.log(error);
-            setTasksPressed([]);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error"
-            });
-            setTasks([...tasks, ...datas]);
-            setTimeout(() => {
-                setValue("");
-            }, 500);
+        catch (e) {
+            const { data } = e as { data: any };
+
+            setLoading(false);
+            if (data.message) {
+                setToast({
+                    message: data.message,
+                    show: true,
+                    type: "error",
+                });
+            }
+            else {
+                setToast({
+                    message: "Une erreur d'est produite",
+                    show: true,
+                    type: "error",
+                });
+            }
         }
     };
 
@@ -264,6 +308,8 @@ const List = () => {
             if (!inputRef.current) return;
             inputRef.current.blur();
         });
+
+        return () => remove();
     }, []);
 
     return (
@@ -278,7 +324,7 @@ const List = () => {
                     placeholderTextColor={theme === "dark" ? colors.white[300] : colors.black[500]}
                     value={value}
                     onChange={(e) => setValue(e.nativeEvent.text)}
-                    editable={!loading && !refreshing}
+                    editable={!loading && !refreshing && tasks.length > 0}
                     className='w-full h-16 border-b-2 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-black/15 rounded-2xl pl-3 pr-12 font-bold'
                 />
                 <Pressable
@@ -300,7 +346,7 @@ const List = () => {
                 }
                 {
                     !tasksFilter && (
-                        <Text className="absolute left-3 -top-6 text-lg dark:text-white/60 text-black/60 font-extrabold tracking-widest">Aucun element</Text>
+                        <Text className="absolute left-3 -top-6 text-lg dark:text-white/60 text-black/60 font-extrabold tracking-widest">Aucun élément</Text>
                     )
                 }
             </KeyboardAvoidingView>
@@ -363,9 +409,9 @@ const List = () => {
                 <FlatList
                     data={tasks.length > 0 && tasksFilter && tasksFilter.length == 0 ? tasks : tasksFilter}
                     keyExtractor={(item) => String(item.idTask)}
-                    renderItem={({ item: task, index: i }) => (
+                    renderItem={({ item: task }) => (
                         <Task
-                            key={task.idTask ? task.idTask : i}
+                            key={task.idTask!}
                             task={task}
                             selected={tasksPressed.find((t) => task.idTask == t.idTask) != null}
                             selectedNumber={tasksPressed.indexOf(task) !== -1 ? tasksPressed.indexOf(task) + 1 : undefined}
@@ -381,7 +427,17 @@ const List = () => {
                             }}
                         />
                     )}
-                    onEndReached={() => value.trim().length == 0 && !refreshing && getTasks()}
+                    ListEmptyComponent={() => {
+                        if (!loading && !refreshing) {
+                            return (
+                                <View className="w-full flex justify-center items-center gap-4 pt-20">
+                                    <Text className="text-5xl animate-bounce">🔍</Text>
+                                    <Text className="dark:text-white/70 text-black/40 font-bold text-lg tracking-wider">Aucune tâche pour l'instant</Text>
+                                </View>
+                            );
+                        }
+                    }}
+                    onEndReached={() => value.trim().length == 0 && !refreshing && tasks.length < count && getTasks()}
                     onEndReachedThreshold={.9}
                     ListFooterComponent={loading ? <ActivityIndicator size="large" color={theme === "dark" ? "white" : colors.emerald[500]} /> : null}
                     refreshControl={
@@ -855,14 +911,24 @@ export default function App() {
             }, 500);
             setLoading(false);
         }
-        catch (error) {
+        catch (e) {
+            const { data } = e as { data: any };
+
             setLoading(false);
-            console.log(error);
-            setToast({
-                message: "Une erreur s'est produite 😓",
-                show: true,
-                type: "error",
-            });
+            if (data.message) {
+                setToast({
+                    message: data.message,
+                    show: true,
+                    type: "error",
+                });
+            }
+            else {
+                setToast({
+                    message: "Une erreur d'est produite",
+                    show: true,
+                    type: "error",
+                });
+            }
         }
     }
 
