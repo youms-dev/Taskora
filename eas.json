@@ -16,7 +16,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACK_END_URL": "https://youms-todolist.vercel.app",
+        "EXPO_PUBLIC_BACK_END_URL": "https://todolist-5ojx.onrender.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://bhrqnseagvztfedrhuhj.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_CVXp4F6m52nx6M1V4YkmTQ_Raj4KsJT"
       }
@@ -24,7 +24,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_BACK_END_URL": "https://youms-todolist.vercel.app",
+        "EXPO_PUBLIC_BACK_END_URL": "https://todolist-5ojx.onrender.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://bhrqnseagvztfedrhuhj.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_CVXp4F6m52nx6M1V4YkmTQ_Raj4KsJT"
       }
