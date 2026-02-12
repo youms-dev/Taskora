@@ -4,6 +4,7 @@ import { TaskModule } from './task/task.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Config } from './config';
 import { UserModule } from './user/user.module';
+import { Controller } from './app.controller';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { UserModule } from './user/user.module';
     TypeOrmModule.forRoot(Config),
     UserModule
   ],
-  controllers: [],
+  controllers: [Controller],
   providers: [],
 })
 export class AppModule { }
