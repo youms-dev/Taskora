@@ -1,18 +1,18 @@
 import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
-import { Toast, ToastProps } from "@/components/toast";
-import { colors } from "@/constants/colors";
-import { APP_NAME, AUTH_STORAGE } from "@/constants/names";
-import { useTheme } from "@/hooks/use-theme";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useAsyncStorage } from "@react-native-async-storage/async-storage";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { Image } from "expo-image";
-import { authenticateAsync, hasHardwareAsync, isEnrolledAsync } from 'expo-local-authentication';
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
 import { AppState, Text, View } from "react-native";
+import { hasHardwareAsync, isEnrolledAsync, authenticateAsync } from 'expo-local-authentication';
+import { Toast, ToastProps } from "@/components/toast";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { APP_NAME, AUTH_STORAGE } from "@/constants/names";
+import { Image } from "expo-image";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { useTheme } from "@/hooks/use-theme";
+import { colors } from "@/constants/colors";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 export default function HardwareAuth() {
     const [toast, setToast] = useState<Omit<ToastProps, "onCancel">>({
@@ -39,13 +39,13 @@ export default function HardwareAuth() {
             const exists = await getItem();
 
             if (!hasHardware || !hasDatasEnrolled || exists == null) {
-                router.replace("/app");
+                router.replace("/");
             }
             else if (exists != null) {
                 handleLocalAuth();
             }
             else {
-                router.replace("/app");
+                router.replace("/");
             }
         })();
     }, [AppState.currentState]);
@@ -66,7 +66,7 @@ export default function HardwareAuth() {
             unlock.value = true;
             setLockText("déverrouillée");
             setTimeout(() => {
-                router.replace("/app");
+                router.replace("/");
             }, 1500);
         }
     }, [AppState.currentState]);

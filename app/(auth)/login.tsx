@@ -92,11 +92,6 @@ export default function Login() {
           type: "error",
         });
         setLoading(false);
-        console.log({
-          code: error.code,
-          message: error.message,
-          status: error.status
-        });
         return;
       }
       else if (error && (error.status != 400 || !error.status)) {
@@ -106,11 +101,6 @@ export default function Login() {
           type: "error",
         });
         setLoading(false);
-        console.log({
-          code: error.code,
-          message: error.message,
-          status: error.status
-        });
         return;
       }
       else if (!user && !session) {
@@ -130,7 +120,6 @@ export default function Login() {
         message: "Une erreur s'est produite",
         type: "error",
       });
-      console.log(error);
       setLoading(false);
     }
   };
