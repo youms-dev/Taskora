@@ -1,16 +1,16 @@
+import { api } from "@/app/lib/axios";
 import { colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { Task as TaskType } from "@/types/task";
 import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
-import { PressableAnimated } from "./pressable";
-import { useEffect, useState } from "react";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { PressableAnimated } from "./pressable";
 import { Toast, ToastProps } from "./toast";
-import { api } from "@/app/lib/axios";
 
 interface Props extends PressableProps {
     task: TaskType;
@@ -74,12 +74,11 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
             });
             setUpdateLoading(false);
             setTimeout(() => {
-                router.replace("/app");
+                router.replace("/");
             }, 500);
         }
         catch (error) {
             setUpdateLoading(false);
-            console.log(error);
             setToast({
                 show: true,
                 message: "Une erreur s'est produite",

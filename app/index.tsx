@@ -71,23 +71,11 @@ const List = () => {
             setLoading(false);
         }
         catch (e) {
-            const { data } = e as { data: any };
-
-            setLoading(false);
-            if (data.message) {
-                setToast({
-                    message: data.message,
-                    show: true,
-                    type: "error",
-                });
-            }
-            else {
-                setToast({
-                    message: "Une erreur d'est produite",
-                    show: true,
-                    type: "error",
-                });
-            }
+            setToast({
+                message: "Aucune connexion internet",
+                show: true,
+                type: "error",
+            });
         }
     }
 
@@ -102,23 +90,11 @@ const List = () => {
             setRefreshing(false);
         }
         catch (e) {
-            const { data } = e as { data: any };
-
-            setLoading(false);
-            if (data.message) {
-                setToast({
-                    message: data.message,
-                    show: true,
-                    type: "error",
-                });
-            }
-            else {
-                setToast({
-                    message: "Une erreur d'est produite",
-                    show: true,
-                    type: "error",
-                });
-            }
+            setToast({
+                message: "Aucune connexion internet",
+                show: true,
+                type: "error",
+            });
         }
     }
 
@@ -128,23 +104,11 @@ const List = () => {
             setCount(data);
         }
         catch (e) {
-            const { data } = e as { data: any };
-
-            setLoading(false);
-            if (data.message) {
-                setToast({
-                    message: data.message,
-                    show: true,
-                    type: "error",
-                });
-            }
-            else {
-                setToast({
-                    message: "Une erreur d'est produite",
-                    show: true,
-                    type: "error",
-                });
-            }
+            setToast({
+                message: "Aucune connexion internet",
+                show: true,
+                type: "error",
+            });
         }
     }
 
@@ -207,10 +171,9 @@ const List = () => {
     const handleDelete = async (confirm = false) => {
         const { getItem } = useAsyncStorage(CONFIRM_STORAGE);
         const exists = await getItem();
-
-        if (tasksPressed.length === 0) return;
         const datas = tasksPressed;
 
+        if (tasksPressed.length === 0) return;
         if (!confirm && exists != null) {
             setMessage({
                 show: true,
@@ -226,16 +189,7 @@ const List = () => {
             });
             return;
         }
-        const result = tasks
-            .map((task, i) => {
-                if (i < datas.length) {
-                    return task.idTask != datas[i].idTask;
-                }
-                else {
-                    return task;
-                }
-            })
-            .filter((task) => typeof task !== "boolean");
+        const result = tasks.filter(task => ![...datas.map(data => data.idTask)].includes(task.idTask));
 
         setTasks(result);
         setTasksPressed([]);
@@ -253,27 +207,16 @@ const List = () => {
                 type: "success"
             });
             setTimeout(() => {
-                router.replace("/app");
+                router.replace("/");
             }, 500);
         }
         catch (e) {
-            const { data } = e as { data: any };
-
-            setLoading(false);
-            if (data.message) {
-                setToast({
-                    message: data.message,
-                    show: true,
-                    type: "error",
-                });
-            }
-            else {
-                setToast({
-                    message: "Une erreur d'est produite",
-                    show: true,
-                    type: "error",
-                });
-            }
+            setToast({
+                message: "Aucune connexion internet",
+                show: true,
+                type: "error",
+            });
+            setTasks([...datas, ...tasks]);
         }
     };
 
@@ -849,7 +792,7 @@ const Settings = () => {
     );
 }
 
-export default function App() {
+export default function Home() {
     const [currentPage, setCurrentPage] = useState<number>(0);
     const pageRef = useRef<PagerView>(null);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -907,7 +850,7 @@ export default function App() {
             });
             setValue("");
             setTimeout(() => {
-                router.replace("/app");
+                router.replace("/");
             }, 500);
             setLoading(false);
         }

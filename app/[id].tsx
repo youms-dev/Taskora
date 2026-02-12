@@ -5,15 +5,15 @@ import { Loader } from "@/components/loader";
 import { PressableAnimated } from "@/components/pressable";
 import { Toast, ToastType } from "@/components/toast";
 import { colors } from "@/constants/colors";
+import { useTheme } from "@/hooks/use-theme";
+import { Task } from "@/types/task";
+import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, View } from "react-native";
-import { Task } from "@/types/task";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useTheme } from "@/hooks/use-theme";
 import { api } from "./lib/axios";
-import { checkLength } from "@/utils/tools";
 
 export default function Update() {
     const params = useLocalSearchParams<{ id: string }>();
@@ -35,7 +35,7 @@ export default function Update() {
 
     useEffect(() => {
         if (!params || !params.id) {
-            router.replace("/app");
+            router.replace("/");
             return;
         }
     }, [params]);
@@ -51,7 +51,6 @@ export default function Update() {
             setTask(res.data);
         }
         catch (error) {
-            console.log(error);
             setLoading(false);
             setToast({
                 show: true,
@@ -87,7 +86,7 @@ export default function Update() {
 
         try {
             setUpdateLoading(true);
-            const res = await api.patch(`/task/update/${params.id}`, {
+            await api.patch(`/task/update/${params.id}`, {
                 ...task,
                 content: contentFormatted,
                 done
@@ -101,12 +100,11 @@ export default function Update() {
             getTask();
             setUpdateLoading(false);
             setTimeout(() => {
-                router.replace("/app");
+                router.replace("/");
             }, 500);
         }
         catch (error) {
             setUpdateLoading(false);
-            console.log(error);
             setToast({
                 show: true,
                 message: "Une erreur s'est produite",

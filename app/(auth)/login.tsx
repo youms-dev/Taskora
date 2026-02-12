@@ -1,17 +1,17 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
-import { Link, useRouter } from 'expo-router';
+import { Toast, ToastProps } from '@/components/toast';
+import { colors } from '@/constants/colors';
+import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
+import { EMAIL_REGEX } from '@/constants/regex';
+import { useTheme } from '@/hooks/use-theme';
+import { checkLength, checkPattern } from '@/utils/tools';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/constants/colors';
-import { useTheme } from '@/hooks/use-theme';
-import { Toast, ToastProps } from '@/components/toast';
-import { checkLength, checkPattern } from '@/utils/tools';
 import { supabase } from '../lib/supabase';
-import { EMAIL_REGEX } from '@/constants/regex';
-import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 
 export default function Login() {
   const initialInputsValues = {
@@ -29,7 +29,6 @@ export default function Login() {
     };
   }>(initialInputsValues);
   const [eye, setEye] = useState<'eye' | 'eye-slash'>('eye');
-  const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();

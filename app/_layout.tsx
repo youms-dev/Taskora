@@ -61,7 +61,7 @@ export default function Layout() {
                         </Stack.Protected>
 
                         <Stack.Protected guard={user ? true : false}>
-                            <Stack.Screen name="app" />
+                            <Stack.Screen name="index" />
                         </Stack.Protected>
 
                         <Stack.Screen

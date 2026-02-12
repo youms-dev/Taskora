@@ -4,26 +4,23 @@ import { Input } from "@/components/input";
 import { PressableAnimated } from "@/components/pressable";
 import { Toast, ToastProps } from "@/components/toast";
 import { APP_NAME } from "@/constants/names";
+import { NAME_REGEX } from "@/constants/regex";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
+import { ApiError } from "@/types/errors";
 import { checkLength, checkPattern, fileDatas } from "@/utils/tools";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { createId } from "@paralleldrive/cuid2";
+import { decode } from "base64-arraybuffer";
 import clsx from "clsx";
+import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from "react-native";
-import { View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
 import { api } from "./lib/axios";
-import { getItem } from "expo-secure-store";
-import { NAME_REGEX } from "@/constants/regex";
-import { useAuth } from "@/hooks/auth-provider";
 import { supabase } from "./lib/supabase";
-import { useRouter } from "expo-router";
-import { File } from "expo-file-system";
-import { createId } from "@paralleldrive/cuid2";
-import { decode } from "base64-arraybuffer";
-import { ApiError } from "@/types/errors";
 
 export default function Onboarding() {
     const [page, setPage] = useState<number>(0);
@@ -39,7 +36,6 @@ export default function Onboarding() {
         onCancel: () => { }
     });
     const { user } = useAuth();
-    const router = useRouter();
 
     const changePage = (value: number, animation = false) => {
         if (!pagerRef.current || loading) return;

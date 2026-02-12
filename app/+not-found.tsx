@@ -15,7 +15,7 @@ export default function NotFoundScreen() {
         <Button
           loaderSize={25}
           className="w-[300px] h-[60px]"
-          onPress={() => router.replace("/app")}
+          onPress={() => router.replace("/index")}
         >
           <FontAwesome name="arrow-left" size={20} />
           <Text className="transition-default text-2xl font-extrabold">Accueil</Text>

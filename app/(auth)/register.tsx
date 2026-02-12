@@ -1,20 +1,20 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
-import { Link, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/constants/colors';
-import { useTheme } from '@/hooks/use-theme';
 import { Toast, ToastProps } from '@/components/toast';
-import { checkLength, checkPattern } from '@/utils/tools';
-import { supabase } from '../lib/supabase';
-import clsx from 'clsx';
-import { EMAIL_REGEX } from '@/constants/regex';
+import { colors } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
-import { api } from '../lib/axios';
+import { EMAIL_REGEX } from '@/constants/regex';
+import { useTheme } from '@/hooks/use-theme';
 import { ApiError } from "@/types/errors";
+import { checkLength, checkPattern } from '@/utils/tools';
+import clsx from 'clsx';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
+import { useState } from 'react';
+import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { api } from '../lib/axios';
+import { supabase } from '../lib/supabase';
 
 export default function Register() {
   const initialInputsValues = {
@@ -32,7 +32,6 @@ export default function Register() {
     };
   }>(initialInputsValues);
   const [eye, setEye] = useState<'eye' | 'eye-slash'>('eye');
-  const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();

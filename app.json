@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Youms's Todo list",
-    "slug": "Youms's Todo list",
+    "slug": "youms_todo_list",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.jpg",
-    "scheme": "ums's Todo list",
+    "scheme": "Youms's Todo list",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -19,7 +19,12 @@
         "monochromeImage": "./assets/images/logo.jpg"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "package": "com.youms.dev.youms_todo_list"
     },
     "web": {
       "output": "static",
@@ -56,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "35406bd2-5eca-482b-8ff5-f71ed3a1ca60"
+      }
     }
   }
 }
