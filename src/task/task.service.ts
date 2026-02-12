@@ -1,14 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AuthUser } from '@supabase/supabase-js';
 import { Task } from 'src/entities/task.entity';
+import { User } from 'src/entities/user.entity';
 import { In, Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
-import { Response } from 'src/utils/response';
-import { PaginationDto } from './dto/pagination.dto';
 import { DeleteTaskDto } from './dto/delete-task.dto copy';
-import { AuthUser } from '@supabase/supabase-js';
-import { User } from 'src/entities/user.entity';
+import { PaginationDto } from './dto/pagination.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TaskService {
@@ -56,21 +55,22 @@ export class TaskService {
         if (!user) throw new NotFoundException("User not found");
         const task = await this.repo.findOne({
             where: {
-                idTask: id
+                idTask: id,
+                user: {
+                    email: user.email,
+                }
             }
         });
+
         if (!task) throw new NotFoundException("Tâche inexistante");
-
-        await this.repo.update({
+        return await this.repo.update({
             idTask: task.idTask,
-            user: {
-                email: user.email
-            }
         },
-            datas
+            {
+                content: datas.content,
+                done: datas.done,
+            }
         )
-
-        return Response("Fait");
     }
 
     async find({ skip, take }: PaginationDto, authUser: AuthUser) {

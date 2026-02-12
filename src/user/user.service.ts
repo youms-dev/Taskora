@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AuthUser } from "@supabase/supabase-js";
 import { User } from 'src/entities/user.entity';
+import { supabaseAdmin } from 'src/lib/supabase';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { supabaseAdmin } from 'src/lib/supabase';
-import { AuthUser } from "@supabase/supabase-js";
 
 @Injectable()
 export class UserService {
@@ -13,25 +13,25 @@ export class UserService {
 
   async create(datas: CreateUserDto) {
     const users = await this.supabaseList();
-    const authUser = users.find((user: AuthUser) => user.email == datas.email);
-    const ormUser = await this.repo.findOne({
-      where: {
-        email: datas.email,
-      }
-    });
 
-    if (authUser || ormUser) throw new ConflictException("This user already exists");
-    await this.repo.save(datas);
+    if (users.length > 0) {
+      const authUser = users.find((user: AuthUser) => user.email == datas.email);
+      const ormUser = await this.repo.findOne({
+        where: {
+          email: datas.email,
+        }
+      });
 
-    return true;
+      if (authUser || ormUser) throw new ConflictException("This user already exists");
+    }
+
+    return this.repo.save(datas);
   }
 
   async supabaseList() {
     const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
     if (error) throw new InternalServerErrorException();
-    else if (users.length == 0) throw new NotFoundException("No user found");
-
     return users;
   }
 

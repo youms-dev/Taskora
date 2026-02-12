@@ -23,6 +23,8 @@ export class User {
     })
     updatedAt: Date;
 
-    @OneToMany(() => Task, (task) => task.user)
+    @OneToMany(() => Task, (task) => task.user, {
+        onDelete: "CASCADE",
+    })
     task: Task[];
 }
