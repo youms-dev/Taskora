@@ -9,7 +9,7 @@ export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @HttpCode(HttpStatus.OK)
-  @Post("/create")
+  @Post("create")
   create(@Body() datas: CreateUserDto) {
     return this.userService.create(datas);
   }
@@ -20,7 +20,7 @@ export class UserController {
     return this.userService.update(id, datas);
   }
 
-  @Get("/list")
+  @Get("list")
   greeting() {
     return "Liste des utilisateurs";
   }
