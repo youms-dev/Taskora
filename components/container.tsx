@@ -1,11 +1,7 @@
-import clsx from 'clsx';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/use-theme';
+import clsx from 'clsx';
 import { useEffect } from 'react';
-import { usePathname, useRouter } from 'expo-router';
-import { useAsyncStorage } from '@react-native-async-storage/async-storage';
-import { AUTH_STORAGE } from '@/constants/names';
-import { AppState } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 interface Props {
   children: React.ReactNode;
@@ -17,8 +13,6 @@ interface Props {
 export const Container = ({ children, center = false, centerX = false, centerY = false }: Props) => {
   const { theme } = useTheme();
   const appTheme = useSharedValue<typeof theme>("dark");
-  const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     appTheme.value = theme;
@@ -30,33 +24,6 @@ export const Container = ({ children, center = false, centerX = false, centerY =
       easing: Easing.inOut(Easing.quad),
     })
   }));
-
-  useEffect(() => {
-    const handleLocalAuth = async () => {
-      const { getItem, setItem } = useAsyncStorage(AUTH_STORAGE);
-      const exists = await getItem();
-
-      if (
-        exists != null
-        &&
-        (
-          AppState.currentState === "background"
-          ||
-          AppState.currentState === "inactive"
-        )
-        &&
-        !["/", "/login", "/register", "/hardware-auth", "/onboarding"].includes(pathname)
-      ) {
-        await setItem(JSON.stringify({
-          verified: false,
-        }));
-        router.replace("/hardware-auth");
-      }
-    }
-    const { remove } = AppState.addEventListener("change", handleLocalAuth);
-
-    return () => remove();
-  }, [pathname]);
 
   return (
     <Animated.View

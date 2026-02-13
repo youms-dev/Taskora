@@ -3,11 +3,13 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "nativewind";
 import { createContext, useContext, useEffect, useState } from "react";
 
+type ThemeType = "light" | "dark";
+
 const ThemeContext = createContext<{
-    theme: "light" | "dark" | "system";
-    setTheme: (value: "light" | "dark" | "system") => void;
+    theme: ThemeType;
+    setTheme: (value: ThemeType | "system") => void;
 }>({
-    theme: "system",
+    theme: "dark",
     setTheme: () => null,
 });
 
@@ -33,7 +35,10 @@ export const ThemeProvider = ({ children }: Props) => {
     }, []);
 
     useEffect(() => {
-        if (colorScheme == "dark") {
+        if (!colorScheme) {
+            setTheme(colorScheme! as ThemeType);
+        }
+        else if (colorScheme === "dark") {
             setTheme("dark");
         }
         else {

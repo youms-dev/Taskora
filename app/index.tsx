@@ -476,7 +476,7 @@ const List = () => {
 }
 
 const Settings = () => {
-    const { theme, setTheme } = useTheme();
+    const { theme: appTheme, setTheme } = useTheme();
     const [currentTheme, setCurrentTheme] = useState<string>("");
     const [auth, setAuth] = useState<{
         exists: boolean;
@@ -493,8 +493,9 @@ const Settings = () => {
     });
     const [confirm, setConfirm] = useState<boolean>(false);
     const { user, loading } = useAuth();
+    const [theme, setAppTheme] = useState<typeof appTheme | "system">(appTheme);
 
-    const handleTheme = (value: typeof theme) => {
+    const handleTheme = (value: typeof theme | "system") => {
         setTheme(value);
 
         if (value == "light") setCurrentTheme("Clair");
@@ -589,6 +590,10 @@ const Settings = () => {
         }
     }
 
+    useEffect(() => {
+        setTheme(appTheme);
+    }, [appTheme]);
+
     return (
         <View className="w-full flex items-center">
             <ScrollView
@@ -621,7 +626,7 @@ const Settings = () => {
                                         )}
                                     >
                                         {
-                                            theme == "light" && (
+                                            appTheme == "light" && (
                                                 <View style={{ borderRadius: 50 }} className="size-full bg-emerald-500"></View>
                                             )
                                         }
@@ -648,7 +653,7 @@ const Settings = () => {
                                         )}
                                     >
                                         {
-                                            theme == "dark" && (
+                                            appTheme == "dark" && (
                                                 <View style={{ borderRadius: 50 }} className="size-full bg-emerald-500"></View>
                                             )
                                         }
