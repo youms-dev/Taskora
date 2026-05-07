@@ -7,7 +7,7 @@ export class AppController {
 
     @Get()
     app() {
-        return "Youms todolist";
+        return "Taskora";
     }
 
     @Get("hello")
