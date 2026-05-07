@@ -5,57 +5,69 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 type ThemeType = "light" | "dark";
 
-const ThemeContext = createContext<{
+type ContextType = {
     theme: ThemeType;
+    target: ThemeType | "system";
     setTheme: (value: ThemeType | "system") => void;
-}>({
+};
+
+const Context = createContext<ContextType>({
     theme: "dark",
-    setTheme: () => null,
+    target: "dark",
+    setTheme: () => { },
 });
 
-interface Props {
-    children: React.ReactNode;
-}
-
-export const ThemeProvider = ({ children }: Props) => {
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const { colorScheme, setColorScheme } = useColorScheme();
-    const [theme, setTheme] = useState<"light" | "dark">("dark");
-    const { setItem, getItem } = useAsyncStorage(THEME_STORAGE);
+    const [theme, setTheme] = useState<ThemeType>(colorScheme == "dark" ? "dark" : "light");
+    const [target, setTarget] = useState<ThemeType | "system">("system");
 
-    const getThemeSaved = async () => {
-        const themeSaved = await getItem();
+    const changeTheme = async (value: ThemeType | "system") => {
+        const { setItem } = useAsyncStorage(THEME_STORAGE);
 
-        if (themeSaved && ["light", "dark", "system"].includes(themeSaved)) {
-            setColorScheme(themeSaved as ("light" | "dark" | "system"));
-        }
-    };
-
-    useEffect(() => {
-        getThemeSaved();
-    }, []);
-
-    useEffect(() => {
-        if (!colorScheme) {
-            setTheme(colorScheme! as ThemeType);
-        }
-        else if (colorScheme === "dark") {
-            setTheme("dark");
+        setColorScheme(value);
+        await setItem(value);
+        if (value === "system") {
+            setTheme(colorScheme as ThemeType);
+            setTarget("system");
         }
         else {
-            setTheme("light");
+            setTarget(colorScheme == "light" ? "light" : "dark");
+            setTheme(colorScheme == "light" ? "light" : "dark");
         }
-    }, [colorScheme]);
-
-    const toggleTheme = async (value: "light" | "dark" | "system") => {
-        // setColorScheme(value);
-        await setItem(value);
     }
 
+    useEffect(() => {
+        (async () => {
+            const { getItem, removeItem } = useAsyncStorage(THEME_STORAGE);
+            const themeSaved = await getItem();
+
+            if (themeSaved && ["light", "dark", "system"].includes(themeSaved)) {
+                setColorScheme(themeSaved as ThemeType | "system");
+                if (themeSaved == "system") {
+                    setTheme(colorScheme! as ThemeType);
+                    setTarget("system");
+                }
+                else {
+                    setTarget(themeSaved == "light" ? "light" : "dark");
+                    setTheme(themeSaved == "light" ? "light" : "dark");
+                }
+            }
+            else {
+                await removeItem();
+            }
+        })();
+    }, [colorScheme]);
+
     return (
-        <ThemeContext.Provider value={{ theme, setTheme: toggleTheme }}>
+        <Context.Provider value={{
+            theme,
+            target,
+            setTheme: changeTheme,
+        }}>
             {children}
-        </ThemeContext.Provider>
+        </Context.Provider>
     );
 }
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => useContext(Context);

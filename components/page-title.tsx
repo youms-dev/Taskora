@@ -149,7 +149,7 @@ export const PageTitle = ({ icon, title }: Props) => {
             </View>
             
             <PressableAnimated
-                className="size-[60px] rounded-full p-1"
+                className="size-[50px] rounded-full p-1"
                 onPress={() => setVisible(true)}
             >
                 {

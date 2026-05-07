@@ -21,7 +21,7 @@ import { ScrollView, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 export default function Settings() {
-    const { theme: appTheme, setTheme } = useTheme();
+    const { theme, target, setTheme } = useTheme();
     const [currentTheme, setCurrentTheme] = useState<string>("");
     const [auth, setAuth] = useState<{
         exists: boolean;
@@ -38,16 +38,7 @@ export default function Settings() {
     });
     const [confirm, setConfirm] = useState<boolean>(false);
     const { user, loading } = useAuth();
-    const [theme, setAppTheme] = useState<typeof appTheme | "system">(appTheme);
     const { t } = useTranslation();
-
-    const handleTheme = (value: typeof theme | "system") => {
-        setTheme(value);
-
-        if (value == "light") setCurrentTheme("Clair");
-        if (value == "dark") setCurrentTheme("Sombre");
-        if (value == "system") setCurrentTheme("Système");
-    }
 
     useEffect(() => {
         (async () => {
@@ -107,7 +98,6 @@ export default function Settings() {
             await setItem(JSON.stringify({
                 verified: false,
             }));
-            // router.replace("/hardware-auth");
         }
     }
 
@@ -136,10 +126,6 @@ export default function Settings() {
         }
     }
 
-    useEffect(() => {
-        setTheme(appTheme);
-    }, [appTheme]);
-
     return (
         <Container centerX>
             <PageTitle
@@ -152,38 +138,33 @@ export default function Settings() {
                     />
                 )}
             />
+
             <ScrollView
                 horizontal={false}
                 contentContainerClassName="w-full flex flex-col items-center pb-[100px]"
                 className="w-full"
             >
-                <View
-                    className="w-[97%] flex flex-col mt-8 dark:bg-white/10 bg-black/10 p-3 rounded-2xl"
-                >
+                <View className="w-[97%] flex flex-col mt-8 dark:bg-white/10 bg-black/10 p-3 rounded-2xl">
                     <View className="flex flex-row items-center gap-3">
                         <Text className="dark:text-white text-black text-xl">Thème : </Text>
-                        <Text className="text-emerald-500 text-xl font-extrabold tracking-[2px]">{currentTheme}</Text>
+                        <Text className="text-emerald-500 text-xl font-extrabold tracking-[2px]">
+                            {currentTheme}
+                        </Text>
                     </View>
+
                     <View className="w-full pb-10 flex flex-row flex-wrap items-center gap-[30px_8px]">
-                        <PressableAnimated
-                            onPress={() => handleTheme("light")}
-                        >
-                            <Animated.View
-                                className="size-[110px] flex flex-col items-center gap-2 p-3"
-                            >
+                        <PressableAnimated onPress={() => setTheme("light")}>
+                            <Animated.View className="size-[110px] flex flex-col items-center gap-2 p-3">
                                 <View className="w-full flex flex-row">
-                                    <View
-                                        style={{
-                                            borderRadius: 50,
-                                        }}
-                                        className={clsx(
-                                            "size-8 flex flex-row justify-center items-center p-[5px]",
-                                            "dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20"
-                                        )}
-                                    >
+                                    <View className={clsx(
+                                        "size-8 flex flex-row justify-center items-center p-[5px] dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20 rounded-[50px]"
+                                    )}>
                                         {
-                                            appTheme == "light" && (
-                                                <View style={{ borderRadius: 50 }} className="size-full bg-emerald-500"></View>
+                                            target == "light" && (
+                                                <View
+                                                    style={{ borderRadius: 50 }}
+                                                    className="size-full bg-emerald-500"
+                                                />
                                             )
                                         }
                                     </View>
@@ -192,25 +173,18 @@ export default function Settings() {
                             </Animated.View>
                         </PressableAnimated>
 
-                        <PressableAnimated
-                            onPress={() => handleTheme("dark")}
-                        >
-                            <Animated.View
-                                className="size-[110px] flex flex-col items-center gap-2 p-3"
-                            >
+                        <PressableAnimated onPress={() => setTheme("dark")}>
+                            <Animated.View className="size-[110px] flex flex-col items-center gap-2 p-3">
                                 <View className="w-full flex flex-row">
-                                    <View
-                                        style={{
-                                            borderRadius: 50,
-                                        }}
-                                        className={clsx(
-                                            "size-8 flex flex-row justify-center items-center p-[5px]",
-                                            "dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20"
-                                        )}
-                                    >
+                                    <View className={clsx(
+                                        "size-8 flex flex-row justify-center items-center p-[5px] dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20 rounded-[50px]"
+                                    )}>
                                         {
-                                            appTheme == "dark" && (
-                                                <View style={{ borderRadius: 50 }} className="size-full bg-emerald-500"></View>
+                                            target == "dark" && (
+                                                <View
+                                                    style={{ borderRadius: 50 }}
+                                                    className="size-full bg-emerald-500"
+                                                />
                                             )
                                         }
                                     </View>
@@ -219,25 +193,18 @@ export default function Settings() {
                             </Animated.View>
                         </PressableAnimated>
 
-                        <PressableAnimated
-                            onPress={() => handleTheme("system")}
-                        >
-                            <Animated.View
-                                className="size-[110px] flex flex-col items-center gap-2 p-3"
-                            >
+                        <PressableAnimated onPress={() => setTheme("system")}>
+                            <Animated.View className="size-[110px] flex flex-col items-center gap-2 p-3">
                                 <View className="w-full flex flex-row">
-                                    <View
-                                        style={{
-                                            borderRadius: 50,
-                                        }}
-                                        className={clsx(
-                                            "size-8 flex flex-row justify-center items-center p-[5px]",
-                                            "dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20"
-                                        )}
-                                    >
+                                    <View className={clsx(
+                                        "size-8 flex flex-row justify-center items-center p-[5px] dark:bg-white/20 bg-black/20 dark:border-0 border-2 border-white/20 rounded-[50px]"
+                                    )}>
                                         {
-                                            theme == "system" && (
-                                                <View style={{ borderRadius: 50 }} className="size-full bg-emerald-500"></View>
+                                            target == "system" && (
+                                                <View
+                                                    style={{ borderRadius: 50 }}
+                                                    className="size-full bg-emerald-500"
+                                                />
                                             )
                                         }
                                     </View>
@@ -251,7 +218,11 @@ export default function Settings() {
                 <View className="w-[97%] flex flex-col gap-3 dark:bg-white/10 bg-black/10 mt-6 p-5 rounded-2xl">
                     <View className="w-full flex flex-row items-center gap-3 overflow-hidden">
                         <View className="flex flex-row items-center gap-3">
-                            <FontAwesome6 name="user-large" size={20} color={theme == "dark" ? "white" : "black"} />
+                            <FontAwesome6
+                                name="user-large"
+                                size={20}
+                                color={theme == "dark" ? "white" : "black"}
+                            />
                             <Text className="w-max dark:text-white text-black text-xl">Nom :</Text>
                         </View>
                         {

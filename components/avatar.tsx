@@ -23,6 +23,7 @@ export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
             className="flex shrink-0 justify-center items-center dark:bg-white/20 bg-black/20 rounded-full"
         >
             <TextAnimated
+                numberOfLines={1}
                 style={{
                     fontSize: name.size,
                 }}
