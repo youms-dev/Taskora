@@ -1,4 +1,4 @@
-export const colors = {
+export const COLORS = {
     emerald: {
         100: "#d1fae5",
         200: "#a7f3d0",

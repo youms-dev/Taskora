@@ -1,7 +1,7 @@
 import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
 import { Input } from "@/components/input";
-import { PressableAnimated } from "@/components/pressable";
+import { PressableAnimated } from "@/components/pressable-animated";
 import { Toast, ToastProps } from "@/components/toast";
 import { APP_NAME } from "@/constants/names";
 import { NAME_REGEX } from "@/constants/regex";

@@ -1,29 +1,30 @@
-import { colors } from "@/constants/colors";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { View, Text } from "react-native";
-import { Image } from "expo-image";
-import { useState } from "react";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Button } from "./Button";
-import * as ImagePicker from "expo-image-picker";
-import { Modal } from "./modal";
-import { Toast, ToastType } from "./toast";
-import { PressableAnimated } from "./pressable";
+import { COLORS } from "@/constants/colors";
+import { useAuth } from "@/hooks/auth-provider";
+import { api } from "@/lib/axios";
 import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { createId } from "@paralleldrive/cuid2";
-import { File } from "expo-file-system";
 import { decode } from "base64-arraybuffer";
-import { useAuth } from "@/hooks/auth-provider";
+import { File } from "expo-file-system";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { ReactNode, useState } from "react";
+import { Text, View } from "react-native";
+import { Button } from "./Button";
+import { Modal } from "./modal";
 import { Picture } from "./picture";
-import { api } from "@/lib/axios";
+import { PressableAnimated } from "./pressable-animated";
+import { Toast, ToastType } from "./toast";
 
 interface Props {
-    page: number;
+    icon?: ReactNode;
+    title: string;
 }
 
-export const PageTitle = ({ page }: Props) => {
+export const PageTitle = ({ icon, title }: Props) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [image, setImage] = useState<string | null>(null);
     const [toast, setToast] = useState<{
@@ -38,17 +39,6 @@ export const PageTitle = ({ page }: Props) => {
     });
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
-
-    const pageDatas = [
-        {
-            name: "Liste des tâches",
-            icon: "list-check"
-        },
-        {
-            name: "Paramètres",
-            icon: "gears"
-        },
-    ]
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -148,20 +138,16 @@ export const PageTitle = ({ page }: Props) => {
 
     return (
         <View className="w-full flex flex-row justify-between items-center px-4">
-
             <View className="w-3/4 flex flex-row items-center gap-3">
-                <FontAwesome6
-                    name={pageDatas[page].icon}
-                    size={22}
-                    color={colors.emerald[500]}
-                />
+                {icon}
                 <Text
-                    className="relative w-max text-3xl text-emerald-500 font-extrabold tracking-widest underline"
+                    numberOfLines={1}
+                    className="text-2xl text-emerald-500 font-extrabold tracking-widest"
                 >
-                    {pageDatas[page].name}
-
+                    {title}
                 </Text>
             </View>
+            
             <PressableAnimated
                 className="size-[60px] rounded-full p-1"
                 onPress={() => setVisible(true)}
@@ -196,7 +182,7 @@ export const PageTitle = ({ page }: Props) => {
             >
                 <View className="w-full h-full flex flex-col items-center">
                     <View className="w-full flex flex-row items-center gap-3 px-3">
-                        <FontAwesome5 name="user-tie" size={20} color={colors.emerald[500]} />
+                        <FontAwesome5 name="user-tie" size={20} color={COLORS.emerald[500]} />
                         <Text className="text-3xl text-emerald-500">Profile</Text>
                     </View>
                     <View className="w-full flex flex-col justify-center items-center mt-10">

@@ -1,3 +1,5 @@
 {
-    "welcome": "Welcome to React and react-i18next"
-}
+    "home": "Home",
+    "settings": "Settings",
+    "profile": "Profile"
+}   

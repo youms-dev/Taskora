@@ -2,7 +2,7 @@ import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
 import { Toast, ToastProps } from '@/components/toast';
-import { colors } from '@/constants/colors';
+import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
 import { useTheme } from '@/hooks/use-theme';
@@ -200,7 +200,7 @@ export default function Login() {
         </View>
 
         <LinearGradient
-          colors={[colors.emerald[500], theme === "dark" ? "black" : "white"]}
+          colors={[COLORS.emerald[500], theme === "dark" ? "black" : "white"]}
           start={{ x: 1, y: 0 }}
           end={{ x: 1, y: 1 }}
           locations={[0, .2]}

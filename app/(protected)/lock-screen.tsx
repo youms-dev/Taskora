@@ -1,7 +1,7 @@
 import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
 import { Toast, ToastProps } from "@/components/toast";
-import { colors } from "@/constants/colors";
+import { COLORS } from "@/constants/colors";
 import { APP_NAME, AUTH_STORAGE } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -43,7 +43,7 @@ export default function LockScreen() {
             )
         }],
         borderColor: withDelay(500,
-            withTiming(unlock.value ? colors.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
+            withTiming(unlock.value ? COLORS.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
                 duration: 300,
                 easing: Easing.inOut(Easing.quad)
             })
@@ -69,7 +69,7 @@ export default function LockScreen() {
 
     const lowerHalfAnimation = useAnimatedStyle(() => ({
         backgroundColor: withDelay(500,
-            withTiming(unlock.value ? colors.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
+            withTiming(unlock.value ? COLORS.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
                 duration: 300,
                 easing: Easing.inOut(Easing.quad)
             })
@@ -110,7 +110,7 @@ export default function LockScreen() {
 
     const textAnimation = useAnimatedStyle(() => ({
         backgroundColor: withDelay(500,
-            withTiming(unlock.value ? colors.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
+            withTiming(unlock.value ? COLORS.emerald[500] : (themeValue.value == "dark" ? "white" : "black"), {
                 duration: 300,
                 easing: Easing.inOut(Easing.quad),
             })

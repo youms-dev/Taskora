@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { colors } from "@/constants/colors";
+import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { Task as TaskType } from "@/types/task";
 import { dateGraduation } from "@/utils/tools";
@@ -9,7 +9,7 @@ import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { PressableAnimated } from "./pressable";
+import { PressableAnimated } from "./pressable-animated";
 import { Toast, ToastProps } from "./toast";
 
 interface Props extends PressableProps {
@@ -96,7 +96,7 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
             })}
             delayLongPress={150}
             // android_ripple={{
-            //     color: task.done ? colors.emerald[100] : colors.red[100],
+            //     color: task.done ? COLORS.emerald[100] : COLORS.red[100],
             //     foreground: true,
             // }}
             onLongPress={() => longPress && longPress()}
@@ -133,7 +133,7 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                             (
                                 <View className="flex flex-row items-center gap-4">
                                     <Text className="text-lg dark:text-white text-black font-bold">faite</Text>
-                                    <FontAwesome5 name="check" size={18} color={colors.emerald[500]} />
+                                    <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
                                 </View>
                             )
                             :
@@ -159,7 +159,7 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                         className="flex flex-row items-center gap-4 self-start shrink dark:bg-white/15 bg-black/10 p-3 border dark:border-white/20 border-black/20 rounded-2xl"
                     >
                         <Text className="text-lg dark:text-white text-black">Marquer comme faite ?</Text>
-                        <FontAwesome5 name="check" size={18} color={colors.emerald[500]} />
+                        <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
                     </PressableAnimated>
                 )
             }

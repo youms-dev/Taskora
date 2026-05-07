@@ -1,6 +1,6 @@
 import { Dimensions, Text, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { PressableAnimated } from "./pressable";
+import { PressableAnimated } from "./pressable-animated";
 import { ScrollView } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect } from "react";

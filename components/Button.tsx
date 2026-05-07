@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { ActivityIndicator, PressableProps } from 'react-native';
-import { PressableAnimated } from './pressable';
+import { PressableAnimated } from './pressable-animated';
 
 interface Props extends PressableProps {
   children: React.ReactNode;

@@ -10,9 +10,10 @@ interface Props {
   center?: boolean;
   centerX?: boolean;
   centerY?: boolean;
+  safeArea?: boolean;
 }
 
-export const Container = ({ children, center = false, centerX = false, centerY = false }: Props) => {
+export const Container = ({ children, center, centerX, centerY, safeArea = true }: Props) => {
   const { theme } = useTheme();
   const appTheme = useSharedValue<typeof theme>("dark");
 
@@ -26,20 +27,29 @@ export const Container = ({ children, center = false, centerX = false, centerY =
       easing: Easing.inOut(Easing.quad),
     }),
   }));
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "black" : "white" }}>
+  const Render = (
+    <>
       <StatusBar style={theme == "dark" ? "light" : "dark"} animated />
       <Animated.View
         style={viewAnimation}
         className={clsx(
-          'size-full flex flex-1 flex-col pt-5',
+          'size-full flex flex-col',
           center && !centerX && !centerY && 'items-center justify-center',
           !center && centerX && !centerY && 'items-center',
           !center && !centerX && centerY && 'justify-center',
         )}>
         {children}
       </Animated.View>
-    </SafeAreaView>
+    </>
   );
+
+  if (safeArea) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "black" : "white" }}>
+        {Render}
+      </SafeAreaView>
+    );
+  }
+
+  return Render;
 };

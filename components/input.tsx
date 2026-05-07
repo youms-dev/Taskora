@@ -3,9 +3,9 @@ import FontAwesome from '@expo/vector-icons/FontAwesome6';
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import Animated, { useAnimatedStyle, withTiming, Easing, useSharedValue } from 'react-native-reanimated';
-import { colors } from '@/constants/colors';
+import { COLORS } from '@/constants/colors';
 import { useTheme } from '@/hooks/use-theme';
-import { PressableAnimated, PressableAnimatedProps } from './pressable';
+import { PressableAnimated, PressableAnimatedProps } from './pressable-animated';
 
 interface Props extends TextInputProps {
   placeholder: string;
@@ -42,7 +42,7 @@ export const Input = ({ placeholder, icon, value, big = false, ...rest }: Props)
   }, []);
 
   const inputAnimation = useAnimatedStyle(() => ({
-    borderBottomColor: withTiming(shine.value ? colors.emerald[500] : (appTheme.value == "dark" ? "white" : "black"), {
+    borderBottomColor: withTiming(shine.value ? COLORS.emerald[500] : (appTheme.value == "dark" ? "white" : "black"), {
       duration: 400,
       easing: Easing.inOut(Easing.quad)
     }),
@@ -65,7 +65,7 @@ export const Input = ({ placeholder, icon, value, big = false, ...rest }: Props)
             focused.value = false;
           }
         }}
-        cursorColor={theme === "dark" ? "white" : colors.emerald[500]}
+        cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
         textAlignVertical={"top"}
         placeholder={placeholder}
         placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .6)" : "black"}

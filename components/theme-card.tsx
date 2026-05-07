@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { COLORS } from "@/constants/colors";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
@@ -48,7 +48,7 @@ export const ThemeCard = ({ value = "system" }: Props) => {
                         className="size-full flex flex-col justify-center items-center gap-3 p-3 border dark:border-white/20 border-black/50"
                     >
                         <LinearGradient
-                            colors={[colors.black[200], colors.white[100]]}
+                            colors={[COLORS.black[200], COLORS.white[100]]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             locations={[.3, .6]}
@@ -59,7 +59,7 @@ export const ThemeCard = ({ value = "system" }: Props) => {
                         >
                         </LinearGradient>
                         <LinearGradient
-                            colors={[colors.black[200], colors.white[100]]}
+                            colors={[COLORS.black[200], COLORS.white[100]]}
                             start={{ x: 0, y: -2 }}
                             end={{ x: 1, y: 1 }}
                             locations={[.4, .7]}
@@ -70,7 +70,7 @@ export const ThemeCard = ({ value = "system" }: Props) => {
                         >
                         </LinearGradient>
                         <LinearGradient
-                            colors={[colors.black[200], colors.white[100]]}
+                            colors={[COLORS.black[200], COLORS.white[100]]}
                             start={{ x: 0, y: -2 }}
                             end={{ x: 1, y: 1 }}
                             locations={[.1, .3]}

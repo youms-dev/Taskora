@@ -2,9 +2,9 @@ import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
-import { PressableAnimated } from "@/components/pressable";
+import { PressableAnimated } from "@/components/pressable-animated";
 import { Toast, ToastType } from "@/components/toast";
-import { colors } from "@/constants/colors";
+import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { Task } from "@/types/task";
 import { checkLength } from "@/utils/tools";
@@ -142,7 +142,7 @@ export default function Update() {
                         />
                         {
                             updateLoading && (
-                                <ActivityIndicator size={30} color={theme === "dark" ? "white" : colors.emerald[500]} />
+                                <ActivityIndicator size={30} color={theme === "dark" ? "white" : COLORS.emerald[500]} />
                             )
                         }
                         {
@@ -164,7 +164,7 @@ export default function Update() {
                                     }
                                     {
                                         !task.done && (
-                                            <FontAwesome5 name="check" size={18} color={colors.emerald[500]} />
+                                            <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
                                         )
                                     }
                                 </PressableAnimated>

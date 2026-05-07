@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import "../lib/i18n";
+import "./global.css";
 
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
@@ -46,15 +48,15 @@ export default function Layout() {
                                     headerShown: false,
                                     animation: "fade",
                                 }}>
-                                    <Stack.Protected guard={user ? true : false}>
+                                    <Stack.Protected guard={user ? false : true}>
                                         <Stack.Screen name="index" />
                                     </Stack.Protected>
 
-                                    <Stack.Protected guard={user ? true : false}>
+                                    <Stack.Protected guard={user ? false : true}>
                                         <Stack.Screen name="register" />
                                     </Stack.Protected>
 
-                                    <Stack.Protected guard={user ? false : true}>
+                                    <Stack.Protected guard={user ? true : false}>
                                         <Stack.Screen
                                             name="(protected)"
                                             options={{

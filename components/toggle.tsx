@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import clsx from "clsx";
 import { useEffect } from "react";
@@ -32,14 +32,14 @@ export const Toggle = ({ active = false, onChange }: Props) => {
                 easing: Easing.inOut(Easing.quad),
             }),
         }],
-        backgroundColor: withTiming(isActive.value ? colors.emerald[500] : "rgba(255, 255, 255, .6)", {
+        backgroundColor: withTiming(isActive.value ? COLORS.emerald[500] : "rgba(255, 255, 255, .6)", {
             duration: 300,
             easing: Easing.inOut(Easing.quad),
         }),
     }));
 
     const animation = useAnimatedStyle(() => ({
-        backgroundColor: withTiming(isActive.value ? (appTheme.value === "dark" ? colors.emerald[900] : colors.emerald[100]) : (appTheme.value === "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"), {
+        backgroundColor: withTiming(isActive.value ? (appTheme.value === "dark" ? COLORS.emerald[900] : COLORS.emerald[100]) : (appTheme.value === "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"), {
             duration: 300,
             easing: Easing.inOut(Easing.quad),
         }),
