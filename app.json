@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Youms's Todo list",
-    "slug": "youms_todo_list",
-    "version": "1.0.0",
+    "name": "Taskora",
+    "slug": "taskora",
+    "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.jpg",
-    "scheme": "Youms's Todo list",
+    "icon": "./assets/images/logo.png",
+    "scheme": "Taskora",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -14,9 +14,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#000000",
-        "foregroundImage": "./assets/images/logo.jpg",
-        "backgroundImage": "./assets/images/logo.jpg",
-        "monochromeImage": "./assets/images/logo.jpg"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/logo.png",
+        "monochromeImage": "./assets/images/logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -24,19 +24,19 @@
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
-      "package": "com.youms.dev.youms_todo_list"
+      "package": "com.youms.dev.taskora"
     },
     "web": {
       "output": "static",
       "bundler": "metro",
-      "favicon": "./assets/images/logo.jpg"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.jpg",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000000",
@@ -54,7 +54,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Permettre à Youms's Todo List d'utiliser le Face ID."
+          "faceIDPermission": "Allow Taskora to access to your camera to use Face ID"
         }
       ]
     ],
@@ -65,8 +65,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "35406bd2-5eca-482b-8ff5-f71ed3a1ca60"
+        "projectId": "fc5caa1c-dbaf-4dcf-ab89-cad6155ff22e"
       }
-    }
+    },
+    "owner": "youmsx"
   }
 }

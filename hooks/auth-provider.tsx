@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/app/lib/supabase";
-import { api } from "@/app/lib/axios";
+import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/axios";
 
 type AuthContextType = {
     user: User | null;

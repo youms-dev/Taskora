@@ -1,4 +1,4 @@
-import { api } from "@/app/lib/axios";
+import { api } from "@/lib/axios";
 import { colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { Task as TaskType } from "@/types/task";

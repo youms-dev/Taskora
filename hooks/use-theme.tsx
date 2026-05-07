@@ -47,7 +47,7 @@ export const ThemeProvider = ({ children }: Props) => {
     }, [colorScheme]);
 
     const toggleTheme = async (value: "light" | "dark" | "system") => {
-        setColorScheme(value);
+        // setColorScheme(value);
         await setItem(value);
     }
 

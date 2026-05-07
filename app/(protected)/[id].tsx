@@ -13,7 +13,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, View } from "react-native";
-import { api } from "./lib/axios";
+import { api } from "../../lib/axios";
 
 export default function Update() {
     const params = useLocalSearchParams<{ id: string }>();

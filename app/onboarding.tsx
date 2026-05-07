@@ -19,8 +19,8 @@ import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from "ex
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
-import { api } from "./lib/axios";
-import { supabase } from "./lib/supabase";
+import { api } from "../lib/axios";
+import { supabase } from "../lib/supabase";
 
 export default function Onboarding() {
     const [page, setPage] = useState<number>(0);
@@ -249,7 +249,7 @@ export default function Onboarding() {
                 <View className="w-full h-[10%] flex flex-row justify-center items-center gap-3 p-3">
                     <View className="size-[70px] p-1 rounded-full">
                         <Image
-                            source={require("../assets/images/logo.jpg")}
+                            source={require("../assets/images/logo.png")}
                             style={{
                                 width: "100%",
                                 height: "100%",
@@ -344,7 +344,7 @@ export default function Onboarding() {
                                 <FontAwesome6 name="image" size={30} color="black" />
                             </PressableAnimated>
                             <Image
-                                source={image.trim().length == 0 ? require("../assets/images/logo.jpg") : image}
+                                source={image.trim().length == 0 ? require("../assets/images/logo.png") : image}
                                 style={{
                                     width: "100%",
                                     height: "100%",

@@ -10,14 +10,14 @@ import * as ImagePicker from "expo-image-picker";
 import { Modal } from "./modal";
 import { Toast, ToastType } from "./toast";
 import { PressableAnimated } from "./pressable";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
 import { createId } from "@paralleldrive/cuid2";
 import { File } from "expo-file-system";
 import { decode } from "base64-arraybuffer";
 import { useAuth } from "@/hooks/auth-provider";
 import { Picture } from "./picture";
-import { api } from "@/app/lib/axios";
+import { api } from "@/lib/axios";
 
 interface Props {
     page: number;

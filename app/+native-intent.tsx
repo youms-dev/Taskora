@@ -4,7 +4,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome6";
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 
-export default function NotFoundScreen() {
+export default function NativeIntent() {
   const router = useRouter();
 
   return (

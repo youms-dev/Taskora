@@ -152,7 +152,7 @@ export default function Register() {
     <Container center>
       <KeyboardAvoidingView
         behavior={Platform.OS == "android" ? "padding" : "height"}
-        className="relative w-11/12 flex items-center gap-5"
+        className="w-11/12 flex items-center gap-5"
       >
         <View className="w-full flex justify-center items-center mb-5">
           <Text className="text-5xl text-emerald-500 font-bold animate-bounce">Inscription</Text>
