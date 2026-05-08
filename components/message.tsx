@@ -12,6 +12,23 @@ export interface MessageProps {
     onCancel: () => void;
 }
 
+/**
+ * 
+ * @param message Message message
+ * 
+ * @param show Whether the message is shown
+ * @default false
+ * 
+ * @param bottom Message bottom
+ * @default 97
+ * 
+ * @param action Message action
+ * 
+ * @param onCancel Message on cancel
+ * 
+ * @returns Message component
+ */
+
 export const Message = ({ message, show = false, onCancel, action, bottom = 97 }: MessageProps) => {
     const { width, height } = Dimensions.get("window");
     const translationY = useSharedValue<number>(0);

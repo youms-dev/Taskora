@@ -7,6 +7,14 @@ interface Props {
     value?: "light" | 'dark' | "system";
 }
 
+/**
+ * 
+ * @param value Theme card value
+ * @default system
+ * 
+ * @returns Theme card component
+ */
+
 export const ThemeCard = ({ value = "system" }: Props) => {
     return (
         <View className="w-full h-full bg-white/20 rounded-2xl">

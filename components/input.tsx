@@ -20,6 +20,20 @@ interface Props extends TextInputProps {
   big?: boolean;
 }
 
+/**
+ * 
+ * @param placeholder Input placeholder
+ * 
+ * @param icon Input icon
+ * 
+ * @param value Input value
+ * 
+ * @param big Whether the input is big
+ * @default false
+ * 
+ * @returns Input component
+ */
+
 export const Input = ({ placeholder, icon, value, big = false, ...rest }: Props) => {
   const Input = Animated.createAnimatedComponent(TextInput);
   const focused = useSharedValue<boolean>(false);

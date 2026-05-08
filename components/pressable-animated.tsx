@@ -10,6 +10,22 @@ export interface PressableAnimatedProps extends PressableProps {
     onPressOut?: PressableProps["onPressOut"];
 }
 
+/**
+ * 
+ * @param children Pressable animated children
+ * 
+ * @param style Pressable animated style
+ * 
+ * @param scale Pressable animated scale
+ * @default 0.9
+ * 
+ * @param onPressIn Pressable animated on in
+ * 
+ * @param onPressOut Pressable animated on out
+ * 
+ * @returns Pressable animated component
+ */
+
 export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
     const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
     const pressed = useSharedValue<boolean>(false);

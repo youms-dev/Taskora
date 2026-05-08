@@ -13,6 +13,24 @@ interface Props {
   safeArea?: boolean;
 }
 
+/**
+ * 
+ * @param children Container children
+ * @param center Whether the container is centered
+ * @default false
+ * 
+ * @param centerX Whether the container is centered in the x axis
+ * @default false
+ * 
+ * @param centerY Whether the container is centered in the y axis
+ * @default false
+ * 
+ * @param safeArea Whether the container is safe area
+ * @default true
+ * 
+ * @returns Container component
+ */
+
 export const Container = ({ children, center, centerX, centerY, safeArea = true }: Props) => {
   const { theme } = useTheme();
   const appTheme = useSharedValue<typeof theme>("dark");

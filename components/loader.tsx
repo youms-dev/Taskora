@@ -4,6 +4,14 @@ interface Props {
     size?: number;
 }
 
+/**
+ * 
+ * @param size Loader size
+ * @default 100
+ * 
+ * @returns Loader component
+ */
+
 export const Loader = ({ size = 100 }: Props) => {
     const rootAnimation = useAnimatedStyle(() => ({
         transform: [{

@@ -12,6 +12,16 @@ interface Props {
 
 const PressableAnimated = Animated.createAnimatedComponent(Pressable);
 
+/**
+ * 
+ * @param active Whether the toggle is active
+ * @default false
+ * 
+ * @param onChange Toggle on change
+ * 
+ * @returns Toggle component
+ */
+
 export const Toggle = ({ active = false, onChange }: Props) => {
     const isActive = useSharedValue<boolean>(false);
     const { theme } = useTheme();

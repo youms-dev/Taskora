@@ -8,6 +8,19 @@ interface Props {
     textSize?: number;
 }
 
+/**
+ * 
+ * @param name Picture name
+ * 
+ * @param size Picture size
+ * @default 50
+ * 
+ * @param textSize Picture text size
+ * @default 20
+ * 
+ * @returns Picture component
+ */
+
 export const Picture = ({ name, size = 50, textSize = 20 }: Props) => {
     const [displayName, setDisplayName] = useState<string>("");
 

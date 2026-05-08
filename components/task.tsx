@@ -20,6 +20,23 @@ interface Props extends PressableProps {
     selectedNumber?: number;
 }
 
+/**
+ * 
+ * @param task Task task
+ * 
+ * @param longPress Task long press
+ * 
+ * @param selected Whether the task is selected
+ * @default false
+ * 
+ * @param loading Whether the task is loading
+ * @default false
+ * 
+ * @param selectedNumber Selected number
+ * 
+ * @returns Task component
+ */
+
 export const Task = ({ task, longPress, selected = false, loading = false, selectedNumber, ...rest }: Props) => {
     const { theme } = useTheme();
     const [layout, setLayout] = useState<{

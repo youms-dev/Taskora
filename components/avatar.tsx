@@ -10,6 +10,19 @@ interface Props {
     };
 }
 
+/**
+ * 
+ * @param size Avatar size
+ * @default 100
+ * 
+ * @param scale Avatar scale
+ * @default 1
+ * 
+ * @param name Avatar name
+ * 
+ * @returns Avatar component
+ */
+
 export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
     return (
         <View
@@ -29,7 +42,7 @@ export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
                 }}
                 className="font-bold"
             >
-                {name.value.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase()}
+                {name.value.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
             </TextAnimated>
         </View>
     );

@@ -7,6 +7,13 @@ interface Props {
     colors: LinearGradientProps["colors"];
 }
 
+/**
+ * 
+ * @param text Gradient text text
+ * @param colors Gradient text colors
+ * @returns Gradient text component
+ */
+
 export const GradientText = ({ text, colors }: Props) => {
     return (
         <MaskedView

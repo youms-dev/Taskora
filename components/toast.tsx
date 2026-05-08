@@ -15,6 +15,24 @@ export interface ToastProps {
     type?: ToastType;
 }
 
+/**
+ * 
+ * @param message Toast message
+ * 
+ * @param show Whether the toast is shown
+ * @default false
+ * 
+ * @param onCancel Toast on cancel
+ * 
+ * @param top Toast top
+ * @default 0
+ * 
+ * @param type Toast type
+ * @default default
+ * 
+ * @returns Toast component
+ */
+
 export const Toast = ({ message, show = false, onCancel, top = 0, type = "default" }: ToastProps) => {
     const { width, height } = Dimensions.get("window");
     const translationY = useSharedValue<number>(0);

@@ -1,5 +1,7 @@
 {
     "home": "Home",
     "settings": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "name": "Name",
+    "email": "Email"
 }   

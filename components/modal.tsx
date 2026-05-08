@@ -10,6 +10,18 @@ interface Props {
     children: React.ReactNode;
 }
 
+/**
+ * 
+ * @param visible Modal visible
+ * @default false
+ * 
+ * @param onClose Whether the modal is closed
+ * @default false
+ * 
+ * @param children Modal children
+ * @returns Modal component
+ */
+
 export const Modal = ({ visible = false, onClose, children }: Props) => {
     const { width, height } = Dimensions.get("window");
     const translateY = useSharedValue<number>(0);

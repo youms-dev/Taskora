@@ -10,6 +10,22 @@ interface Props extends TextProps {
     style?: TextProps["style"];
 }
 
+/**
+ * 
+ * @param children Text animated children
+ * 
+ * @param dark Text animated dark color
+ * @default rgba(255, 255, 255, .8)
+ * 
+ * @param light Text animated light color
+ * @default rgba(0, 0, 0, .0)
+ * 
+ * @param style Text animated style
+ * @returns Text animated component
+ */
+
+
+
 export const TextAnimated = ({ children, dark = "rgba(255, 255, 255, .8)", light = "rgba(0, 0, 0, .0)", style, ...rest }: Props) => {
     const { theme: appTheme } = useTheme();
     const theme = useSharedValue<typeof appTheme>(appTheme);

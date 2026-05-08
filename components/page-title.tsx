@@ -24,6 +24,14 @@ interface Props {
     title: string;
 }
 
+/**
+ * 
+ * @param icon Page title icon
+ * 
+ * @param title Page title title
+ * @returns Page title component
+ */
+
 export const PageTitle = ({ icon, title }: Props) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [image, setImage] = useState<string | null>(null);

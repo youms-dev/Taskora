@@ -11,6 +11,27 @@ interface Props extends PressableProps {
   background?: string;
 }
 
+/**
+ * 
+ * @param children Button children
+ * @param loaderSize ActivityIndicator size
+ * @default 20
+ * 
+ * @param loading Whether the button is loading
+ * @default false
+ * 
+ * @param className Button className
+ * @default ""
+ * 
+ * @param scale Button scale
+ * @default 1
+ * 
+ * @param background Button background
+ * @default "bg-emerald-500"
+ * 
+ * @returns Button component
+ */
+
 export const Button = ({ children, loaderSize = 20, loading = false, className = "", scale = 1, background = "bg-emerald-500", ...rest }: Props) => {
   return (
     <PressableAnimated
