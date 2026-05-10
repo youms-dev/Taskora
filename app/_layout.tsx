@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../lib/i18n";
 import "./global.css";
+import { ToastProvider } from "@/hooks/use-toast";
 
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
@@ -29,31 +30,32 @@ export default function Layout() {
         <SafeAreaProvider>
             <GestureHandlerRootView>
                 <ThemeProvider>
-                    <AuthProvider>
-                        {
-                            loading && (
-                                <Container centerX>
-                                    <View className="w-full h-full flex justify-center items-center">
-                                        <View className="size-[100px]">
-                                            <Loader />
+                    <ToastProvider>
+                        <AuthProvider>
+                            {
+                                loading && (
+                                    <Container centerX>
+                                        <View className="w-full h-full flex justify-center items-center">
+                                            <View className="size-[100px]">
+                                                <Loader />
+                                            </View>
                                         </View>
-                                    </View>
-                                </Container>
-                            )
-                        }
+                                    </Container>
+                                )
+                            }
 
-                        {
-                            !loading && (
-                                <Stack screenOptions={{
-                                    headerShown: false,
-                                    animation: "fade",
-                                }}>
-                                    {/* <Stack.Protected guard={user ? false : true}> */}
-                                    <Stack.Protected guard={true}>
-                                        <Stack.Screen name="index" />
-                                    </Stack.Protected>
+                            {
+                                !loading && (
+                                    <Stack screenOptions={{
+                                        headerShown: false,
+                                        animation: "fade",
+                                    }}>
+                                        {/* <Stack.Protected guard={user ? false : true}> */}
+                                        <Stack.Protected guard={true}>
+                                            <Stack.Screen name="index" />
+                                        </Stack.Protected>
 
-                                    {/* <Stack.Protected guard={user ? false : true}>
+                                        {/* <Stack.Protected guard={user ? false : true}>
                                         <Stack.Screen name="register" />
                                     </Stack.Protected>
 
@@ -69,10 +71,11 @@ export default function Layout() {
                                     <Stack.Protected guard={false}>
                                         <Stack.Screen name="onboarding" />
                                     </Stack.Protected> */}
-                                </Stack>
-                            )
-                        }
-                    </AuthProvider>
+                                    </Stack>
+                                )
+                            }
+                        </AuthProvider>
+                    </ToastProvider>
                 </ThemeProvider>
             </GestureHandlerRootView>
         </SafeAreaProvider>

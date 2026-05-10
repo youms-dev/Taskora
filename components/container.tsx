@@ -1,7 +1,7 @@
 import { useTheme } from '@/hooks/use-theme';
 import clsx from 'clsx';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { CSSProperties, useEffect } from 'react';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +11,11 @@ interface Props {
   centerX?: boolean;
   centerY?: boolean;
   safeArea?: boolean;
+  background?: {
+    dark: string;
+    light: string;
+  }
+  statusBarColor?: "light" | "dark";
 }
 
 /**
@@ -28,26 +33,35 @@ interface Props {
  * @param safeArea Whether the container is safe area
  * @default true
  * 
+ * @param background The container background
+ * 
+ * @param statusBarColor The status bar text color
+ * 
  * @returns Container component
  */
 
-export const Container = ({ children, center, centerX, centerY, safeArea = true }: Props) => {
+export const Container = ({ children, center, centerX, centerY, safeArea = true, background: bg, statusBarColor }: Props) => {
   const { theme } = useTheme();
   const appTheme = useSharedValue<typeof theme>("dark");
+  const background = useSharedValue<typeof bg>(bg);
 
   useEffect(() => {
     appTheme.value = theme;
-  }, [theme]);
+    background.value = bg;
+  }, [theme, bg]);
 
   const viewAnimation = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(appTheme.value == "dark" ? "black" : "white", {
+    backgroundColor: withTiming(background.value ? (appTheme.value == "dark" ? background.value.dark : background.value.light) : "transparent", {
       duration: 300,
       easing: Easing.inOut(Easing.quad),
     }),
   }));
   const Render = (
     <>
-      <StatusBar style={theme == "dark" ? "light" : "dark"} animated />
+      <StatusBar
+        style={statusBarColor ? statusBarColor : (theme == "dark" ? "light" : "dark")}
+        animated
+      />
       <Animated.View
         style={viewAnimation}
         className={clsx(
@@ -63,7 +77,7 @@ export const Container = ({ children, center, centerX, centerY, safeArea = true 
 
   if (safeArea) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "black" : "white" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "rgba(0, 0, 0)" : "rgba(0, 0, 0, .1)" }}>
         {Render}
       </SafeAreaView>
     );

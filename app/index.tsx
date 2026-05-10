@@ -1,19 +1,17 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
-import { Toast, ToastProps } from '@/components/toast';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
 import { useTheme } from '@/hooks/use-theme';
+import { useToast } from '@/hooks/use-toast';
 import { checkLength, checkPattern } from '@/utils/tools';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Modal } from '@/components/modal';
-import { BlurView } from 'expo-blur';
 
 export default function Login() {
   const initialInputsValues = {
@@ -34,48 +32,27 @@ export default function Login() {
   const [loading, setLoading] = useState<boolean>(false);
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();
-  const [toast, setToast] = useState<Omit<ToastProps, "onCancel">>({
-    show: false,
-    message: "",
-    top: 0,
-    type: "default"
-  });
+  const { setToast } = useToast();
 
   const handleSubmit = async () => {
     setLoading(true);
     if (inputsValues.email.trim().length == 0 || inputsValues.password.value.trim().length == 0) {
-      setToast({
-        show: true,
-        message: "Veuillez remplir tous les champs",
-        type: "warning",
-      });
+      setToast("Veuillez remplir tous les champs", "warning");
       setLoading(false);
       return;
     }
     else if (!checkLength(inputsValues.email.trim(), [EMAIL_LENGTH.min, EMAIL_LENGTH.max ?? 100])) {
-      setToast({
-        show: true,
-        message: `L'email doit être entre ${EMAIL_LENGTH.min} et ${EMAIL_LENGTH.max ?? 100} caractères`,
-        type: "warning",
-      });
+      setToast(`L'email doit être entre ${EMAIL_LENGTH.min} et ${EMAIL_LENGTH.max ?? 100} caractères`, "warning");
       setLoading(false);
       return;
     }
     else if (!checkPattern(inputsValues.email.trim(), EMAIL_REGEX)) {
-      setToast({
-        show: true,
-        message: "Format de l'email invalide",
-        type: "warning",
-      });
+      setToast("Format de l'email invalide", "warning");
       setLoading(false);
       return;
     }
     else if (!checkLength(inputsValues.password.value.trim(), [PASSWORD_LENGTH.min, PASSWORD_LENGTH.max ?? 100])) {
-      setToast({
-        show: true,
-        message: `Le mot de passe doit être entre ${PASSWORD_LENGTH.min} et ${PASSWORD_LENGTH.max ?? 100} caractères`,
-        type: "warning",
-      });
+      setToast(`Le mot de passe doit être entre ${PASSWORD_LENGTH.min} et ${PASSWORD_LENGTH.max ?? 100} caractères`, "warning");
       setLoading(false);
       return;
     }
@@ -88,40 +65,24 @@ export default function Login() {
       });
 
       if (error && error.status == 400) {
-        setToast({
-          show: true,
-          message: "Identifiants invalides",
-          type: "error",
-        });
+        setToast("Identifiants invalides", "error");
         setLoading(false);
         return;
       }
       else if (error && (error.status != 400 || !error.status)) {
-        setToast({
-          show: true,
-          message: "Une erreur s'est produite",
-          type: "error",
-        });
+        setToast("Une erreur s'est produite", "error");
         setLoading(false);
         return;
       }
       else if (!user && !session) {
-        setToast({
-          show: true,
-          message: "Une erreur s'est produite",
-          type: "error",
-        });
+        setToast("Une erreur s'est produite", "error");
         setLoading(false);
         return;
       }
       setLoading(false);
     }
     catch (error) {
-      setToast({
-        show: true,
-        message: "Une erreur s'est produite",
-        type: "error",
-      });
+      setToast("Une erreur s'est produite", "error");
       setLoading(false);
     }
   };
@@ -185,10 +146,10 @@ export default function Login() {
             loaderSize={25}
             loading={loading}
             scale={.8}
-            // onPress={() => handleSubmit()}
-            // onPress={() => setActive(true)}
+            onPress={() => handleSubmit()}
             className='w-[300px] h-[60px]'
           >
+
             <Text className='text-2xl font-extrabold'>Soumettre</Text>
           </Button>
         </View>
@@ -217,16 +178,6 @@ export default function Login() {
         >
         </LinearGradient>
       </KeyboardAvoidingView>
-      <Toast
-        show={toast.show}
-        message={toast.message}
-        top={toast.top}
-        type={toast.type}
-        onCancel={() => setToast({
-          ...toast,
-          show: false,
-        })}
-      />
     </Container>
   );
 }
