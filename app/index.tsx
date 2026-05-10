@@ -12,6 +12,8 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { Modal } from '@/components/modal';
+import { BlurView } from 'expo-blur';
 
 export default function Login() {
   const initialInputsValues = {
@@ -183,7 +185,8 @@ export default function Login() {
             loaderSize={25}
             loading={loading}
             scale={.8}
-            onPress={() => handleSubmit()}
+            // onPress={() => handleSubmit()}
+            // onPress={() => setActive(true)}
             className='w-[300px] h-[60px]'
           >
             <Text className='text-2xl font-extrabold'>Soumettre</Text>

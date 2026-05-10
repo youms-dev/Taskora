@@ -48,11 +48,12 @@ export default function Layout() {
                                     headerShown: false,
                                     animation: "fade",
                                 }}>
-                                    <Stack.Protected guard={user ? false : true}>
+                                    {/* <Stack.Protected guard={user ? false : true}> */}
+                                    <Stack.Protected guard={true}>
                                         <Stack.Screen name="index" />
                                     </Stack.Protected>
 
-                                    <Stack.Protected guard={user ? false : true}>
+                                    {/* <Stack.Protected guard={user ? false : true}>
                                         <Stack.Screen name="register" />
                                     </Stack.Protected>
 
@@ -67,7 +68,7 @@ export default function Layout() {
 
                                     <Stack.Protected guard={false}>
                                         <Stack.Screen name="onboarding" />
-                                    </Stack.Protected>
+                                    </Stack.Protected> */}
                                 </Stack>
                             )
                         }
