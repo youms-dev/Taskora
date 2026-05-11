@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/colors";
 import { useAuth } from "@/hooks/auth-provider";
+import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
 import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
@@ -17,7 +18,7 @@ import { Button } from "./Button";
 import { Modal } from "./modal";
 import { Picture } from "./picture";
 import { PressableAnimated } from "./pressable-animated";
-import { Toast, ToastType } from "./toast";
+import { Avatar } from "./avatar";
 
 interface Props {
     icon?: ReactNode;
@@ -35,16 +36,7 @@ interface Props {
 export const PageTitle = ({ icon, title }: Props) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [image, setImage] = useState<string | null>(null);
-    const [toast, setToast] = useState<{
-        show: boolean;
-        message: string;
-        type?: ToastType;
-        top?: number;
-    }>({
-        show: false,
-        message: "",
-        type: "default",
-    });
+    const { setToast } = useToast();
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
 
@@ -52,12 +44,7 @@ export const PageTitle = ({ icon, title }: Props) => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permission.granted) {
-            setToast({
-                show: true,
-                message: "Nous avons besoin de votre permission pour acceder à vos fichiers",
-                type: "warning",
-                top: -100
-            });
+            setToast("Nous avons besoin de votre permission pour acceder à vos fichiers", "warning");
             return;
         }
 
@@ -78,12 +65,7 @@ export const PageTitle = ({ icon, title }: Props) => {
                 const base64 = new File(file.uri).base64Sync();
 
                 if (!name || !ext) {
-                    return setToast({
-                        show: true,
-                        message: "Fichier corrompu ou illisible !",
-                        type: "error",
-                        top: -100
-                    });
+                    return setToast("Fichier corrompu ou illisible !", "error");
                 }
 
                 if (user && user.user_metadata.photoUrl) {
@@ -102,23 +84,13 @@ export const PageTitle = ({ icon, title }: Props) => {
                 }
             }
             else {
-                setToast({
-                    show: true,
-                    message: "Aucun fichier sélectionné 🥲",
-                    type: "warning",
-                    top: -100
-                });
+                setToast("Aucun fichier sélectionné 🥲", "warning");
             }
             setSaveLoading(false);
         }
         catch (error) {
             setSaveLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error",
-                top: -100
-            });
+            setToast("Une erreur s'est produite", "error");
         }
     };
 
@@ -135,12 +107,7 @@ export const PageTitle = ({ icon, title }: Props) => {
         }
         catch (error) {
             setSaveLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error",
-                top: -100
-            });
+            setToast("Une erreur s'est produite", "error");
         }
     }
 
@@ -155,17 +122,16 @@ export const PageTitle = ({ icon, title }: Props) => {
                     {title}
                 </Text>
             </View>
-            
+
             <PressableAnimated
                 className="size-[50px] rounded-full p-1"
                 onPress={() => setVisible(true)}
             >
                 {
                     user && !user.user_metadata.photoUrl && (
-                        <Picture
+                        <Avatar
                             name={user.user_metadata.name}
                             size={50}
-                            textSize={22}
                         />
                     )
                 }
@@ -185,7 +151,7 @@ export const PageTitle = ({ icon, title }: Props) => {
             </PressableAnimated>
 
             <Modal
-                visible={visible}
+                active={visible}
                 onClose={() => setVisible(false)}
             >
                 <View className="w-full h-full flex flex-col items-center">
@@ -197,10 +163,9 @@ export const PageTitle = ({ icon, title }: Props) => {
                         <View className="size-[250px] rounded-[9999px] p-4">
                             {
                                 user && !user.user_metadata.photoUrl && (
-                                    <Picture
+                                    <Avatar
                                         name={user.user_metadata.name}
-                                        size={"full"}
-                                        textSize={90}
+                                        size={100}
                                     />
                                 )
                             }
@@ -246,16 +211,6 @@ export const PageTitle = ({ icon, title }: Props) => {
                                 <Text className="text-2xl text-black font-bold">Choisir une photo</Text>
                             </Button>
                         </View>
-                        <Toast
-                            show={toast.show}
-                            message={toast.message}
-                            type={toast.type}
-                            top={toast.top}
-                            onCancel={() => setToast({
-                                ...toast,
-                                show: false,
-                            })}
-                        />
                     </View>
                 </View>
             </Modal>

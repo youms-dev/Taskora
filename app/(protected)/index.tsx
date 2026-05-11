@@ -3,13 +3,14 @@ import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { Message, MessageProps } from "@/components/message";
 import { Modal } from "@/components/modal";
+import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { Task } from "@/components/task";
-import { Toast, ToastType } from "@/components/toast";
 import { COLORS } from "@/constants/colors";
 import { CONFIRM_STORAGE } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 import { Task as TaskType } from "@/types/task";
 import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -21,23 +22,12 @@ import { ActivityIndicator, BackHandler, FlatList, Keyboard, KeyboardAvoidingVie
 import PagerView from "react-native-pager-view";
 import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
-import { PageTitle } from "@/components/page-title";
 
 export default function Home() {
     const pageRef = useRef<PagerView>(null);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const { height } = useWindowDimensions();
-    const [toast, setToast] = useState<{
-        message: string;
-        show: boolean;
-        type?: ToastType;
-        top?: number;
-    }>({
-        message: "",
-        show: false,
-        type: "default",
-        top: 0,
-    });
+    const { setToast } = useToast();
     const [value, setValue] = useState<string>("");
     const router = useRouter();
     const { theme } = useTheme();
@@ -60,19 +50,11 @@ export default function Home() {
 
     const handleSubmit = async () => {
         if (value.trim().length == 0) {
-            setToast({
-                message: "Veuillez renseigner la description de la tâche !",
-                show: true,
-                type: "warning",
-            });
+            setToast("Veuillez renseigner la description de la tâche !","warning");
             return;
         }
         else if (!checkLength(value.trim(), [3, null])) {
-            setToast({
-                message: "La longueur minimale requise est de 3",
-                show: true,
-                type: "warning",
-            });
+            setToast("La longueur minimale requise est de 3","warning");
             return;
         }
 
@@ -83,11 +65,7 @@ export default function Home() {
             await api.post("/task/create", {
                 content: valueFormatted,
             });
-            setToast({
-                message: "Tâche créée 😉",
-                show: true,
-                type: "success",
-            });
+            setToast("Tâche créée 😉","success");
             setValue("");
             setTimeout(() => {
                 router.replace("/");
@@ -99,18 +77,10 @@ export default function Home() {
 
             setLoading(false);
             if (data.message) {
-                setToast({
-                    message: data.message,
-                    show: true,
-                    type: "error",
-                });
+                setToast(data.message,"error");
             }
             else {
-                setToast({
-                    message: "Une erreur d'est produite",
-                    show: true,
-                    type: "error",
-                });
+                setToast("Une erreur d'est produite","error");
             }
         }
     }
@@ -125,11 +95,7 @@ export default function Home() {
             setLoading(false);
         }
         catch (e) {
-            setToast({
-                message: "Aucune connexion internet",
-                show: true,
-                type: "error",
-            });
+            setToast("Aucune connexion internet","error");
             console.log(e);
         }
     }
@@ -145,11 +111,7 @@ export default function Home() {
             setRefreshing(false);
         }
         catch (e) {
-            setToast({
-                message: "Aucune connexion internet",
-                show: true,
-                type: "error",
-            });
+            setToast("Aucune connexion internet","error");
         }
     }
 
@@ -159,11 +121,7 @@ export default function Home() {
             setCount(data);
         }
         catch (e) {
-            setToast({
-                message: "Aucune connexion internet",
-                show: true,
-                type: "error",
-            });
+            setToast("Aucune connexion internet","error");
         }
     }
 
@@ -256,21 +214,13 @@ export default function Home() {
                 }
             });
             setTasksPressed([]);
-            setToast({
-                show: true,
-                message: "Tâche(s) supprimée(s)",
-                type: "success"
-            });
+            setToast("Tâche(s) supprimée(s)","success");
             setTimeout(() => {
                 router.replace("/");
             }, 500);
         }
         catch (e) {
-            setToast({
-                message: "Aucune connexion internet",
-                show: true,
-                type: "error",
-            });
+            setToast("Aucune connexion internet","error");
             setTasks([...datas, ...tasks]);
         }
     };
@@ -520,16 +470,6 @@ export default function Home() {
                     </PressableAnimated>
                 </Animated.View>
 
-                <Toast
-                    show={toast.show}
-                    message={toast.message}
-                    type={toast.type}
-                    onCancel={() => setToast({
-                        ...toast,
-                        show: false,
-                    })}
-                />
-
                 <Message
                     show={message.show}
                     message={message.message}
@@ -550,7 +490,7 @@ export default function Home() {
             </PressableAnimated>
 
             <Modal
-                visible={modalVisible}
+                active={modalVisible}
                 onClose={() => setModalVisible(false)}
             >
                 <KeyboardAvoidingView
@@ -578,16 +518,6 @@ export default function Home() {
                     </Button>
                 </KeyboardAvoidingView>
             </Modal>
-            <Toast
-                show={toast.show}
-                message={toast.message}
-                onCancel={() => setToast({
-                    ...toast,
-                    show: false,
-                })}
-                top={toast.top}
-                type={toast.type}
-            />
         </Container>
     );
 }

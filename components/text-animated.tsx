@@ -5,9 +5,9 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "
 
 interface Props extends TextProps {
     children: string | number;
-    dark?: CSSProperties["color"];
-    light?: CSSProperties["color"];
     style?: TextProps["style"];
+    dark: CSSProperties["color"];
+    light: CSSProperties["color"];
 }
 
 /**
@@ -26,20 +26,20 @@ interface Props extends TextProps {
 
 
 
-export const TextAnimated = ({ children, dark = "rgba(255, 255, 255, .8)", light = "rgba(0, 0, 0, .0)", style, ...rest }: Props) => {
+export const TextAnimated = ({ children, dark: darkColor = "rgba(255, 255, 255, .8)", light: lightColor = "rgba(0, 0, 0, .0)", style, ...rest }: Props) => {
     const { theme: appTheme } = useTheme();
     const theme = useSharedValue<typeof appTheme>(appTheme);
-    const darkColor = useSharedValue<typeof dark>(dark);
-    const lightColor = useSharedValue<typeof light>(light);
+    const dark = useSharedValue<typeof darkColor>(darkColor);
+    const light = useSharedValue<typeof lightColor>(lightColor);
 
     useEffect(() => {
         theme.value = appTheme;
-        darkColor.value = dark;
-        lightColor.value = light;
-    }, [appTheme, dark, light]);
+        dark.value = darkColor;
+        light.value = lightColor;
+    }, [appTheme, darkColor, lightColor]);
 
     const animation = useAnimatedStyle(() => ({
-        color: withTiming(theme.value == "dark" ? darkColor.value : lightColor.value, {
+        color: withTiming(theme.value == "dark" ? dark.value : light.value, {
             duration: 200,
             easing: Easing.inOut(Easing.quad),
         }),

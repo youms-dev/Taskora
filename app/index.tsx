@@ -12,6 +12,9 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { PressableAnimated } from '@/components/pressable-animated';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
 export default function Login() {
   const initialInputsValues = {
@@ -33,6 +36,7 @@ export default function Login() {
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();
   const { setToast } = useToast();
+  const [size, setSize] = useState<number>(0);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -147,11 +151,36 @@ export default function Login() {
             loading={loading}
             scale={.8}
             onPress={() => handleSubmit()}
-            className='w-[300px] h-[60px]'
+            className="w-[300px] h-[60px]"
           >
-
             <Text className='text-2xl font-extrabold'>Soumettre</Text>
           </Button>
+        </View>
+
+        <View className='w-full flex flex-row flex-wrap justify-center items-center gap-8 px-3'>
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="google"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
+
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="facebook-f"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
+
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="linkedin-in"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
         </View>
 
         <View className="w-full flex flex-row justify-center items-center">
@@ -167,16 +196,16 @@ export default function Login() {
           colors={[COLORS.emerald[500], theme === "dark" ? "black" : "white"]}
           start={{ x: 1, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0, .2]}
-          className="absolute animate-pulse"
+          locations={[0, .12]}
+          onLayout={(e) => setSize(e.nativeEvent.layout.height)}
+          className="absolute animate-pulse -z-10"
           style={{
-            bottom: -(height - (height * 1) / 100),
+            bottom: -(size + size * .01),
             width: "210%",
             height: "210%",
             borderRadius: 9999
           }}
-        >
-        </LinearGradient>
+        />
       </KeyboardAvoidingView>
     </Container>
   );

@@ -1,6 +1,7 @@
-import { api } from "@/lib/axios";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
 import { Task as TaskType } from "@/types/task";
 import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -10,7 +11,6 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
-import { Toast, ToastProps } from "./toast";
 
 interface Props extends PressableProps {
     task: TaskType;
@@ -48,12 +48,7 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
     });
     const router = useRouter();
     const [updateLoading, setUpdateLoading] = useState<boolean>(false);
-    const [toast, setToast] = useState<Omit<ToastProps, "onCancel">>({
-        show: false,
-        message: "",
-        top: 0,
-        type: "default"
-    });
+    const { setToast } = useToast();
     const isSelected = useSharedValue<boolean>(false);
 
     useEffect(() => {
@@ -77,18 +72,10 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
             });
 
             if (res.status !== 200) {
-                setToast({
-                    show: true,
-                    message: "Une erreur s'est produite",
-                    type: "error",
-                });
+                setToast("Une erreur s'est produite", "error");
                 return;
             }
-            setToast({
-                show: true,
-                message: "Tâche modifiée ☺️",
-                type: "success",
-            });
+            setToast("Tâche modifiée ☺️", "success");
             setUpdateLoading(false);
             setTimeout(() => {
                 router.replace("/");
@@ -96,11 +83,7 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
         }
         catch (error) {
             setUpdateLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error",
-            });
+            setToast("Une erreur s'est produite", "error");
         }
     }
 
@@ -206,17 +189,6 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                     </Link>
                 </PressableAnimated>
             </View>
-
-            <Toast
-                show={toast.show}
-                message={toast.message}
-                top={toast.top}
-                type={toast.type}
-                onCancel={() => setToast({
-                    ...toast,
-                    show: false,
-                })}
-            />
         </Pressable>
     );
 }

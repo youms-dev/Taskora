@@ -4,8 +4,7 @@ import { BlurView } from "expo-blur";
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { DimensionValue, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import { useTheme } from "./use-theme";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 type ToastType = "success" | "error" | "warning" | "default";
 
@@ -25,18 +24,17 @@ export const ToastProvider = ({ children }: Props) => {
     const [text, setText] = useState<string>("");
     const { width, height } = useWindowDimensions();
     const [left, setLeft] = useState<DimensionValue>(0);
-    const { theme } = useTheme();
     const [type, setType] = useState<ToastType>("default");
-    const [hideValue, setHideValue] = useState<number>(-height + (height * .8));
-    const translateY = useSharedValue<number>(hideValue);
+    const [hideValue, setHideValue] = useState<number>(0);
+    const translateY = useSharedValue<number>(0);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const refreshTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const textValue = useSharedValue<string>(text);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const setToast = (value: string, type: ToastType = "default", duration: number = 3000) => {
-        refreshTimeout.current && clearTimeout(refreshTimeout.current);
         closeTimeout.current && clearTimeout(closeTimeout.current);
+        refreshTimeout.current && clearTimeout(refreshTimeout.current);
         setText(value);
         setType(type);
         if (text.trim().length > 0) {
@@ -46,7 +44,9 @@ export const ToastProvider = ({ children }: Props) => {
             }, 200);
         }
         else {
-            translateY.value = 0;
+            refreshTimeout.current = setTimeout(() => {
+                translateY.value = 0;
+            }, 200);
         }
         timeout.current = setTimeout(() => {
             handleClose();
@@ -54,13 +54,6 @@ export const ToastProvider = ({ children }: Props) => {
     }
 
     const animation = useAnimatedStyle(() => ({
-        opacity: withDelay(
-            200,
-            withTiming(textValue.value.trim().length > 0 ? 1 : 0, {
-                duration: 10,
-                easing: Easing.inOut(Easing.linear),
-            }),
-        ),
         transform: [
             {
                 scale: withRepeat(
@@ -112,7 +105,8 @@ export const ToastProvider = ({ children }: Props) => {
 
     useEffect(() => {
         textValue.value = text;
-    }, [text]);
+        translateY.value = hideValue;
+    }, [text, hideValue]);
 
     return (
         <Context.Provider value={{
@@ -123,7 +117,7 @@ export const ToastProvider = ({ children }: Props) => {
                 <Animated.View
                     onLayout={(e) => {
                         setLeft((width / 2) - (e.nativeEvent.layout.width / 2));
-                        setHideValue(-(height + (height * .8) + e.nativeEvent.layout.height));
+                        setHideValue(-((height + (height * .1) + e.nativeEvent.layout.height)));
                     }}
                     style={[
                         {
@@ -132,7 +126,7 @@ export const ToastProvider = ({ children }: Props) => {
                         },
                         animation,
                     ]}
-                    className="absolute top-10 w-11/12 sm:w-[500px] dark:bg-white/50 bg-white rounded-2xl overflow-hidden"
+                    className="absolute top-10 w-11/12 sm:w-[500px] dark:bg-white/50 bg-black/20 rounded-2xl overflow-hidden"
                 >
                     <BlurView
                         intensity={100}
@@ -152,7 +146,7 @@ export const ToastProvider = ({ children }: Props) => {
                                 else if (type == "warning") return COLORS.amber[400];
                                 else return "rgba(255, 255, 255, .8)";
                             })()}
-                            className="text-2xl text-center"
+                            className="text-xl text-center"
                         >
                             {text}
                         </TextAnimated>

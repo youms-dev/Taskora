@@ -1,11 +1,11 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
-import { Toast, ToastProps } from '@/components/toast';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
 import { useTheme } from '@/hooks/use-theme';
+import { useToast } from '@/hooks/use-toast';
 import { ApiError } from "@/types/errors";
 import { checkLength, checkPattern } from '@/utils/tools';
 import clsx from 'clsx';
@@ -35,12 +35,7 @@ export default function Register() {
   const [loading, setLoading] = useState<boolean>(false);
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();
-  const [toast, setToast] = useState<Omit<ToastProps, "onCancel">>({
-    show: false,
-    message: "",
-    top: 0,
-    type: "default"
-  });
+  const { setToast } = useToast();
   const [count, setCount] = useState<{
     value: number;
     valid: boolean;
@@ -52,38 +47,22 @@ export default function Register() {
   const handleSubmit = async () => {
     setLoading(true);
     if (inputsValues.email.trim().length == 0 || inputsValues.password.value.trim().length == 0) {
-      setToast({
-        show: true,
-        message: "Veuillez remplir tous les champs",
-        type: "warning",
-      });
+      setToast("Veuillez remplir tous les champs", "warning");
       setLoading(false);
       return;
     }
     else if (!checkLength(inputsValues.email.trim(), [EMAIL_LENGTH.min, EMAIL_LENGTH.max ?? 100])) {
-      setToast({
-        show: true,
-        message: `L'email doit être entre ${EMAIL_LENGTH.min} et ${EMAIL_LENGTH.max ?? 100} caractères`,
-        type: "warning",
-      });
+      setToast("L'email doit être entre ${EMAIL_LENGTH.min} et ${EMAIL_LENGTH.max ?? 100} caractères", "warning");
       setLoading(false);
       return;
     }
     else if (!checkPattern(inputsValues.email.trim(), EMAIL_REGEX)) {
-      setToast({
-        show: true,
-        message: "Format de l'email invalide",
-        type: "warning",
-      });
+      setToast("Format de l'email invalide", "warning");
       setLoading(false);
       return;
     }
     else if (!checkLength(inputsValues.password.value.trim(), [PASSWORD_LENGTH.min, PASSWORD_LENGTH.max ?? 100])) {
-      setToast({
-        show: true,
-        message: `Le mot de passe doit être entre ${PASSWORD_LENGTH.min} et ${PASSWORD_LENGTH.max ?? 100} caractères`,
-        type: "warning",
-      });
+      setToast(`Le mot de passe doit être entre ${PASSWORD_LENGTH.min} et ${PASSWORD_LENGTH.max ?? 100} caractères`, "warning");
       setLoading(false);
       return;
     }
@@ -100,29 +79,17 @@ export default function Register() {
       });
 
       if (error) {
-        setToast({
-          show: true,
-          message: "Une erreur s'est produite",
-          type: "error",
-        });
+        setToast("Une erreur s'est produite", "error");
         setLoading(false);
         return;
       }
       else if (!user && !session) {
-        setToast({
-          show: true,
-          message: "Une erreur s'est produite",
-          type: "error",
-        });
+        setToast("Une erreur s'est produite", "error");
         setLoading(false);
         return;
       }
 
-      setToast({
-        show: true,
-        message: "Bienvenue 😉🎉",
-        type: "success",
-      });
+      setToast("Bienvenue 😉🎉", "success");
       setTimeout(() => {
         setLoading(false);
       }, 1000);
@@ -131,18 +98,10 @@ export default function Register() {
       const error = e as ApiError;
 
       if (error.status && error.status == 409) {
-        setToast({
-          show: true,
-          message: "Cet utilisateur existe déjà",
-          type: "error",
-        });
+        setToast("Cet utilisateur existe déjà", "error");
       }
       else {
-        setToast({
-          show: true,
-          message: "Une erreur s'est produite",
-          type: "error",
-        });
+        setToast("Une erreur s'est produite", "error");
       }
       setLoading(false);
     }
@@ -248,7 +207,7 @@ export default function Register() {
         <View className="w-full flex flex-row justify-center items-center mt-2">
           <Text className='text-lg dark:text-white text-black'>Vous avez déjà un compte ? </Text>
           <Link
-            href={"/login"}
+            href={"/"}
             replace
             className='text-lg text-emerald-500 font-bold'
           >Connectez-vous</Link>
@@ -269,16 +228,6 @@ export default function Register() {
         >
         </LinearGradient>
       </KeyboardAvoidingView>
-      <Toast
-        show={toast.show}
-        message={toast.message}
-        top={toast.top}
-        type={toast.type}
-        onCancel={() => setToast({
-          ...toast,
-          show: false,
-        })}
-      />
     </Container>
   );
 }

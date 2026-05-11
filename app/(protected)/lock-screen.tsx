@@ -1,9 +1,9 @@
 import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
-import { Toast, ToastProps } from "@/components/toast";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME, AUTH_STORAGE } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
@@ -24,12 +24,7 @@ export default function LockScreen() {
     const [lock, setLock] = useState<boolean>(false);
     const unlock = useSharedValue<boolean>(false);
     const [user, setUser] = useState<Session["user"] | undefined>(undefined);
-    const [toast, setToast] = useState<Omit<ToastProps, "onCancel">>({
-        show: false,
-        message: "",
-        top: 0,
-        type: "default",
-    });
+    const { setToast } = useToast();
     const [loading, setLoading] = useState<boolean>(false);
     const pathname = usePathname();
 
@@ -130,11 +125,7 @@ export default function LockScreen() {
             await setItem(JSON.stringify({
                 verified: true
             }));
-            setToast({
-                show: true,
-                message: "Déverrouillé 🔓😉",
-                type: "success",
-            });
+            setToast("Déverrouillé 🔓😉", "success");
             unlock.value = true;
             setLockText("déverrouillée");
             setTimeout(() => {
@@ -261,17 +252,6 @@ export default function LockScreen() {
                     </Text>
                 </View>
             </View>
-
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                top={toast.top}
-                show={toast.show}
-                onCancel={() => setToast({
-                    ...toast,
-                    show: false,
-                })}
-            />
         </Container>
     );
 }

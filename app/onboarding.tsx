@@ -2,11 +2,11 @@ import { Button } from "@/components/Button";
 import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { PressableAnimated } from "@/components/pressable-animated";
-import { Toast, ToastProps } from "@/components/toast";
 import { APP_NAME } from "@/constants/names";
 import { NAME_REGEX } from "@/constants/regex";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/types/errors";
 import { checkLength, checkPattern, fileDatas } from "@/utils/tools";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -29,12 +29,7 @@ export default function Onboarding() {
     const { theme } = useTheme();
     const [image, setImage] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
-    const [toast, setToast] = useState<ToastProps>({
-        show: false,
-        message: "",
-        type: "default",
-        onCancel: () => { }
-    });
+    const { setToast } = useToast();
     const { user } = useAuth();
 
     const changePage = (value: number, animation = false) => {
@@ -54,54 +49,22 @@ export default function Onboarding() {
         if (!pagerRef.current) return false;
         if (name.length == 0) {
             if (page == 1) pagerRef.current.setScrollEnabled(false);
-            setToast({
-                show: true,
-                message: "Veuillez renseigner votre nom !",
-                type: "warning",
-                onCancel: () => setToast({
-                    ...toast,
-                    show: false
-                })
-            });
+            setToast("Veuillez renseigner votre nom !", "warning");
             return false;
         }
         else {
             if (!checkLength(name, [3, 30])) {
-                setToast({
-                    show: true,
-                    message: "Le nom doit comporter au minimum 3 caractères et au maximum 30 !",
-                    type: "warning",
-                    onCancel: () => setToast({
-                        ...toast,
-                        show: false
-                    })
-                });
+                setToast("Le nom doit comporter au minimum 3 caractères et au maximum 30 !", "warning");
                 pagerRef.current.setScrollEnabled(false);
                 return false;
             }
             else if (!checkPattern(name, NAME_REGEX)) {
-                setToast({
-                    show: true,
-                    message: "Nom invalide !",
-                    type: "warning",
-                    onCancel: () => setToast({
-                        ...toast,
-                        show: false
-                    })
-                });
+                setToast("Nom invalide !", "warning");
                 pagerRef.current.setScrollEnabled(false);
                 return false;
             }
             else {
-                setToast({
-                    show: true,
-                    message: "Nom valide 😉",
-                    type: "success",
-                    onCancel: () => setToast({
-                        ...toast,
-                        show: false
-                    })
-                });
+                setToast("Nom valide 😉", "success");
                 pagerRef.current.setScrollEnabled(true);
                 return true;
             }
@@ -132,15 +95,7 @@ export default function Onboarding() {
         const { granted } = await requestMediaLibraryPermissionsAsync();
 
         if (!granted) {
-            setToast({
-                show: true,
-                message: "Nous avons besoin de votre permission pour acceder aux photos 🥲",
-                type: "default",
-                onCancel: () => setToast({
-                    ...toast,
-                    show: false
-                })
-            });
+            setToast("Nous avons besoin de votre permission pour acceder aux photos 🥲");
             return;
         }
         const { assets, canceled } = await launchImageLibraryAsync({
@@ -154,15 +109,7 @@ export default function Onboarding() {
             setImage(assets[0].uri);
         }
         else {
-            setToast({
-                show: true,
-                message: "Aucune photo n'a été sélectionnée 🥲",
-                type: "default",
-                onCancel: () => setToast({
-                    ...toast,
-                    show: false
-                })
-            });
+            setToast("Aucune photo n'a été sélectionnée 🥲");
         }
     }
 
@@ -177,7 +124,7 @@ export default function Onboarding() {
 
         try {
             const nameFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
-            
+
             if (image.trim().length == 0) {
                 await api.patch(`/user/update/${user?.id}`, {
                     name: nameFormatted,
@@ -186,20 +133,12 @@ export default function Onboarding() {
             else {
                 const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
                 const base64 = new File(image).base64Sync();
-    
+
                 if (!fileName || !fileExt) {
-                    return setToast({
-                        show: true,
-                        message: "Fichier corrompu ou illisible !",
-                        type: "error",
-                        top: -100,
-                        onCancel: () => setToast({
-                            ...toast,
-                            show: false,
-                        })
-                    });
+                    setToast("Fichier corrompu ou illisible !", "error");
+                    return;
                 }
-    
+
                 const date = new Date();
                 const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
                 const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
@@ -210,15 +149,7 @@ export default function Onboarding() {
                     photoUrl: data?.path,
                 });
             }
-            setToast({
-                show: true,
-                message: "Bienvenue ☺️",
-                type: "success",
-                onCancel: () => setToast({
-                    ...toast,
-                    show: false,
-                }),
-            });
+            setToast("Bienvenue ☺️", "success");
             setTimeout(async () => {
                 await supabase.auth.refreshSession();
                 setImage("");
@@ -231,15 +162,7 @@ export default function Onboarding() {
             console.clear()
             console.log(error);
             setLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error",
-                onCancel: () => setToast({
-                    ...toast,
-                    show: false,
-                }),
-            });
+            setToast("Une erreur s'est produite", "error");
         }
     }
 
@@ -433,14 +356,6 @@ export default function Onboarding() {
                     />
                 </View>
             </View>
-
-            <Toast
-                show={toast.show}
-                message={toast.message}
-                type={toast.type}
-                top={toast.top}
-                onCancel={toast.onCancel}
-            />
         </Container>
     );
 }

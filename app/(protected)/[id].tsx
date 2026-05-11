@@ -3,9 +3,9 @@ import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
 import { PressableAnimated } from "@/components/pressable-animated";
-import { Toast, ToastType } from "@/components/toast";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 import { Task } from "@/types/task";
 import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -19,16 +19,7 @@ export default function Update() {
     const params = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
-    const [toast, setToast] = useState<{
-        show: boolean;
-        message: string;
-        type?: ToastType;
-        top?: number;
-    }>({
-        show: false,
-        message: "",
-        type: "default",
-    });
+    const { setToast } = useToast();
     const [task, setTask] = useState<Task | null>(null);
     const [updateLoading, setUpdateLoading] = useState<boolean>(false);
     const { theme } = useTheme();
@@ -52,11 +43,7 @@ export default function Update() {
         }
         catch (error) {
             setLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error"
-            });
+            setToast("Une erreur s'est produite", "error");
         }
     }
 
@@ -67,19 +54,11 @@ export default function Update() {
     const handleUpdate = async (done: boolean = false) => {
         if (updateLoading || !task) return;
         else if (task.content.length === 0) {
-            setToast({
-                message: "Veuillez renseigner la tâche !",
-                show: true,
-                type: "warning",
-            });
+            setToast("Veuillez renseigner la tâche !", "warning");
             return;
         }
         if (!checkLength(task.content, [3, null])) {
-            setToast({
-                message: "La longueur minimale requise est de 3",
-                show: true,
-                type: "warning",
-            });
+            setToast("La longueur minimale requise est de 3", "warning");
             return;
         }
         const contentFormatted = task.content.charAt(0).toUpperCase() + task.content.slice(1);
@@ -92,11 +71,7 @@ export default function Update() {
                 done
             });
 
-            setToast({
-                show: true,
-                message: "Tâche modifiée 😊",
-                type: "success",
-            });
+            setToast("Tâche modifiée 😊", "success");
             getTask();
             setUpdateLoading(false);
             setTimeout(() => {
@@ -105,11 +80,8 @@ export default function Update() {
         }
         catch (error) {
             setUpdateLoading(false);
-            setToast({
-                show: true,
-                message: "Une erreur s'est produite",
-                type: "error"
-            });
+
+            setToast("Une erreur s'est produite", "error");
         }
     }
 
@@ -182,16 +154,6 @@ export default function Update() {
                     </KeyboardAvoidingView>
                 )
             }
-            <Toast
-                show={toast.show}
-                message={toast.message}
-                type={toast.type}
-                top={toast.top}
-                onCancel={() => setToast({
-                    ...toast,
-                    show: false,
-                })}
-            />
         </Container >
     );
 }
