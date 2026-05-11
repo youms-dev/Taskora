@@ -1,112 +1,105 @@
-import { Keyboard, TextInput, TextInputProps, View } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome6';
-import { useEffect, useRef } from 'react';
-import clsx from 'clsx';
-import Animated, { useAnimatedStyle, withTiming, Easing, useSharedValue } from 'react-native-reanimated';
-import { COLORS } from '@/constants/colors';
-import { useTheme } from '@/hooks/use-theme';
-import { PressableAnimated, PressableAnimatedProps } from './pressable-animated';
+import { COLORS } from "@/constants/colors";
+import { useTheme } from "@/hooks/use-theme";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { DimensionValue, Keyboard, TextInput, TextInputProps, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { TextAnimated } from "./text-animated";
 
 interface Props extends TextInputProps {
-  placeholder: string;
-  icon?: {
-    name: string;
-    size?: number;
-    touchable?: (() => void) | false;
-    scale?: PressableAnimatedProps["scale"],
-    top?: number;
-  };
-  value: string;
-  big?: boolean;
+  width?: DimensionValue;
+  height?: DimensionValue;
+  onFocus?: TextInputProps["onFocus"];
+  onBlur?: TextInputProps["onBlur"];
+  placeholder?: string;
+  label?: string;
+  icon?: ReactNode;
+  paddingRight?: number;
 }
 
-/**
- * 
- * @param placeholder Input placeholder
- * 
- * @param icon Input icon
- * 
- * @param value Input value
- * 
- * @param big Whether the input is big
- * @default false
- * 
- * @returns Input component
- */
+const InputAnimated = Animated.createAnimatedComponent(TextInput);
 
-export const Input = ({ placeholder, icon, value, big = false, ...rest }: Props) => {
-  const Input = Animated.createAnimatedComponent(TextInput);
-  const focused = useSharedValue<boolean>(false);
-  const shine = useSharedValue<boolean>(false);
-  const { theme } = useTheme();
+export const Input = ({ width = "100%", height = 45, onFocus, onBlur, placeholder, label, icon, paddingRight, ...rest }: Props) => {
+  const focus = useSharedValue<boolean>(false);
+  const { theme: appTheme } = useTheme();
+  const theme = useSharedValue<typeof appTheme>(appTheme);
   const ref = useRef<TextInput>(null);
-  const appTheme = useSharedValue<typeof theme>("dark");
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  const animation = useAnimatedStyle(() => ({
+    borderBottomColor: withTiming(focus.value ? COLORS.emerald[500] : (theme.value == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"), {
+      duration: 200,
+      easing: Easing.inOut(Easing.quad),
+    }),
+  }));
 
   useEffect(() => {
-    appTheme.value = theme;
-  }, [theme]);
+    theme.value = appTheme;
+  }, [appTheme]);
 
   useEffect(() => {
-    const { remove } = Keyboard.addListener("keyboardDidHide", () => {
-      if (!ref.current) return;
-      ref.current.blur();
-    })
+    const onHide = () => {
+      ref.current?.blur();
+      setIsFocused(false);
+    }
+    const { remove } = Keyboard.addListener("keyboardDidHide", onHide);
 
     return () => remove();
   }, []);
 
-  const inputAnimation = useAnimatedStyle(() => ({
-    borderBottomColor: withTiming(shine.value ? COLORS.emerald[500] : (appTheme.value == "dark" ? "white" : "black"), {
-      duration: 400,
-      easing: Easing.inOut(Easing.quad)
-    }),
+  const labelAnimation = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: withTiming(focus.value ? -20 : 9, {
+          duration: 200,
+          easing: Easing.inOut(Easing.quad),
+        }),
+      },
+    ]
   }));
 
   return (
-    <View className="relative flex h-max w-full flex-col">
-      <Input
+    <View className="w-full flex items-center px-3">
+      <InputAnimated
         {...rest}
         ref={ref}
-        multiline={big}
-        value={value}
-        onFocus={() => {
-          focused.value = true;
-          shine.value = true;
+        onFocus={(e) => {
+          onFocus && onFocus(e);
+          focus.value = true;
+          setIsFocused(true);
         }}
-        onBlur={() => {
-          shine.value = false;
-          if (value.trim().length == 0) {
-            focused.value = false;
-          }
+        onBlur={(e) => {
+          onBlur && onBlur(e);
+          focus.value = false;
+          setIsFocused(false);
         }}
-        cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-        textAlignVertical={"top"}
+        cursorColor={appTheme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
         placeholder={placeholder}
-        placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .6)" : "black"}
-        style={inputAnimation}
-        className={clsx(
-          'w-full border-b-2 text-xl dark:text-white/90 text-black font-bold',
-          big ? "h-[120px] px-2" : "h-12 pr-[50px]"
-        )}
+        placeholderTextColor={isFocused ? (appTheme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)") : "transparent"}
+        // placeholderTextColor={appTheme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+        style={[
+          {
+            width,
+            height,
+            paddingRight,
+          },
+          animation,
+        ]}
+        className="border-b-2 text-xl dark:text-white/80 text-black/80"
       />
       {
-        icon && !big && (
-          <PressableAnimated
-            scale={icon.scale ?? 1}
-            style={{
-              top: icon.top ?? 5
-            }}
-            className="absolute right-2"
+        label && label.trim().length > 0 && (
+          <TextAnimated
+            style={labelAnimation}
+            className="absolute left-4 text-xl font-bold"
           >
-            <FontAwesome
-              name={icon.name}
-              size={icon.size ?? 24}
-              color={theme == "light" ? "black" : "white"}
-              onPress={() => icon.touchable && icon.touchable()}
-            />
-          </PressableAnimated>
+            {label}
+          </TextAnimated>
         )
+      }
+
+      {
+        icon && icon
       }
     </View>
   );
-};
+}

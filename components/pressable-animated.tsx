@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { PressableProps, Pressable as RNPressable } from "react-native";
+import { Pressable, PressableProps } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 export interface PressableAnimatedProps extends PressableProps {
@@ -26,8 +26,9 @@ export interface PressableAnimatedProps extends PressableProps {
  * @returns Pressable animated component
  */
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
-    const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
     const pressed = useSharedValue<boolean>(false);
     const scaleValue = useSharedValue<number>(scale);
 
@@ -40,7 +41,7 @@ export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPr
             scale: withTiming(pressed.value ? scaleValue.value : 1, {
                 duration: 300,
                 easing: Easing.inOut(Easing.quad)
-            })
+            }),
         }]
     }))
 

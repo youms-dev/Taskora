@@ -1,20 +1,20 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
+import { PressableAnimated } from '@/components/pressable-animated';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { checkLength, checkPattern } from '@/utils/tools';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Dimensions, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { PressableAnimated } from '@/components/pressable-animated';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { Eye } from '@/components/eye';
 
 export default function Login() {
   const initialInputsValues = {
@@ -31,7 +31,7 @@ export default function Login() {
       value: string;
     };
   }>(initialInputsValues);
-  const [eye, setEye] = useState<'eye' | 'eye-slash'>('eye');
+  const [eyeClosed, setEyeClosed] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const { height } = Dimensions.get("window");
   const { theme } = useTheme();
@@ -98,16 +98,35 @@ export default function Login() {
         className="w-11/12 flex items-center gap-12"
       >
         <View className="flex justify-center items-center w-full">
-          <Text className="text-5xl text-emerald-500 font-bold animate-bounce">Connexion</Text>
+          <Text className="text-5xl text-emerald-500 font-bold">Connexion</Text>
         </View>
         <Input
+          label='Email'
           placeholder="Email"
           keyboardType='email-address'
           autoCapitalize='none'
-          icon={{
-            name: 'envelope-circle-check',
-            touchable: false,
-          }}
+          paddingRight={35}
+          icon={(
+            <View
+              style={{
+                transform: [
+                  {
+                    translateX: -16,
+                  },
+                  {
+                    translateY: 6,
+                  },
+                ],
+              }}
+              className="absolute right-0 -z-10"
+            >
+              <FontAwesome5
+                name="envelope-open-text"
+                size={25}
+                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+              />
+            </View>
+          )}
           value={inputsValues.email}
           onChangeText={(e) => setInputsValues({
             ...inputsValues,
@@ -115,27 +134,40 @@ export default function Login() {
           })}
         />
         <Input
+          label='Mot de passe'
           placeholder="Mot de passe"
           secureTextEntry={!inputsValues.password.visible}
-          icon={{
-            name: eye,
-            scale: .3,
-            touchable: () => {
-              setInputsValues({
-                ...inputsValues,
-                password: {
-                  ...inputsValues.password,
-                  visible: !inputsValues.password.visible,
-                },
-              });
-
-              if (!inputsValues.password.visible) {
-                setEye('eye-slash');
-              } else {
-                setEye('eye');
-              }
-            },
-          }}
+          // secureTextEntry={false}
+          icon={(
+            <View
+              style={{
+                position: "absolute",
+                right: 0,
+                transform: [
+                  {
+                    translateX: -16,
+                  },
+                  {
+                    translateY: 12,
+                  },
+                ],
+              }}
+            >
+              <Eye
+                closed={eyeClosed}
+                onPress={() => {
+                  setEyeClosed(!eyeClosed);
+                  setInputsValues({
+                    ...inputsValues,
+                    password: {
+                      ...inputsValues.password,
+                      visible: !inputsValues.password.visible,
+                    },
+                  });
+                }}
+              />
+            </View>
+          )}
           value={inputsValues.password.value}
           onChangeText={(e) => setInputsValues({
             ...inputsValues,
@@ -193,7 +225,7 @@ export default function Login() {
         </View>
 
         <LinearGradient
-          colors={[COLORS.emerald[500], theme === "dark" ? "black" : "white"]}
+          colors={[COLORS.emerald[500], "transparent"]}
           start={{ x: 1, y: 0 }}
           end={{ x: 1, y: 1 }}
           locations={[0, .12]}

@@ -4,13 +4,12 @@ import clsx from "clsx";
 import { useEffect } from "react";
 import { Pressable } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { PressableAnimated } from "./pressable-animated";
 
 interface Props {
     active?: boolean;
     onChange: () => void;
 }
-
-const PressableAnimated = Animated.createAnimatedComponent(Pressable);
 
 /**
  * 

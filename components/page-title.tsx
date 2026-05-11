@@ -16,7 +16,6 @@ import { ReactNode, useState } from "react";
 import { Text, View } from "react-native";
 import { Button } from "./Button";
 import { Modal } from "./modal";
-import { Picture } from "./picture";
 import { PressableAnimated } from "./pressable-animated";
 import { Avatar } from "./avatar";
 

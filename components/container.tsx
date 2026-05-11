@@ -1,7 +1,7 @@
 import { useTheme } from '@/hooks/use-theme';
 import clsx from 'clsx';
 import { StatusBar } from 'expo-status-bar';
-import { CSSProperties, useEffect } from 'react';
+import { useEffect } from 'react';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -77,7 +77,7 @@ export const Container = ({ children, center, centerX, centerY, safeArea = true,
 
   if (safeArea) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "rgba(0, 0, 0)" : "rgba(0, 0, 0, .1)" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "rgba(0, 0, 0)" : "rgba(0, 0, 0, .05)" }}>
         {Render}
       </SafeAreaView>
     );

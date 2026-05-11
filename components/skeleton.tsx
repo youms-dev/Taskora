@@ -3,8 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 export const Skeleton = () => {
-    const Linear = Animated.createAnimatedComponent(LinearGradient);
     const { theme } = useTheme();
 
     const linearAnimation = useAnimatedStyle(() => ({
@@ -26,7 +27,7 @@ export const Skeleton = () => {
         <View
             className="relative w-full h-full dark:bg-white/20 bg-black/20 rounded-3xl overflow-hidden"
         >
-            <Linear
+            <AnimatedLinearGradient
                 colors={["rgba(255, 255, 255, 0)", theme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.8)", "rgba(255, 255, 255, 0)"]}
                 start={{ x: 0, y: 1 }}
                 end={{ x: 1, y: 1 }}
@@ -34,7 +35,7 @@ export const Skeleton = () => {
                 style={linearAnimation}
                 className="absolute top-[-50%] w-[50px] h-[200%] skew-y-[30deg]"
             >
-            </Linear>
+            </AnimatedLinearGradient>
         </View>
     );
 }
