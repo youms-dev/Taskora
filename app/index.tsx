@@ -133,11 +133,12 @@ export default function Login() {
             email: e
           })}
         />
+
         <Input
           label='Mot de passe'
           placeholder="Mot de passe"
           secureTextEntry={!inputsValues.password.visible}
-          // secureTextEntry={false}
+          paddingRight={50}
           icon={(
             <View
               style={{
@@ -177,6 +178,7 @@ export default function Login() {
             }
           })}
         />
+
         <View className="flex justify-center items-center w-full">
           <Button
             loaderSize={25}

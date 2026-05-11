@@ -35,6 +35,7 @@ export const ToastProvider = ({ children }: Props) => {
     const setToast = (value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
         refreshTimeout.current && clearTimeout(refreshTimeout.current);
+        timeout.current && clearTimeout(timeout.current);
         setText(value);
         setType(type);
         if (text.trim().length > 0) {

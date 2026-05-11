@@ -77,7 +77,7 @@ export const Container = ({ children, center, centerX, centerY, safeArea = true,
 
   if (safeArea) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "rgba(0, 0, 0)" : "rgba(0, 0, 0, .05)" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme == "dark" ? "rgba(0, 0, 0)" : "rgba(255, 255, 255, .1)" }}>
         {Render}
       </SafeAreaView>
     );
