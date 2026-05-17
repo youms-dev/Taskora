@@ -3,13 +3,18 @@ import { PressableAnimated, PressableAnimatedProps } from "@/components/pressabl
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
+import { event, MODAL_CLOSED, MODAL_OPEN } from "@/lib/event-emitter";
+import Entypo from "@expo/vector-icons/Entypo";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { Slot, usePathname, useRouter } from "expo-router";
-import { ReactNode } from "react";
+import { Slot, Stack, usePathname, useRouter } from "expo-router";
+import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Fontisto from '@expo/vector-icons/Fontisto';
 
 interface IconProps extends PressableAnimatedProps {
     focused?: boolean;
@@ -41,66 +46,189 @@ const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
     )
 }
 
+const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
+
 export default function Layout() {
     const { theme } = useTheme();
     const pathname = usePathname();
     const { t } = useTranslation();
     const router = useRouter();
+    const hide = useSharedValue<boolean>(false);
+    const { width, height } = useWindowDimensions();
+    const [navWidth, setNavWidth] = useState<number>(0);
+    const [navLeft, setNavLeft] = useState<number>(0);
+    const deviceHeight = useSharedValue<number>(height);
+    const tabPaths = ["/", "/agenda", "/notifications", "/settings"];
+
+    useEffect(() => {
+        const onOpen = () => {
+            hide.value = true;
+        }
+        const onClose = () => {
+            if (tabPaths.includes(pathname)) hide.value = false;
+        }
+
+        event.addListener(MODAL_OPEN, onOpen);
+        event.addListener(MODAL_CLOSED, onClose);
+
+        return () => {
+            event.removeAllListeners(MODAL_OPEN);
+            event.removeAllListeners(MODAL_CLOSED);
+        }
+    }, []);
+
+    const animation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: withTiming(hide.value ? deviceHeight.value : -30, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            }
+        ],
+    }));
+
+    useEffect(() => {
+        setNavLeft((width / 2) - (navWidth / 2));
+        deviceHeight.value = height;
+    }, [width, navWidth, height]);
+
+    useEffect(() => {
+        if (tabPaths.includes(pathname)) hide.value = false;
+        else hide.value = true;
+    }, [pathname]);
 
     return (
         <>
-            <Slot />
-            <View className="absolute left-0 bottom-2 w-full flex items-center py-2 z-[1000px]">
-                <LinearGradient
-                    style={{
-                        borderRadius: 50,
+            <Stack screenOptions={{
+                headerShown: false,
+            }}>
+                <Stack.Screen
+                    name="index"
+                    options={{
+                        animation: "fade",
                     }}
-                    colors={theme == "dark" ? ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .9)", "rgba(0, 0, 0, .5)"] : ["rgba(255, 255, 255, .5)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .5)"]}
-                    className="sm:w-max w-[90%] flex flex-row justify-center items-center gap-8 px-3 py-2 rounded-[50px] border dark:border-white/20 border-black/20"
-                >
-                    <NavButton
-                        name={t("home")}
-                        focused={pathname == "/"}
-                        icon={(
-                            <FontAwesome6
-                                name="list-check"
-                                size={25}
-                                color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                            />
-                        )}
-                        onPress={() => router.navigate("/")}
-                    />
+                />
 
-                    <NavButton
-                        name={t("settings")}
-                        focused={pathname == "/settings"}
-                        icon={(
-                            <FontAwesome6
-                                name="gears"
-                                size={25}
-                                color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                            />
-                        )}
-                        onPress={() => router.navigate("/settings")}
-                    />
+                <Stack.Screen
+                    name="[id]"
+                    options={{
+                        animation: "fade",
+                    }}
+                />
 
-                    <NavButton
-                        name={t("profile")}
-                        focused={pathname == "/profile"}
-                        icon={(
-                            <Avatar
-                                size={25}
-                                scale={1.3}
-                                name={{
-                                    value: "Youmbi Le-duc",
-                                    size: 10,
-                                }}
-                            />
-                        )}
-                        onPress={() => router.navigate("/profile")}
-                    />
-                </LinearGradient>
-            </View>
+                <Stack.Screen
+                    name="agenda"
+                    options={{
+                        animation: "fade",
+                    }}
+                />
+
+                <Stack.Screen
+                    name="notifications"
+                    options={{
+                        animation: "fade",
+                    }}
+                />
+
+                <Stack.Screen
+                    name="settings"
+                    options={{
+                        animation: "fade",
+                    }}
+                />
+
+                <Stack.Screen name="profile" />
+
+                <Stack.Screen
+                    name="lock-screen"
+                    options={{
+                        animation: "fade_from_bottom",
+                    }}
+                />
+            </Stack>
+
+            {/* <Slot /> */}
+
+            <LinearGradientAnimated
+                onLayout={(e) => setNavWidth(e.nativeEvent.layout.width)}
+                style={[
+                    {
+                        left: navLeft,
+                    },
+                    animation,
+                ]}
+                colors={theme == "dark" ? ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .9)", "rgba(0, 0, 0, .5)"] : ["rgba(255, 255, 255, .5)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .5)"]}
+                className="absolute bottom-0 sm:w-max w-[95%] flex flex-row justify-center items-center px-3 py-2 rounded-[50px] border dark:border-white/20 border-black/20 overflow-hidden z-[1000]"
+            >
+                <NavButton
+                    name={t("nav_tasks")}
+                    focused={pathname == "/"}
+                    icon={(
+                        <FontAwesome6
+                            name="list-check"
+                            size={25}
+                            color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                        />
+                    )}
+                    onPress={() => router.navigate("/")}
+                />
+
+                <NavButton
+                    name={t("agenda")}
+                    focused={pathname == "/agenda"}
+                    icon={(
+                        <Fontisto
+                            name="calendar"
+                            size={25}
+                            color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                        />
+                    )}
+                    onPress={() => router.navigate("/agenda")}
+                />
+
+                <NavButton
+                    name={t("notifications")}
+                    focused={pathname == "/notifications"}
+                    icon={(
+                        <Entypo
+                            name="bell"
+                            size={25}
+                            color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                        />
+                    )}
+                    onPress={() => router.navigate("/notifications")}
+                />
+
+                <NavButton
+                    name={t("settings")}
+                    focused={pathname == "/settings"}
+                    icon={(
+                        <FontAwesome6
+                            name="gears"
+                            size={25}
+                            color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                        />
+                    )}
+                    onPress={() => router.navigate("/settings")}
+                />
+
+                {/* <NavButton
+                    name={t("profile")}
+                    focused={pathname == "/profile"}
+                    icon={(
+                        <Avatar
+                            size={25}
+                            scale={1.3}
+                            name={{
+                                value: "Youmbi Le-duc",
+                                size: 10,
+                            }}
+                        />
+                    )}
+                    onPress={() => router.navigate("/profile")}
+                /> */}
+            </LinearGradientAnimated>
         </>
     )
 }

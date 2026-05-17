@@ -1,6 +1,9 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
+import { Eye } from '@/components/eye';
 import { Input } from '@/components/input';
+import { PressableAnimated } from '@/components/pressable-animated';
+import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
@@ -8,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { ApiError } from "@/types/errors";
 import { checkLength, checkPattern } from '@/utils/tools';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import clsx from 'clsx';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
@@ -43,6 +47,8 @@ export default function Register() {
     value: 0,
     valid: false,
   });
+  const [size, setSize] = useState<number>(0);
+  const [eyeClosed, setEyeClosed] = useState<boolean>(false);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -110,21 +116,69 @@ export default function Register() {
   return (
     <Container center>
       <KeyboardAvoidingView
-        behavior={Platform.OS == "android" ? "padding" : "height"}
-        className="w-11/12 flex items-center gap-5"
+        behavior={Platform.OS == "android" ? "height" : "padding"}
+        className="w-full sm:w-[500px] flex items-center gap-5 px-3"
       >
-        <View className="w-full flex justify-center items-center mb-5">
-          <Text className="text-5xl text-emerald-500 font-bold animate-bounce">Inscription</Text>
+        <View className="px-3 mb-10">
+          <View className="flex justify-center items-center">
+            <TextGradient
+              colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
+              className="text-5xl font-bold"
+            >
+              Inscription
+            </TextGradient>
+
+            <LinearGradient
+              colors={[theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)", COLORS.emerald[500]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              locations={[.4, 1]}
+              style={{
+                transform: [
+                  {
+                    perspective: 1200,
+                  },
+                  {
+                    rotateX: "60deg",
+                  },
+                  {
+                    translateY: 25,
+                  }
+                ],
+                filter: "blur(10px)"
+              }}
+              className="absolute bottom-0 w-full h-[10px] rounded-2xl"
+            />
+          </View>
         </View>
+
         <View className='w-full flex items-center'>
           <Input
-            placeholder="Email"
+            label="Email"
+            placeholder="example@email.com"
             keyboardType='email-address'
             autoCapitalize='none'
-            icon={{
-              name: 'envelope-circle-check',
-              touchable: false,
-            }}
+            icon={(
+              <View
+                style={{
+                  transform: [
+                    {
+                      translateX: -16,
+                    },
+                    {
+                      translateY: 6,
+                    },
+                  ],
+                }}
+                className="absolute right-0 -z-10"
+              >
+                <FontAwesome5
+                  name="envelope-open-text"
+                  size={25}
+                  color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                />
+              </View>
+            )}
             value={inputsValues.email}
             onChangeText={(e) => setInputsValues({
               ...inputsValues,
@@ -132,29 +186,42 @@ export default function Register() {
             })}
           />
         </View>
+
         <View className='w-full flex items-center mt-6'>
           <Input
+            label="Mot de passe"
             placeholder="Mot de passe"
             secureTextEntry={!inputsValues.password.visible}
-            icon={{
-              name: eye,
-              scale: .3,
-              touchable: () => {
-                setInputsValues({
-                  ...inputsValues,
-                  password: {
-                    ...inputsValues.password,
-                    visible: !inputsValues.password.visible,
-                  },
-                });
-
-                if (!inputsValues.password.visible) {
-                  setEye('eye-slash');
-                } else {
-                  setEye('eye');
-                }
-              },
-            }}
+            icon={(
+              <View
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  transform: [
+                    {
+                      translateX: -16,
+                    },
+                    {
+                      translateY: 12,
+                    },
+                  ],
+                }}
+              >
+                <Eye
+                  closed={eyeClosed}
+                  onPress={() => {
+                    setEyeClosed(!eyeClosed);
+                    setInputsValues({
+                      ...inputsValues,
+                      password: {
+                        ...inputsValues.password,
+                        visible: !inputsValues.password.visible,
+                      },
+                    });
+                  }}
+                />
+              </View>
+            )}
             value={inputsValues.password.value}
             onChangeText={(e) => {
               if (e.length >= 8) {
@@ -204,6 +271,32 @@ export default function Register() {
           </Button>
         </View>
 
+        <View className='w-full flex flex-row flex-wrap justify-center items-center gap-8 px-3 my-3'>
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="google"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
+
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="facebook-f"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
+
+          <PressableAnimated className="size-[60px] flex justify-center items-center bg-emerald-500 p-2 rounded-2xl">
+            <FontAwesome5
+              name="linkedin-in"
+              size={40}
+              color="back"
+            />
+          </PressableAnimated>
+        </View>
+
         <View className="w-full flex flex-row justify-center items-center mt-2">
           <Text className='text-lg dark:text-white text-black'>Vous avez déjà un compte ? </Text>
           <Link
@@ -214,19 +307,19 @@ export default function Register() {
         </View>
 
         <LinearGradient
-          colors={[COLORS.emerald[500], theme === "dark" ? "black" : "white"]}
+          colors={[COLORS.emerald[500], "transparent"]}
           start={{ x: 1, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0, .2]}
-          className="absolute animate-pulse"
+          locations={[0, .12]}
+          onLayout={(e) => setSize(e.nativeEvent.layout.height)}
+          className="absolute animate-pulse -z-10"
           style={{
-            bottom: -(height - (height * 1) / 100),
+            bottom: -(size + size * .01),
             width: "210%",
             height: "210%",
             borderRadius: 9999
           }}
-        >
-        </LinearGradient>
+        />
       </KeyboardAvoidingView>
     </Container>
   );

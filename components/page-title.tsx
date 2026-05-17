@@ -1,23 +1,18 @@
-import { COLORS } from "@/constants/colors";
 import { useAuth } from "@/hooks/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
 import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { createId } from "@paralleldrive/cuid2";
 import { decode } from "base64-arraybuffer";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { ReactNode, useState } from "react";
 import { Text, View } from "react-native";
-import { Button } from "./Button";
-import { Modal } from "./modal";
-import { PressableAnimated } from "./pressable-animated";
 import { Avatar } from "./avatar";
+import { PressableAnimated } from "./pressable-animated";
 
 interface Props {
     icon?: ReactNode;
@@ -38,6 +33,7 @@ export const PageTitle = ({ icon, title }: Props) => {
     const { setToast } = useToast();
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
+    const router = useRouter();
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -112,11 +108,11 @@ export const PageTitle = ({ icon, title }: Props) => {
 
     return (
         <View className="w-full flex flex-row justify-between items-center px-4">
-            <View className="w-3/4 flex flex-row items-center gap-3">
+            <View className="w-[70%] flex flex-row items-center gap-3">
                 {icon}
                 <Text
                     numberOfLines={1}
-                    className="text-2xl text-emerald-500 font-extrabold tracking-widest"
+                    className="max-w-[80%] text-xl text-emerald-500 font-extrabold tracking-widest"
                 >
                     {title}
                 </Text>
@@ -124,7 +120,7 @@ export const PageTitle = ({ icon, title }: Props) => {
 
             <PressableAnimated
                 className="size-[50px] rounded-full p-1"
-                onPress={() => setVisible(true)}
+                onPress={() => router.navigate("/profile")}
             >
                 {
                     user && !user.user_metadata.photoUrl && (
@@ -148,71 +144,6 @@ export const PageTitle = ({ icon, title }: Props) => {
                     )
                 }
             </PressableAnimated>
-
-            <Modal
-                active={visible}
-                onClose={() => setVisible(false)}
-            >
-                <View className="w-full h-full flex flex-col items-center">
-                    <View className="w-full flex flex-row items-center gap-3 px-3">
-                        <FontAwesome5 name="user-tie" size={20} color={COLORS.emerald[500]} />
-                        <Text className="text-3xl text-emerald-500">Profile</Text>
-                    </View>
-                    <View className="w-full flex flex-col justify-center items-center mt-10">
-                        <View className="size-[250px] rounded-[9999px] p-4">
-                            {
-                                user && !user.user_metadata.photoUrl && (
-                                    <Avatar
-                                        name={user.user_metadata.name}
-                                        size={100}
-                                    />
-                                )
-                            }
-                            {
-                                user && user.user_metadata.photoUrl && (
-                                    <Image
-                                        source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            borderWidth: 1,
-                                            borderRadius: 9999,
-                                        }}
-                                        contentFit="cover"
-                                    />
-                                )
-                            }
-                        </View>
-                        {
-                            user && user.user_metadata.photoUrl && (
-                                <View className="w-full flex flex-row justify-center px-3 mt-5">
-                                    <Button
-                                        className="w-[300px] h-[50px]"
-                                        background="bg-red-500"
-                                        loaderSize={35}
-                                        loading={saveLoading}
-                                        onPress={() => removePicture()}
-                                    >
-                                        <FontAwesome6 name="xmark" size={30} color="black" />
-                                        <Text className="text-2xl text-black font-bold">Retirer</Text>
-                                    </Button>
-                                </View>
-                            )
-                        }
-                        <View className="w-full flex flex-row justify-center px-3 mt-5">
-                            <Button
-                                className="w-[300px] h-[50px]"
-                                loaderSize={35}
-                                loading={saveLoading}
-                                onPress={() => pickImage()}
-                            >
-                                <FontAwesome name="photo" size={30} color="black" />
-                                <Text className="text-2xl text-black font-bold">Choisir une photo</Text>
-                            </Button>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
         </View >
     );
 } 

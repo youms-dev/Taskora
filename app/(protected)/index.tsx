@@ -274,7 +274,7 @@ export default function Home() {
             />
             <View className="relative w-full flex flex-col items-center">
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === "android" ? "padding" : "height"}
+                    behavior={Platform.OS === "android" ? "height" : "padding"}
                     className="relative w-full flex justify-center items-center my-5 px-2">
                     <TextInput
                         ref={inputRef}
@@ -494,7 +494,7 @@ export default function Home() {
                 onClose={() => setModalVisible(false)}
             >
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === "android" ? "padding" : "height"}
+                    behavior={Platform.OS === "android" ? "height" : "height"}
                     className="w-full h-full flex items-center gap-8 pt-8 px-3"
                 >
                     <View className="w-full flex flex-row justify-center">
@@ -502,7 +502,7 @@ export default function Home() {
                     </View>
                     <Input
                         placeholder="Description"
-                        big
+                        multiline
                         value={value}
                         onChange={(e) => setValue(e.nativeEvent.text)}
                     />

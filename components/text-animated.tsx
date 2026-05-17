@@ -4,7 +4,7 @@ import { TextProps } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextProps {
-    children: string | number;
+    children: string | string[] | number | number[];
     style?: TextProps["style"];
     dark?: string;
     light?: string;

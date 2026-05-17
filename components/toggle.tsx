@@ -2,13 +2,11 @@ import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import clsx from "clsx";
 import { useEffect } from "react";
-import { Pressable } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { PressableAnimated } from "./pressable-animated";
+import { PressableAnimated, PressableAnimatedProps } from "./pressable-animated";
 
-interface Props {
+interface Props extends Pick<PressableAnimatedProps, "onPress"> {
     active?: boolean;
-    onChange: () => void;
 }
 
 /**
@@ -21,7 +19,7 @@ interface Props {
  * @returns Toggle component
  */
 
-export const Toggle = ({ active = false, onChange }: Props) => {
+export const Toggle = ({ active = false, ...rest }: Props) => {
     const isActive = useSharedValue<boolean>(false);
     const { theme } = useTheme();
     const appTheme = useSharedValue<typeof theme>("dark");
@@ -56,11 +54,9 @@ export const Toggle = ({ active = false, onChange }: Props) => {
 
     return (
         <PressableAnimated
-            onPress={() => onChange()}
+            {...rest}
             style={animation}
-            className={clsx(
-                "w-[60px] h-[28px] flex justify-center rounded-2xl",
-            )}
+            className="w-[60px] h-[28px] flex shrink-0 justify-center rounded-2xl"
         >
             <Animated.View
                 style={translateAnimation}

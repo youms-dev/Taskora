@@ -1,13 +1,11 @@
 import { View } from "react-native";
+import { Shadow } from "./shadow";
 import { TextAnimated } from "./text-animated";
 
 interface Props {
     size?: number;
     scale?: number;
-    name: {
-        value: string;
-        size?: number;
-    };
+    name: string;
 }
 
 /**
@@ -33,16 +31,17 @@ export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
                     scale
                 }],
             }}
-            className="flex shrink-0 justify-center items-center dark:bg-white/20 bg-black/20 rounded-full"
+            className="flex shrink-0 justify-center items-center dark:bg-white/20 bg-white rounded-full border dark:border-white/20 border-black/10"
         >
+            <Shadow />
             <TextAnimated
                 numberOfLines={1}
                 style={{
-                    fontSize: name.size,
+                    fontSize: size * .5,
                 }}
                 className="font-bold"
             >
-                {name.value.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
+                {name.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
             </TextAnimated>
         </View>
     );

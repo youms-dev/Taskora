@@ -1,7 +1,22 @@
 {
-    "home": "Accueil",
+    "nav_tasks": "Tâches",
     "settings": "Paramètres",
     "profile": "Profil",
     "name": "Nom",
-    "email": "Email"
-}   
+    "email": "Email",
+    "notifications": "Notifications",
+    "change_password": "Changer de mot de passe",
+    "logout": "Deconnexion",
+    "logout_question": "Êtes-vous sûr de vouloir vous deconnecter ?",
+    "discard": "Annuler",
+    "logout_confirmed": "Déconnexion",
+    "theme": "Thème",
+    "lock_app": "Vérrouillage de l'app",
+    "deleting_setting": "Confirmation avant suppression",
+    "agenda": "Agenda",
+    "settings_apprearance": "Apparence",
+    "settings_system": "Système",
+    "settings_language": "Langue",
+    "settings_french": "Français",
+    "settings_english": "Anglais"
+}

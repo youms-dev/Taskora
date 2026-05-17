@@ -1,7 +1,22 @@
 {
-    "home": "Home",
+    "nav_tasks": "Tasks",
     "settings": "Settings",
     "profile": "Profile",
     "name": "Name",
-    "email": "Email"
-}   
+    "email": "Email",
+    "notifications": "Notifications",
+    "change_password": "Change your password",
+    "logout": "Log out",
+    "logout_question": "Are your sure you want to log out ?",
+    "discard": "Discard",
+    "logout_confirmed": "Log out",
+    "theme": "Theme",
+    "lock_app": "Lock app",
+    "deleting_setting": "Confirm before deleting",
+    "agenda": "Agenda",
+    "settings_appearance": "Appearance",
+    "settings_system": "System",
+    "settings_language": "Language",
+    "settings_french": "French",
+    "settings_english": "English"
+}

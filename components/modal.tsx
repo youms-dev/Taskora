@@ -1,7 +1,8 @@
 import { useTheme } from "@/hooks/use-theme";
+import { event, MODAL_CLOSED, MODAL_OPEN } from "@/lib/event-emitter";
 import { BlurTint, BlurView } from "expo-blur";
 import { CSSProperties, ReactNode, RefObject, useEffect, useRef } from "react";
-import { BackHandler, DimensionValue, ScrollView, ScrollViewProps, useWindowDimensions, View } from "react-native";
+import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, ScrollView, ScrollViewProps, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
@@ -10,7 +11,7 @@ interface Props extends Omit<ScrollViewProps, "ref"> {
     height?: DimensionValue;
     rounded?: number;
     width?: DimensionValue;
-    dragHandler?: ReactNode;
+    dragHandler?: ReactNode | false;
     scrollViewClassName?: string;
     contentContainerClassName?: string;
     className?: string;
@@ -38,7 +39,6 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
  * @default 30
  * 
  * @param width Modal width
- * @default "100%"
  * 
  * @param dragHandler The drag component
  * 
@@ -49,7 +49,7 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
  * @default "w-full flex items-center"
  * 
  * @param className The class that will be used to custom the modal container
- * @default "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 dark:bg-white bg-black"
+ * @default "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black"
  * 
  * @param animationDuration The duration of the animation
  * @default 200
@@ -83,7 +83,9 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
  * @returns Modal component 
  */
 
-export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandler, scrollViewClassName = "w-full h-full", contentContainerClassName = "w-full flex items-center", className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 dark:bg-white bg-black", animationDuration: modalAnimationDuration = 200, active: modalActive, onClose, containerRef, scrollViewRef, closable: modalClosable = true, zIndex: modalZIndex = 1000, background: modalBackground = "transparent", children, blurIntensity = 100, blurTint, ...rest }: Props) => {
+const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
+
+export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scrollViewClassName = "w-full h-full", contentContainerClassName = "w-full flex items-center", className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black", animationDuration: modalAnimationDuration = 200, active: modalActive, onClose, containerRef, scrollViewRef, closable: modalClosable = true, zIndex: modalZIndex = 1000, background: modalBackground = "transparent", children, blurIntensity = 100, blurTint, ...rest }: Props) => {
     const { width: dW, height: dH } = useWindowDimensions();
     const hideValue = dH + (dH * .2);
     const translateY = useSharedValue<number>(hideValue);
@@ -96,6 +98,8 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
     const zIndex = useSharedValue<number>(modalZIndex);
     const background = useSharedValue<typeof modalBackground>(modalBackground);
     const { theme } = useTheme();
+    const dragging = useSharedValue<boolean>(false);
+    const appTheme = useSharedValue<typeof theme>(theme);
 
     const panAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -111,7 +115,7 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
     const handleClose = () => {
         timeout.current && clearTimeout(timeout.current);
         if (!modalClosable) return;
-        translateY.value = dH + (dH * .2);
+        translateY.value = hideValue;
         timeout.current = setTimeout(() => {
             onClose && onClose();
         }, Math.ceil(modalAnimationDuration / 2) > 100 ? Math.ceil(modalAnimationDuration / 2) : 100);
@@ -121,10 +125,12 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
         .simultaneousWithExternalGesture(scrollGesture)
         .onUpdate(({ translationY: y }) => {
             if (y > 0 && scroll.value <= 0 && closable.value) {
+                dragging.value = true;
                 translateY.value = y;
             }
         })
         .onEnd(({ translationY: y }) => {
+            dragging.value = false;
             if (scroll.value > 0) {
                 translateY.value = 0;
                 return;
@@ -162,9 +168,11 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
 
         if (modalActive) {
             translateY.value = 0;
+            event.emit(MODAL_OPEN);
         }
         else {
-            translateY.value = hideValue;
+            handleClose();
+            event.emit(MODAL_CLOSED);
         }
 
         return () => remove();
@@ -180,11 +188,28 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
         backgroundColor: withTiming(background.value, {
             duration: 200,
             easing: Easing.inOut(Easing.quad),
-        })
+        }),
     }));
 
+    const dragHandlerAnimation = useAnimatedStyle(() => ({
+        backgroundColor: withTiming(dragging.value ?
+            (appTheme.value == "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)")
+            :
+            (appTheme.value == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"),
+            {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            }
+        )
+    }));
+
+    useEffect(() => {
+        appTheme.value = theme;
+    }, [theme]);
+
     return (
-        <Animated.View
+        <AnimatedKeyboardAvoidingView
+            behavior={Platform.OS == "android" ? "height" : "padding"}
             style={[
                 {
                     width: dW,
@@ -208,7 +233,7 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
                         {
                             position: "absolute",
                             bottom: 0,
-                            width,
+                            width: width ? width : (dW > 500 ? 500 : dW),
                             height,
                             borderTopLeftRadius: rounded,
                             borderTopRightRadius: rounded,
@@ -225,11 +250,17 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
                     >
                         <View className="w-full flex justify-center items-center py-2">
                             {
-                                dragHandler ?
-                                    dragHandler :
-                                    (
-                                        <View className="w-20 h-2 dark:bg-white/50 bg-black/50 rounded-2xl" />
-                                    )
+                                typeof dragHandler != "boolean" && (
+                                    dragHandler ?
+                                        dragHandler
+                                        :
+                                        (
+                                            <Animated.View
+                                                style={dragHandlerAnimation}
+                                                className="w-20 h-2 rounded-2xl"
+                                            />
+                                        )
+                                )
                             }
                         </View>
 
@@ -249,6 +280,6 @@ export const Modal = ({ height = "60%", rounded = 30, width = "100%", dragHandle
                     </BlurView>
                 </Animated.View>
             </GestureDetector>
-        </Animated.View>
+        </AnimatedKeyboardAvoidingView>
     );
 }

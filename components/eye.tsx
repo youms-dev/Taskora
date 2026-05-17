@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useEffect } from "react";
 import { PressableProps, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
 
 interface Props extends Pick<PressableProps, "onPress"> {
@@ -31,14 +31,13 @@ export const Eye = ({ closed: eyeClosed, ...rest }: Props) => {
                             duration: 1000,
                             easing: Easing.inOut(Easing.quad),
                         }),
-                        withTiming(-13, {
-                            duration: 1000,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(0, {
-                            duration: 1000,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
+                        withDelay(
+                            1000,
+                            withTiming(0, {
+                                duration: 1000,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                        ),
                     ),
                     Infinity,
                     true,

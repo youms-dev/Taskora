@@ -1,5 +1,4 @@
-import { COLORS } from "@/constants/colors";
-import clsx from "clsx";
+import { useTheme } from "@/hooks/use-theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
 
@@ -16,78 +15,66 @@ interface Props {
  */
 
 export const ThemeCard = ({ value = "system" }: Props) => {
+    const { theme } = useTheme();
+
     return (
         <View className="w-full h-full bg-white/20 rounded-2xl">
             {
                 value != "system" && (
-                    <View className={clsx(
-                        "size-full flex flex-col justify-center items-center gap-3 rounded-2xl p-3 border dark:border-white/20 border-black/50",
-                        value == "light" && "bg-white",
-                        value == "dark" && "bg-black",
-                    )}>
-                        <View className={clsx(
-                            "w-full h-4 rounded-3xl",
-                            value == "light" && "bg-black/20",
-                            value == "dark" && "bg-white/10",
-                        )}></View>
-                        <View className={clsx(
-                            "w-full h-3 rounded-3xl",
-                            value == "light" && "bg-black/20",
-                            value == "dark" && "bg-white/10",
-                        )}></View>
-                        <View className={clsx(
-                            "w-full h-3 rounded-3xl",
-                            value == "light" && "bg-black/20",
-                            value == "dark" && "bg-white/10",
-                        )}></View>
+                    <View
+                        style={{
+                            backgroundColor: (() => {
+                                if (value == "light") return theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .05)";
+                                else if (value == "dark") return "rgba(0, 0, 0, 1)";
+                            })()
+                        }}
+                        className="size-full flex flex-col justify-center items-center gap-3 rounded-2xl p-3 border dark:border-white/20 border-black/50"
+                    >
+                        {
+                            Array(3).fill(0).map((_, i) => (
+                                <View
+                                    key={i}
+                                    style={{
+                                        backgroundColor: (() => {
+                                            if (value == "light") return "rgba(255, 255, 255, 1)";
+                                            else if (value == "dark") return theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(255, 255, 255, .2)";
+                                        })()
+                                    }}
+                                    className="w-full h-4 rounded-3xl"
+                                />
+                            ))
+                        }
                     </View>
                 )
             }
             {
                 value == "system" && (
                     <LinearGradient
-                        colors={["white", "black"]}
+                        colors={[theme == "dark" ? "rgba(255, 255, 255,.8)" : "rgba(0, 0, 0,.05)", "black"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         locations={[.3, .5]}
-                        style={{
-                            borderRadius: 10
-                        }}
-                        className="size-full flex flex-col justify-center items-center gap-3 p-3 border dark:border-white/20 border-black/50"
+                        className="size-full flex flex-col justify-center items-center gap-3 p-3 border dark:border-white/20 border-black/50 overflow-hidden rounded-[10px]"
                     >
-                        <LinearGradient
-                            colors={[COLORS.black[200], COLORS.white[100]]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            locations={[.3, .6]}
-                            style={{
-                                borderRadius: 20
-                            }}
-                            className="w-full h-4"
-                        >
-                        </LinearGradient>
-                        <LinearGradient
-                            colors={[COLORS.black[200], COLORS.white[100]]}
-                            start={{ x: 0, y: -2 }}
-                            end={{ x: 1, y: 1 }}
-                            locations={[.4, .7]}
-                            style={{
-                                borderRadius: 20
-                            }}
-                            className="w-full h-4"
-                        >
-                        </LinearGradient>
-                        <LinearGradient
-                            colors={[COLORS.black[200], COLORS.white[100]]}
-                            start={{ x: 0, y: -2 }}
-                            end={{ x: 1, y: 1 }}
-                            locations={[.1, .3]}
-                            style={{
-                                borderRadius: 20
-                            }}
-                            className="w-full h-4"
-                        >
-                        </LinearGradient>
+                        {
+                            Array(3).fill(0).map((_, i) => (
+                                <LinearGradient
+                                    key={i}
+                                    colors={(() => {
+                                        if (i <= 1) return ["rgba(255, 255, 255, .8)", theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(255, 255, 255, .2)"];
+                                        return theme == "dark" ? ["rgba(255, 255, 255, .2)", "rgba(255, 255, 255, .1)"] : ["rgba(255, 255, 255, .3)", "rgba(255, 255, 255, .2)"];
+                                    })()}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    locations={(() => {
+                                        if (i == 0) return [.2, .6];
+                                        else if (i == 1) return [.1, .3];
+                                        return [.01, .6];
+                                    })()}
+                                    className="w-full h-4 rounded-[20px] overflow-hidden"
+                                />
+                            ))
+                        }
                     </LinearGradient>
                 )
             }

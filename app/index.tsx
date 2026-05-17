@@ -1,7 +1,9 @@
 import { Button } from '@/components/Button';
 import { Container } from '@/components/container';
+import { Eye } from '@/components/eye';
 import { Input } from '@/components/input';
 import { PressableAnimated } from '@/components/pressable-animated';
+import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
 import { EMAIL_REGEX } from '@/constants/regex';
@@ -12,9 +14,8 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Eye } from '@/components/eye';
 
 export default function Login() {
   const initialInputsValues = {
@@ -33,7 +34,6 @@ export default function Login() {
   }>(initialInputsValues);
   const [eyeClosed, setEyeClosed] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const { height } = Dimensions.get("window");
   const { theme } = useTheme();
   const { setToast } = useToast();
   const [size, setSize] = useState<number>(0);
@@ -94,15 +94,44 @@ export default function Login() {
   return (
     <Container center>
       <KeyboardAvoidingView
-        behavior={Platform.OS == "android" ? "padding" : "height"}
-        className="w-11/12 flex items-center gap-12"
+        behavior={Platform.OS == "android" ? "height" : "padding"}
+        className="w-full sm:w-[500px] flex items-center gap-12 px-3"
       >
-        <View className="flex justify-center items-center w-full">
-          <Text className="text-5xl text-emerald-500 font-bold">Connexion</Text>
+        <View className="px-3">
+          <View className="flex justify-center items-center">
+            <TextGradient
+              colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
+              className="text-5xl font-bold"
+            >
+              Connexion
+            </TextGradient>
+
+            <LinearGradient
+              colors={[theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)", COLORS.emerald[500]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              locations={[.4, 1]}
+              style={{
+                transform: [
+                  {
+                    perspective: 1200,
+                  },
+                  {
+                    rotateX: "60deg",
+                  },
+                  {
+                    translateY: 25,
+                  }
+                ],
+                filter: "blur(10px)"
+              }}
+              className="absolute bottom-0 w-full h-[10px] rounded-2xl"
+            />
+          </View>
         </View>
         <Input
           label='Email'
-          placeholder="Email"
+          placeholder="example@email.com"
           keyboardType='email-address'
           autoCapitalize='none'
           paddingRight={35}
@@ -241,6 +270,6 @@ export default function Login() {
           }}
         />
       </KeyboardAvoidingView>
-    </Container>
+    </Container >
   );
 }
