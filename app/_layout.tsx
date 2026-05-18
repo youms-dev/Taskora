@@ -1,13 +1,17 @@
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
+import { LANGUAGE_STORAGE } from "@/constants/names";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
+import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -18,6 +22,8 @@ export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
     const [user, setUser] = useState<Session["user"] | undefined>(undefined);
     const { colorScheme } = useColorScheme();
+    const [locales] = useLocales();
+    const { i18n } = useTranslation();
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -26,6 +32,17 @@ export default function Layout() {
         });
 
         return () => subscription.unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            const { getItem } = useAsyncStorage(LANGUAGE_STORAGE);
+            const value = await getItem();
+            const lng = locales.languageTag.trim().split("-").shift()?.toLowerCase() ?? "en";
+
+            if (value) i18n.changeLanguage(value.toLowerCase());
+            else i18n.changeLanguage(lng);
+        })();
     }, []);
 
     return (

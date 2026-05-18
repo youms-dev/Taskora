@@ -1,20 +1,19 @@
-import { Avatar } from "@/components/avatar";
 import { PressableAnimated, PressableAnimatedProps } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { tabPaths } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
 import { event, MODAL_CLOSED, MODAL_OPEN } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Fontisto from '@expo/vector-icons/Fontisto';
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { Slot, Stack, usePathname, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import Fontisto from '@expo/vector-icons/Fontisto';
 
 interface IconProps extends PressableAnimatedProps {
     focused?: boolean;
@@ -37,6 +36,7 @@ const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
                 dark={focused ? COLORS.emerald[500] : "rgba(255, 255, 255, 0.8)"}
                 light={focused ? COLORS.emerald[500] : "rgba(0, 0, 0, 0.8)"}
                 className={clsx(
+                    "text-sm",
                     focused && "font-extrabold",
                 )}
             >
@@ -58,7 +58,6 @@ export default function Layout() {
     const [navWidth, setNavWidth] = useState<number>(0);
     const [navLeft, setNavLeft] = useState<number>(0);
     const deviceHeight = useSharedValue<number>(height);
-    const tabPaths = ["/", "/agenda", "/notifications", "/settings"];
 
     useEffect(() => {
         const onOpen = () => {

@@ -8,7 +8,7 @@ import { TextAnimated } from "@/components/text-animated";
 import { ThemeCard } from "@/components/theme-card";
 import { Toggle } from "@/components/toggle";
 import { COLORS } from "@/constants/colors";
-import { CONFIRM_STORAGE } from "@/constants/names";
+import { CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -16,8 +16,9 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { useLocales } from "expo-localization";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, interpolateColor, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -25,13 +26,8 @@ import Animated, { Easing, Extrapolation, interpolate, interpolateColor, runOnJS
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 export default function Settings() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { theme, target, setTheme } = useTheme();
-    const [currentTheme, setCurrentTheme] = useState<string>((() => {
-        if (target == "system") return t("system");
-        else if (target == "dark") return t("dark");
-        return t("light");
-    })());
     const [confirm, setConfirm] = useState<boolean>(false);
     const { user, loading } = useAuth();
     const scrollY = useSharedValue(0);
@@ -39,15 +35,28 @@ export default function Settings() {
     const minHeaderHeight = 100;
     const appTheme = useSharedValue<typeof theme>(theme);
     const [scroll, setScroll] = useState<number>(0);
+    const [currentLanguage, setCurrentLanguage] = useState<string | null>(null);
+    const [locales] = useLocales();
+    const scrollViewRef = useRef<ScrollView>(null);
+    const timeout = useRef<ReturnType<typeof setTimeout>>(0);
 
     const onScroll = (value: number) => {
         setScroll(value);
     }
 
+    const forceScroll = (value: number) => {
+        scrollViewRef.current?.scrollTo({
+            y: value,
+            animated: true,
+        });
+    }
+
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
-            scrollY.value = e.contentOffset.y;
-            runOnJS(onScroll)(e.contentOffset.y);
+            const y = e.contentOffset.y;
+
+            scrollY.value = y;
+            runOnJS(onScroll)(y);
         }),
     });
 
@@ -134,16 +143,11 @@ export default function Settings() {
                 )
             }
         ],
-        opacity: withTiming(interpolate(
+        opacity: interpolate(
             scrollY.value,
             [0, headerHeight - minHeaderHeight],
             [0, 1],
             Extrapolation.CLAMP,
-        ),
-            {
-                duration: 300,
-                easing: Easing.inOut(Easing.quad),
-            }
         ),
         zIndex: interpolate(
             scrollY.value,
@@ -153,12 +157,30 @@ export default function Settings() {
         ),
     }));
 
-    const changeTheme = (value: typeof target) => {
-        setTheme(value);
-        if (value == "system") setCurrentTheme(t("system"));
-        else if (value == "dark") setCurrentTheme(t("dark"));
-        else setCurrentTheme(t("light"));
+    const changeLanguage = async (value: string | null) => {
+        const { setItem, removeItem } = useAsyncStorage(LANGUAGE_STORAGE);
+        const lng = locales.languageTag.trim().split("-").shift()?.toLowerCase() ?? "en";
+
+        if (value) {
+            i18n.changeLanguage(value);
+            setCurrentLanguage(value);
+            await setItem(value);
+            return;
+        };
+
+        i18n.changeLanguage(lng);
+        setCurrentLanguage(null);
+        await removeItem();
     }
+
+    useEffect(() => {
+        (async () => {
+            const { getItem } = useAsyncStorage(LANGUAGE_STORAGE);
+            const value = await getItem();
+
+            if (value) setCurrentLanguage(value);
+        })();
+    }, []);
 
     return (
         <Container safeArea={false}>
@@ -209,14 +231,23 @@ export default function Settings() {
                 </Animated.View>
 
                 <AnimatedScrollView
+                    ref={scrollViewRef}
                     onScroll={scrollHandler}
+                    onMomentumScrollEnd={() => {
+                        if (scroll > 0 && scroll < 75) {
+                            forceScroll(0);
+                        }
+                        else if (scroll > 0 && scroll >= 75) {
+                            forceScroll(150);
+                        }
+                    }}
                     scrollEventThrottle={16}
                     showsVerticalScrollIndicator={false}
                     className="flex-1"
                     contentContainerStyle={{
                         paddingTop: headerHeight + 10,
                     }}
-                    contentContainerClassName="pb-[100px] px-3"
+                    contentContainerClassName="pb-[300px] px-3"
                 >
                     <View className="w-full flex flex-col gap-3">
                         <View className="w-full">
@@ -236,20 +267,25 @@ export default function Settings() {
                                     {t("theme")} :
                                 </TextAnimated>
 
-                                <Text className="text-lg font-extrabold tracking-[2px] text-emerald-500">
-                                    {currentTheme}
+                                <Text className="text-lg font-extrabold tracking-[2px] text-emerald-500 lowercase">
+                                    {(() => {
+                                        if (target == "system") return t("settings_system");
+                                        else if (target == "dark") return t("settings_dark");
+                                        return t("settings_light");
+                                    })()}
                                 </Text>
                             </View>
 
                             <ScrollView
                                 horizontal
+                                nestedScrollEnabled
                                 showsHorizontalScrollIndicator={false}
                                 className="w-full"
                                 contentContainerClassName="flex flex-row items-center gap-2"
                             >
                                 <PressableAnimated
                                     scale={.95}
-                                    onPress={() => changeTheme("light")}
+                                    onPress={() => setTheme("light")}
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
@@ -261,7 +297,7 @@ export default function Settings() {
 
                                 <PressableAnimated
                                     scale={.95}
-                                    onPress={() => changeTheme("dark")}
+                                    onPress={() => setTheme("dark")}
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
@@ -273,7 +309,7 @@ export default function Settings() {
 
                                 <PressableAnimated
                                     scale={.95}
-                                    onPress={() => changeTheme("system")}
+                                    onPress={() => setTheme("system")}
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
@@ -301,7 +337,7 @@ export default function Settings() {
                                         <Entypo
                                             name="language"
                                             size={20}
-                                            color={"rgba(255, 255, 255, .5)"}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                         />
                                         <TextAnimated className="text-lg">
                                             {t("settings_language")}
@@ -312,24 +348,47 @@ export default function Settings() {
                                 <View className="w-full flex items-center gap-5 py-2 px-5">
                                     <PressableAnimated
                                         scale={1}
+                                        onPress={() => changeLanguage("fr")}
                                         className="w-full flex flex-row justify-between"
                                     >
                                         <TextAnimated className="text-lg">
                                             {t("settings_french")}
                                         </TextAnimated>
 
-                                        <Radio size={20} />
+                                        <Radio
+                                            size={20}
+                                            active={currentLanguage == "fr"}
+                                        />
                                     </PressableAnimated>
 
                                     <PressableAnimated
                                         scale={1}
+                                        onPress={() => changeLanguage("en")}
                                         className="w-full flex flex-row justify-between"
                                     >
                                         <TextAnimated className="text-lg">
                                             {t("settings_english")}
                                         </TextAnimated>
 
-                                        <Radio size={20} />
+                                        <Radio
+                                            size={20}
+                                            active={currentLanguage == "en"}
+                                        />
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        scale={1}
+                                        onPress={() => changeLanguage(null)}
+                                        className="w-full flex flex-row justify-between"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_system")}
+                                        </TextAnimated>
+
+                                        <Radio
+                                            size={20}
+                                            active={!currentLanguage}
+                                        />
                                     </PressableAnimated>
                                 </View>
                             </Select>
@@ -343,8 +402,8 @@ export default function Settings() {
                                     size={20}
                                     color={
                                         theme == "dark"
-                                            ? "rgba(255, 255, 255, .5)"
-                                            : "rgba(0, 0, 0, .5)"
+                                            ? "rgba(255, 255, 255, .3)"
+                                            : "rgba(0, 0, 0, .3)"
                                     }
                                 />
 
@@ -363,7 +422,7 @@ export default function Settings() {
                                     </TextAnimated>
                                 </View>
 
-                                <View className="w-[20%] flex justify-center items-center shrink-0">
+                                <View className="w-[20%] flex items-center shrink-0">
                                     <Toggle
                                         active={confirm}
                                         onPress={() =>
