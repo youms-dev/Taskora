@@ -20,5 +20,6 @@
     "settings_system": "System",
     "settings_language": "Language",
     "settings_french": "French",
-    "settings_english": "English"
+    "settings_english": "English",
+    "settings_notifications": "Notifications"
 }

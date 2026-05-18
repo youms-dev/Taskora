@@ -31,6 +31,7 @@ interface Props extends Omit<ScrollViewProps, "ref"> {
 }
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
 
 /**
  * Modal component
@@ -85,20 +86,18 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
  * @returns Modal component 
  */
 
-const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
-
 export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scrollViewClassName = "w-full h-full", contentContainerClassName = "w-full flex items-center", className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black", animationDuration: modalAnimationDuration = 200, active: modalActive, onClose, containerRef, scrollViewRef, closable: modalClosable = true, zIndex: modalZIndex = 1000, background: modalBackground = "transparent", children, blurIntensity = 100, blurTint, ...rest }: Props) => {
     const { width: dW, height: dH } = useWindowDimensions();
     const hideValue = dH + (dH * .2);
     const translateY = useSharedValue<number>(hideValue);
-    const duration = useSharedValue<typeof modalAnimationDuration>(modalAnimationDuration);
+    const duration = useSharedValue<typeof modalAnimationDuration>(200);
     const scroll = useSharedValue<number>(0);
     const scrollGesture = Gesture.Native();
-    const active = useSharedValue<boolean>(!!modalActive);
+    const active = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const closable = useSharedValue<boolean>(!!modalClosable);
-    const zIndex = useSharedValue<number>(modalZIndex);
-    const background = useSharedValue<typeof modalBackground>(modalBackground);
+    const closable = useSharedValue<boolean>(true);
+    const zIndex = useSharedValue<number>(1000);
+    const background = useSharedValue<typeof modalBackground>("transparent");
     const { theme } = useTheme();
     const dragging = useSharedValue<boolean>(false);
     const appTheme = useSharedValue<typeof theme>(theme);

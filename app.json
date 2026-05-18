@@ -63,7 +63,8 @@
           "calendarPermission": "Taskora needs to access your calendar."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

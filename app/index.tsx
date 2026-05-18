@@ -16,6 +16,7 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { TextAnimated } from '@/components/text-animated';
 
 export default function Login() {
   const initialInputsValues = {
@@ -94,7 +95,7 @@ export default function Login() {
   return (
     <Container center>
       <KeyboardAvoidingView
-        behavior={Platform.OS == "android" ? "height" : "padding"}
+        behavior={Platform.OS == "android" ? "padding" : "padding"}
         className="w-full sm:w-[500px] flex items-center gap-12 px-3"
       >
         <View className="px-3">
@@ -129,6 +130,7 @@ export default function Login() {
             />
           </View>
         </View>
+
         <Input
           label='Email'
           placeholder="example@email.com"
@@ -247,12 +249,15 @@ export default function Login() {
         </View>
 
         <View className="w-full flex flex-row justify-center items-center">
-          <Text className='text-lg dark:text-white text-black'>Pas encore de compte ? </Text>
+          <TextAnimated className='text-lg dark:text-white text-black'>
+            Pas encore de compte ?
+          </TextAnimated>
           <Link
             href={"/register"}
-            replace
             className='text-lg text-emerald-500 font-bold'
-          >Inscrivez-vous</Link>
+          >
+            Inscrivez-vous
+          </Link>
         </View>
 
         <LinearGradient
@@ -270,6 +275,6 @@ export default function Login() {
           }}
         />
       </KeyboardAvoidingView>
-    </Container >
+    </Container>
   );
 }

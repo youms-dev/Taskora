@@ -215,7 +215,7 @@ export default function Settings() {
 
                     <Animated.View
                         style={titleAnimation}
-                        className="absolute left-0 top-0 w-full h-full flex flex-row items-center px-3 pt-10"
+                        className="absolute left-0 top-0 w-full h-full flex flex-row items-center px-3 pt-10 border-b dark:border-b-white/20 border-b-black/20"
                     >
                         <PageTitle
                             title={t("settings")}
@@ -234,11 +234,11 @@ export default function Settings() {
                     ref={scrollViewRef}
                     onScroll={scrollHandler}
                     onMomentumScrollEnd={() => {
-                        if (scroll > 0 && scroll < 75) {
+                        if (scroll > 0 && scroll < Math.round((headerHeight - minHeaderHeight) / 2)) {
                             forceScroll(0);
                         }
-                        else if (scroll > 0 && scroll >= 75) {
-                            forceScroll(150);
+                        else if (scroll > 0 && scroll < Math.round(headerHeight - minHeaderHeight)) {
+                            forceScroll(headerHeight - minHeaderHeight);
                         }
                     }}
                     scrollEventThrottle={16}
@@ -326,6 +326,118 @@ export default function Settings() {
                         <View className="w-full">
                             <TextAnimated className="opacity-50">
                                 {t("settings_system")}
+                            </TextAnimated>
+                        </View>
+
+                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                            <Select
+                                open
+                                header={(
+                                    <View className="w-full flex flex-row items-center gap-6">
+                                        <Entypo
+                                            name="language"
+                                            size={20}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_language")}
+                                        </TextAnimated>
+                                    </View>
+                                )}
+                            >
+                                <View className="w-full flex items-center gap-5 py-2 px-5">
+                                    <PressableAnimated
+                                        scale={1}
+                                        onPress={() => changeLanguage("fr")}
+                                        className="w-full flex flex-row justify-between"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_french")}
+                                        </TextAnimated>
+
+                                        <Radio
+                                            size={20}
+                                            active={currentLanguage == "fr"}
+                                        />
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        scale={1}
+                                        onPress={() => changeLanguage("en")}
+                                        className="w-full flex flex-row justify-between"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_english")}
+                                        </TextAnimated>
+
+                                        <Radio
+                                            size={20}
+                                            active={currentLanguage == "en"}
+                                        />
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        scale={1}
+                                        onPress={() => changeLanguage(null)}
+                                        className="w-full flex flex-row justify-between"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_system")}
+                                        </TextAnimated>
+
+                                        <Radio
+                                            size={20}
+                                            active={!currentLanguage}
+                                        />
+                                    </PressableAnimated>
+                                </View>
+                            </Select>
+
+                            <PressableAnimated
+                                scale={1}
+                                className="flex self-start flex-row gap-5"
+                            >
+                                <FontAwesome5
+                                    name="user-lock"
+                                    size={20}
+                                    color={
+                                        theme == "dark"
+                                            ? "rgba(255, 255, 255, .3)"
+                                            : "rgba(0, 0, 0, .3)"
+                                    }
+                                />
+
+                                <TextAnimated className="max-w-[90%] text-lg">
+                                    {t("lock_app")}
+                                </TextAnimated>
+                            </PressableAnimated>
+
+                            <PressableAnimated
+                                scale={1}
+                                className="w-full flex flex-row justify-between"
+                            >
+                                <View className="w-[70%] pr-3">
+                                    <TextAnimated className="text-lg">
+                                        {t("deleting_setting")}
+                                    </TextAnimated>
+                                </View>
+
+                                <View className="w-[20%] flex items-center shrink-0">
+                                    <Toggle
+                                        active={confirm}
+                                        onPress={() =>
+                                            handleConfirmToggle()
+                                        }
+                                    />
+                                </View>
+                            </PressableAnimated>
+                        </View>
+                    </View>
+
+                    <View className="w-full flex flex-col gap-3 mt-6">
+                        <View className="w-full">
+                            <TextAnimated className="opacity-50">
+                                {t("settings_notifications")}
                             </TextAnimated>
                         </View>
 

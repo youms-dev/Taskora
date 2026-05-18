@@ -23,7 +23,7 @@ import PagerView from "react-native-pager-view";
 import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
 
-export default function Home() {
+export default function Tasks() {
     const pageRef = useRef<PagerView>(null);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const { height } = useWindowDimensions();

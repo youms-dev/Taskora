@@ -116,7 +116,7 @@ export default function Register() {
   return (
     <Container center>
       <KeyboardAvoidingView
-        behavior={Platform.OS == "android" ? "height" : "padding"}
+        behavior={Platform.OS == "android" ? "padding" : "padding"}
         className="w-full sm:w-[500px] flex items-center gap-5 px-3"
       >
         <View className="px-3 mb-10">

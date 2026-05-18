@@ -45,24 +45,23 @@ interface Props extends TextInputProps {
 export const Input = ({ width = "100%", height = 45, onFocus, onBlur, placeholder, label, icon, paddingRight, value: inputValue, ...rest }: Props) => {
   const focus = useSharedValue<boolean>(false);
   const { theme: appTheme } = useTheme();
-  const theme = useSharedValue<typeof appTheme>(appTheme);
+  const theme = useSharedValue<typeof appTheme>("light");
   const ref = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const text = useSharedValue<typeof inputValue>(inputValue);
-  const [borderWidth, setBorderWidth] = useState<number>(0);
-  const sharedBorderWidth = useSharedValue<number>(0);
+  const text = useSharedValue<typeof inputValue>("");
+  const borderWidth = useSharedValue<number>(0);
 
   const animation = useAnimatedStyle(() => ({
     backgroundColor: withTiming(focus.value ? COLORS.emerald[500] : (theme.value == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"), {
       duration: 200,
       easing: Easing.inOut(Easing.quad),
     }),
-    width: !focus.value ? sharedBorderWidth.value : withSequence(
+    width: !focus.value ? borderWidth.value : withSequence(
       withTiming(0, {
         duration: 100,
         easing: Easing.inOut(Easing.quad),
       }),
-      withTiming(sharedBorderWidth.value, {
+      withTiming(borderWidth.value, {
         duration: 300,
         easing: Easing.inOut(Easing.quad),
       }),
@@ -72,7 +71,6 @@ export const Input = ({ width = "100%", height = 45, onFocus, onBlur, placeholde
   useEffect(() => {
     theme.value = appTheme;
     text.value = inputValue;
-    sharedBorderWidth.value = borderWidth;
   }, [appTheme, inputValue, borderWidth]);
 
   useEffect(() => {
@@ -101,7 +99,7 @@ export const Input = ({ width = "100%", height = 45, onFocus, onBlur, placeholde
       <TextInput
         {...rest}
         ref={ref}
-        onLayout={(e) => setBorderWidth(e.nativeEvent.layout.width)}
+        onLayout={(e) => borderWidth.value = e.nativeEvent.layout.width}
         onFocus={(e) => {
           onFocus && onFocus(e);
           focus.value = true;

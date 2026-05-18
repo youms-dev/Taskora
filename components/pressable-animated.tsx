@@ -10,6 +10,8 @@ export interface PressableAnimatedProps extends PressableProps {
     onPressOut?: PressableProps["onPressOut"];
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * 
  * @param children Pressable animated children
@@ -26,11 +28,10 @@ export interface PressableAnimatedProps extends PressableProps {
  * @returns Pressable animated component
  */
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
     const pressed = useSharedValue<boolean>(false);
-    const scaleValue = useSharedValue<number>(scale);
+    const scaleValue = useSharedValue<number>(1);
 
     useEffect(() => {
         scaleValue.value = scale;
