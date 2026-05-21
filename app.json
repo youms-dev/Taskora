@@ -64,7 +64,18 @@
         }
       ],
       "expo-localization",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/magnetob.ttf",
+            "./assets/fonts/papyrus.ttf",
+            "./assets/fonts/InterVariable-Italic.ttf",
+            "./assets/fonts/InterVariable.ttf"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

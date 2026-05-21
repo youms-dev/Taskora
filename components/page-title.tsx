@@ -33,7 +33,7 @@ export const PageTitle = ({ icon, title }: Props) => {
     const { setToast } = useToast();
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
-    const router = useRouter();
+    const router = useRouter(); 
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/skeleton";
 import { Task } from "@/components/task";
 import { COLORS } from "@/constants/colors";
 import { CONFIRM_STORAGE } from "@/constants/names";
+import { useDatabase } from "@/hooks/use-sqlite";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { Task as TaskType } from "@/types/task";
@@ -22,6 +23,8 @@ import { ActivityIndicator, BackHandler, FlatList, Keyboard, KeyboardAvoidingVie
 import PagerView from "react-native-pager-view";
 import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
+import { createId } from "@paralleldrive/cuid2";
+import Octicons from "@expo/vector-icons/Octicons";
 
 export default function Tasks() {
     const pageRef = useRef<PagerView>(null);
@@ -47,14 +50,16 @@ export default function Tasks() {
         onCancel: () => { },
         action: () => { },
     });
+    const { db } = useDatabase();
+    const [sync, setSync] = useState<boolean>(false);
 
     const handleSubmit = async () => {
         if (value.trim().length == 0) {
-            setToast("Veuillez renseigner la description de la tâche !","warning");
+            setToast("Veuillez renseigner la description de la tâche !", "warning");
             return;
         }
         else if (!checkLength(value.trim(), [3, null])) {
-            setToast("La longueur minimale requise est de 3","warning");
+            setToast("La longueur minimale requise est de 3", "warning");
             return;
         }
 
@@ -65,7 +70,7 @@ export default function Tasks() {
             await api.post("/task/create", {
                 content: valueFormatted,
             });
-            setToast("Tâche créée 😉","success");
+            setToast("Tâche créée 😉", "success");
             setValue("");
             setTimeout(() => {
                 router.replace("/");
@@ -77,25 +82,58 @@ export default function Tasks() {
 
             setLoading(false);
             if (data.message) {
-                setToast(data.message,"error");
+                setToast(data.message, "error");
             }
             else {
-                setToast("Une erreur d'est produite","error");
+                setToast("Une erreur d'est produite", "error");
             }
         }
     }
 
-    const getTasks = async () => {
+    const syncData = async (position: number = 0) => {
+        if (pathname != "/") return;
         try {
-            if (loading || tasks.length >= perPage) return;
-            setLoading(true);
-            const { data } = await api.post(`/task/list?skip=${tasks.length}&take=${perPage}`);
+            const { data }: { data: TaskType[] } = await api.post(`/task/list?skip=${position}`);
 
-            setTasks([...tasks, ...data]);
-            setLoading(false);
+            await db?.runAsync(`
+                INSERT INTO task(id_task, title, content, done) 
+                VALUES
+                ${(() => {
+                    return data.map((item, i) => {
+                        const val = `("${item.idTask}", ${item.title ? `${item.title}` : null}, "${item.content}", ${Number(item.done)})${i < data.length - 1 ? "," : ""}`;
+
+                        return val;
+                    }).join("");
+                })()}
+                ON CONFLICT(id_task)
+                DO NOTHING;
+            `);
+            setSync(true);
+            console.log("sync");
         }
         catch (e) {
-            setToast("Aucune connexion internet","error");
+            setSync(false);
+            console.log(e);
+        }
+    }
+
+    const getTasks = async () => {
+        if (pathname != "/") return;
+        if (loading || tasks.length >= perPage) return;
+        try {
+            setLoading(true);
+            const query = await db?.getAllAsync("SELECT * FROM task");
+
+            console.log(query);
+            // setTasks([...tasks, ...data]);
+            setLoading(false);
+            if (!sync) {
+                syncData();
+                console.log("Yo");
+            }
+        }
+        catch (e) {
+            setToast("Aucune connexion internet", "error");
             console.log(e);
         }
     }
@@ -111,24 +149,26 @@ export default function Tasks() {
             setRefreshing(false);
         }
         catch (e) {
-            setToast("Aucune connexion internet","error");
+            setToast("Aucune connexion internet", "error");
         }
     }
 
     const getCount = async () => {
+        if (pathname != "/") return;
         try {
-            const { data } = await api.post("/task/count");
-            setCount(data);
+            const data: { count: number }[] | undefined = await db?.getAllAsync("SELECT COUNT(*) as count FROM task");
+
+            console.log(data![0].count);
         }
         catch (e) {
-            setToast("Aucune connexion internet","error");
+            setToast("Aucune connexion internet", "error");
         }
     }
 
     useEffect(() => {
-        getTasks();
-        getCount();
-    }, [pathname]);
+        // getCount();
+        // getTasks();
+    }, []);
 
     const handleFilter = (filter: "all" | "done" | "not done") => {
         if (filter == "all") {
@@ -214,13 +254,13 @@ export default function Tasks() {
                 }
             });
             setTasksPressed([]);
-            setToast("Tâche(s) supprimée(s)","success");
+            setToast("Tâche(s) supprimée(s)", "success");
             setTimeout(() => {
                 router.replace("/");
             }, 500);
         }
         catch (e) {
-            setToast("Aucune connexion internet","error");
+            setToast("Aucune connexion internet", "error");
             setTasks([...datas, ...tasks]);
         }
     };
@@ -287,7 +327,7 @@ export default function Tasks() {
                         className='w-full h-16 border-b-2 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-black/15 rounded-2xl pl-3 pr-12 font-bold'
                     />
                     <Pressable
-                        onPress={() => console.log(height)}
+                        onPress={() => getTasks()}
                         className="absolute top-4 right-5 z-1 active:text-emerald-500 active:scale-[.8]"
                     >
                         <FontAwesome5
@@ -362,10 +402,32 @@ export default function Tasks() {
                         }
                     </ScrollView>
                 </View>
-                <View
-                    className="w-full h-full flex flex-col items-center gap-5 px-3 pt-2"
+
+                <Animated.View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 100,
+                            }
+                        ]
+                    }}
+                    className="absolute w-full flex justify-center items-center bg-cyan-500"
                 >
-                    <FlatList
+                    <Octicons
+                        name="tasklist"
+                        size={20}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                    />
+                </Animated.View>
+
+                <ScrollView
+                    className="w-full h-full border-2 border-emerald-500"
+                    horizontal={false}
+                    contentContainerClassName="w-full flex flex-col items-center gap-5 px-3 pt-2 border-2 border-purple-500"
+                >
+                    
+                </ScrollView>
+                {/* <FlatList
                         data={tasks.length > 0 && tasksFilter && tasksFilter.length == 0 ? tasks : tasksFilter}
                         keyExtractor={(item) => String(item.idTask)}
                         renderItem={({ item: task }) => (
@@ -396,8 +458,8 @@ export default function Tasks() {
                                 );
                             }
                         }}
-                        onEndReached={() => value.trim().length == 0 && !refreshing && tasks.length < count && getTasks()}
-                        onEndReachedThreshold={.9}
+                        // onEndReached={() => value.trim().length == 0 && !refreshing && tasks.length < count && getTasks()}
+                        // onEndReachedThreshold={.9}
                         ListFooterComponent={loading ? <ActivityIndicator size="large" color={theme === "dark" ? "white" : COLORS.emerald[500]} /> : null}
                         refreshControl={
                             <RefreshControl
@@ -410,16 +472,7 @@ export default function Tasks() {
                         }
                         className="w-full"
                         contentContainerClassName="w-full flex flex-col items-center gap-5 pb-[400px]"
-                    />
-                    {
-                        !loading && tasks.length == 0 && (
-                            <View className="flex flex-row gap-2">
-                                <Text className="text-lg dark:text-white/70 text-black/80 font-bold">Aucune tâche pour l&rsquo;instant</Text>
-                                <Text className="text-2xl animate-bounce">🥲</Text>
-                            </View>
-                        )
-                    }
-                </View>
+                    /> */}
 
                 <Animated.View
                     style={[{
@@ -469,55 +522,14 @@ export default function Tasks() {
                         <FontAwesome6 name="trash-alt" size={30} color="red" />
                     </PressableAnimated>
                 </Animated.View>
-
-                <Message
-                    show={message.show}
-                    message={message.message}
-                    bottom={message.bottom}
-                    onCancel={() => message.onCancel()}
-                    action={() => message.action()}
-                />
             </View>
 
             <PressableAnimated
                 onPress={() => setModalVisible(true)}
-                style={{
-                    top: height - height * 25 / 100
-                }}
-                className="absolute left-4 size-[50px] flex justify-center items-center border-2 dark:border-white/20 border-black/20 dark:bg-black/60 bg-white/60 rounded-full"
+                className="absolute right-[10px] bottom-[120px] size-[50px] flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-black/60 bg-white/60"
             >
                 <FontAwesome5 name="plus" size={20} color={COLORS.emerald[500]} />
             </PressableAnimated>
-
-            <Modal
-                active={modalVisible}
-                onClose={() => setModalVisible(false)}
-            >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "android" ? "height" : "height"}
-                    className="w-full h-full flex items-center gap-8 pt-8 px-3"
-                >
-                    <View className="w-full flex flex-row justify-center">
-                        <Text className="text-2xl text-emerald-500 font-bold tracking-widest">Ajoutez votre tâche</Text>
-                    </View>
-                    <Input
-                        placeholder="Description"
-                        multiline
-                        value={value}
-                        onChange={(e) => setValue(e.nativeEvent.text)}
-                    />
-                    <Button
-                        loading={loading}
-                        loaderSize={30}
-                        scale={.8}
-                        onPress={() => handleSubmit()}
-                        className="w-[300px] h-[60px]"
-                    >
-                        <Text className="text-2xl text-black font-bold tracking-widest">Ajouter</Text>
-                        <FontAwesome5 name="plus" size={20} color="black" />
-                    </Button>
-                </KeyboardAvoidingView>
-            </Modal>
         </Container>
     );
 }
