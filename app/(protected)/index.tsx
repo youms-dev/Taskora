@@ -21,15 +21,20 @@ import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import PagerView from "react-native-pager-view";
-import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
 import { createId } from "@paralleldrive/cuid2";
 import Octicons from "@expo/vector-icons/Octicons";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { BlurView } from "expo-blur";
+import clsx from "clsx";
+
+const ScrollViewAnimated = Animated.createAnimatedComponent(ScrollView);
 
 export default function Tasks() {
     const pageRef = useRef<PagerView>(null);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
-    const { height } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const { setToast } = useToast();
     const [value, setValue] = useState<string>("");
     const router = useRouter();
@@ -52,6 +57,11 @@ export default function Tasks() {
     });
     const { db } = useDatabase();
     const [sync, setSync] = useState<boolean>(false);
+    const otherElement = Gesture.Native();
+    const scrollY = useSharedValue<number>(0);
+    const translateY = useSharedValue<number>(0);
+    const [left, setLeft] = useState<number>(0);
+    const sharedLoading = useSharedValue<boolean>(false);
 
     const handleSubmit = async () => {
         if (value.trim().length == 0) {
@@ -122,17 +132,21 @@ export default function Tasks() {
         if (loading || tasks.length >= perPage) return;
         try {
             setLoading(true);
-            const query = await db?.getAllAsync("SELECT * FROM task");
+            sharedLoading.value = true;
+            const query: TaskType[] | undefined = await db?.getAllAsync("SELECT * FROM task");
 
-            console.log(query);
-            // setTasks([...tasks, ...data]);
+            query && setTasks([...tasks, ...query]);
             setLoading(false);
+            sharedLoading.value = false;
             if (!sync) {
                 syncData();
-                console.log("Yo");
             }
+            translateY.value = 0;
         }
         catch (e) {
+            setLoading(false);
+            sharedLoading.value = false;
+            translateY.value = 0;
             setToast("Aucune connexion internet", "error");
             console.log(e);
         }
@@ -166,8 +180,8 @@ export default function Tasks() {
     }
 
     useEffect(() => {
-        // getCount();
-        // getTasks();
+        getCount();
+        getTasks();
     }, []);
 
     const handleFilter = (filter: "all" | "done" | "not done") => {
@@ -300,6 +314,76 @@ export default function Tasks() {
         return () => remove();
     }, []);
 
+    const pan = Gesture.Pan()
+        .simultaneousWithExternalGesture(otherElement)
+        .activeOffsetY(50)
+        .onUpdate(({ translationY: y }) => {
+            if (scrollY.value == 0) {
+                translateY.value = y;
+            }
+        })
+        .onEnd(() => {
+            if (translateY.value >= 90) {
+                translateY.value = 180;
+                runOnJS(getTasks)();
+            }
+            else {
+                translateY.value = 0;
+            }
+        })
+
+    const panAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    translateY.value,
+                    [0, 90],
+                    [90, 180],
+                    Extrapolation.CLAMP,
+                ),
+            }
+        ],
+        opacity: sharedLoading.value ? withRepeat(
+            withSequence(
+                withTiming(.5, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+                withTiming(.5, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+                withTiming(1, {
+                    duration: 1000,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            ),
+            Infinity,
+            true,
+        )
+            :
+            translateY.value == 0 ? 0 : 1,
+    }));
+
+    const showRefreshAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    translateY.value,
+                    [70, 100],
+                    [0, 150],
+                    Extrapolation.CLAMP,
+                ),
+            }
+        ]
+    }));
+
+    const handleScroll = useAnimatedScrollHandler({
+        onScroll: (e) => {
+            scrollY.value = e.contentOffset.y;
+        }
+    })
+
     return (
         <Container centerX>
             <PageTitle
@@ -404,29 +488,85 @@ export default function Tasks() {
                 </View>
 
                 <Animated.View
-                    style={{
-                        transform: [
-                            {
-                                translateY: 100,
-                            }
-                        ]
-                    }}
-                    className="absolute w-full flex justify-center items-center bg-cyan-500"
+                    onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
+                    style={[
+                        panAnimation,
+                        {
+                            left,
+                        }
+                    ]}
+                    className="absolute z-[100] rounded-full overflow-hidden pointer-events-none"
                 >
-                    <Octicons
-                        name="tasklist"
-                        size={20}
-                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                    />
+                    <BlurView
+                        intensity={100}
+                        experimentalBlurMethod="dimezisBlurView"
+                        tint={theme == "dark" ? "systemChromeMaterialDark" : "systemChromeMaterialLight"}
+                        className="size-full flex justify-center items-center rounded-full"
+                    >
+                        <View className="size-full flex justify-center items-center dark:bg-white/20 bg-black/10 p-4">
+                            <Octicons
+                                name="tasklist"
+                                size={25}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                            />
+                        </View>
+                    </BlurView>
+
+                    <Animated.View
+                        style={showRefreshAnimation}
+                        className="absolute size-full z-[1] rounded-full overflow-hidden"
+                    >
+                        <BlurView
+                            intensity={100}
+                            experimentalBlurMethod="dimezisBlurView"
+                            tint={theme == "dark" ? "systemChromeMaterialDark" : "systemChromeMaterialLight"}
+                            className="size-full flex justify-center items-center"
+                        >
+                            <View className="size-full dark:bg-white/20 bg-black/20" />
+                        </BlurView>
+                    </Animated.View>
                 </Animated.View>
 
-                <ScrollView
-                    className="w-full h-full border-2 border-emerald-500"
-                    horizontal={false}
-                    contentContainerClassName="w-full flex flex-col items-center gap-5 px-3 pt-2 border-2 border-purple-500"
-                >
-                    
-                </ScrollView>
+                <GestureDetector gesture={pan}>
+                    <View className="w-full">
+                        <GestureDetector gesture={otherElement}>
+                            <ScrollViewAnimated
+                                onScroll={handleScroll}
+                                scrollEventThrottle={16}
+                                horizontal={false}
+                                className="w-full h-full"
+                                contentContainerClassName={clsx(
+                                    "w-full flex flex-col items-center gap-5 px-3 pt-2 pb-[200px]",
+                                    tasks.length == 0 && "min-h-full"
+                                )}
+                                contentInset={{
+                                    bottom: 500
+                                }}
+                            >
+                                {
+                                    tasks.map((task, i) => (
+                                        <Task
+                                            key={i}
+                                            task={task}
+                                            selected={tasksPressed.find((t) => task.idTask == t.idTask) != null}
+                                            selectedNumber={tasksPressed.indexOf(task) !== -1 ? tasksPressed.indexOf(task) + 1 : undefined}
+                                            longPress={() => {
+                                                const element = tasksPressed.indexOf(task);
+
+                                                if (element !== -1) {
+                                                    setTasksPressed(tasksPressed.filter((item) => item.idTask !== task.idTask));
+                                                }
+                                                else {
+                                                    setTasksPressed([...tasksPressed, task])
+                                                }
+                                            }}
+                                        />
+                                    ))
+                                }
+                            </ScrollViewAnimated>
+                        </GestureDetector>
+                    </View>
+                </GestureDetector>
                 {/* <FlatList
                         data={tasks.length > 0 && tasksFilter && tasksFilter.length == 0 ? tasks : tasksFilter}
                         keyExtractor={(item) => String(item.idTask)}
