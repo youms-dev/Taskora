@@ -1,7 +1,7 @@
 import { useTheme } from "@/hooks/use-theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
@@ -21,11 +21,32 @@ export const Skeleton = () => {
             ),
             Infinity,
         ),
-    }))
+    }));
+
+    const animation = useAnimatedStyle(() => ({
+        opacity: withRepeat(
+            withSequence(
+                withTiming(.5, {
+                    duration: 1000,
+                    easing: Easing.inOut(Easing.linear),
+                }),
+                withDelay(
+                    500,
+                    withTiming(1, {
+                        duration: 1000,
+                        easing: Easing.inOut(Easing.linear),
+                    }),
+                )
+            ),
+            Infinity,
+            true,
+        )
+    }));
 
     return (
-        <View
-            className="relative w-full h-full dark:bg-white/20 bg-black/20 rounded-3xl overflow-hidden"
+        <Animated.View
+            style={animation}
+            className="w-full h-full dark:bg-white/20 bg-black/20 overflow-hidden"
         >
             <AnimatedLinearGradient
                 colors={["rgba(255, 255, 255, 0)", theme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.8)", "rgba(255, 255, 255, 0)"]}
@@ -36,6 +57,6 @@ export const Skeleton = () => {
                 className="absolute top-[-50%] w-[50px] h-[200%] skew-y-[30deg]"
             >
             </AnimatedLinearGradient>
-        </View>
+        </Animated.View>
     );
 }

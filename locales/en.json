@@ -21,5 +21,11 @@
     "settings_language": "Language",
     "settings_french": "French",
     "settings_english": "English",
-    "settings_notifications": "Notifications"
+    "settings_notifications": "Notifications",
+    "tasks_no_tasks": "The schedule is empty for now",
+    "tasks_filter": "Filter",
+    "tasks_filter_all": "All",
+    "tasks_filter_done": "Done",
+    "tasks_filter_not_done": "Undone",
+    "tasks_search": "Search for one of your events"
 }

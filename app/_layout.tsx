@@ -11,7 +11,7 @@ import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
-import { hideAsync, preventAutoHideAsync } from "expo-router/build/utils/splash";
+import { preventAutoHideAsync } from "expo-router/build/utils/splash";
 import { useColorScheme } from "nativewind";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,7 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../lib/i18n";
 import "./global.css";
 
-preventAutoHideAsync();
+// preventAutoHideAsync();
 
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
@@ -55,16 +55,6 @@ export default function Layout() {
             else i18n.changeLanguage(lng);
         })();
     }, []);
-
-    useEffect(() => {
-        if (loaded || error) {
-            hideAsync();
-        }
-    }, [loaded, error]);
-
-    if (!loaded && !error) {
-        return null;
-    }
 
     return (
         <SafeAreaProvider>

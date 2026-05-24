@@ -21,5 +21,11 @@
     "settings_language": "Langue",
     "settings_french": "Français",
     "settings_english": "Anglais",
-    "settings_notifications": "Notifications"
+    "settings_notifications": "Notifications",
+    "tasks_no_tasks": "Le planning est vide pour l'instant",
+    "tasks_filter": "Filtre",
+    "tasks_filter_all": "Tout",
+    "tasks_filter_done": "Fait",
+    "tasks_filter_not_done": "En attente",
+    "tasks_search": "Recherchez un de vos évènements"
 }

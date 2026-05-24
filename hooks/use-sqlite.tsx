@@ -1,5 +1,6 @@
 import { DATABASE_NAME, INIT_DATABASE } from "@/constants/database";
 import { usePathname } from "expo-router";
+import { hideAsync } from "expo-router/build/utils/splash";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 
@@ -23,6 +24,10 @@ export const DatabaseProvider = ({ children }: Props) => {
                 db.current = await openDatabaseAsync(DATABASE_NAME);
             }
             await db.current.execAsync(INIT_DATABASE);
+
+            // if (db.current) {
+            //     await hideAsync();
+            // }
         })();
     }, [pathname]);
 

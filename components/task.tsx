@@ -2,7 +2,7 @@ import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
-import { Task as TaskType } from "@/types/task";
+import { TaskType } from "@/types/task";
 import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
+import { TextAnimated } from "./text-animated";
 
 interface Props extends PressableProps {
     task: TaskType;
@@ -95,12 +96,12 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                 height: e.nativeEvent.layout.height,
             })}
             delayLongPress={150}
-            // android_ripple={{
-            //     color: task.done ? COLORS.emerald[100] : COLORS.red[100],
-            //     foreground: true,
-            // }}
+            android_ripple={{
+                color: task.done ? COLORS.emerald[100] : COLORS.red[100],
+                foreground: true,
+            }}
             onLongPress={() => longPress && longPress()}
-            className="relative w-full flex flex-col gap-3 dark:bg-white/10 bg-black/5 rounded-2xl p-5 dark:border-0 border border-black/20 overflow-hidden text-emerald-100"
+            className="relative w-full flex flex-col gap-3 dark:bg-white/10 bg-white/80 rounded-2xl p-5 dark:border-0 border border-black/20 overflow-hidden"
         >
             <Animated.View
                 style={[{
@@ -116,35 +117,55 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                     }}
                     className="flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-white/30 bg-black/30"
                 >
-                    <Text className="text-3xl dark:text-white text-black font-extrabold tracking-widest">
-                        {selectedNumber}
-                    </Text>
+                    {
+                        selectedNumber && (
+                            <TextAnimated className="text-3xl font-extrabold tracking-widest">
+                                {selectedNumber}
+                            </TextAnimated>
+                        )
+                    }
                 </View>
             </Animated.View>
-            <Text className="dark:text-white text-lg text-black">
+
+            <TextAnimated className="text-lg">
                 {task.content}
-            </Text>
+            </TextAnimated>
+
             <View className="w-full flex flex-row items-center gap-3">
-                <Text className="dark:text-white text-lg text-black">Statut :</Text>
-                <Text className="dark:text-white text-lg text-black">
+                <TextAnimated className="text-lg">
+                    Statut :
+                </TextAnimated>
+                <View>
                     {
                         task.done
                             ?
                             (
                                 <View className="flex flex-row items-center gap-4">
-                                    <Text className="text-lg dark:text-white text-black font-bold">faite</Text>
-                                    <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
+                                    <TextAnimated className="text-lg font-bold">
+                                        faite
+                                    </TextAnimated>
+                                    <FontAwesome5
+                                        name="check"
+                                        size={18}
+                                        color={COLORS.emerald[500]}
+                                    />
                                 </View>
                             )
                             :
                             (
                                 <View className="flex flex-row items-center gap-4">
-                                    <Text className="text-lg dark:text-white text-black font-bold">en attente</Text>
-                                    <FontAwesome6 name="xmark" size={19} color="red" />
+                                    <TextAnimated className="text-lg font-bold">
+                                        en attente
+                                    </TextAnimated>
+                                    <FontAwesome6
+                                        name="xmark"
+                                        size={19}
+                                        color="red"
+                                    />
                                 </View>
                             )
                     }
-                </Text>
+                </View>
             </View>
             {
                 updateLoading && (
@@ -164,27 +185,29 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                 )
             }
             <View className="w-full flex flex-row items-center gap-1">
-                <Text className="dark:text-white text-lg text-black">Créée</Text>
-                <Text className="dark:text-white text-lg text-black">
+                <TextAnimated className="dark:text-white text-lg">
+                    Créée
+                </TextAnimated>
+                <TextAnimated className="dark:text-white text-lg">
                     {dateGraduation(task.createdAt)}
-                </Text>
+                </TextAnimated>
             </View>
             <View className="w-full flex flex-row items-center gap-1">
-                <Text className="dark:text-white text-lg text-black">Faite ou modifiée</Text>
-                <Text className="dark:text-white text-lg text-black">
+                <TextAnimated className="text-lg">
+                    Faite ou modifiée
+                </TextAnimated>
+                <TextAnimated className="text-lg">
                     {dateGraduation(task.updatedAt)}
-                </Text>
+                </TextAnimated>
             </View>
             <View className="w-full flex flex-row justify-end items-center gap-3 px-3">
                 <PressableAnimated>
-                    <Link
-                        href={{
-                            pathname: "/[id]",
-                            params: {
-                                id: task.idTask ?? ""
-                            }
-                        }}
-                    >
+                    <Link href={{
+                        pathname: "/[id]",
+                        params: {
+                            id: task.idTask ?? ""
+                        }
+                    }}>
                         <FontAwesome5 name="edit" size={22} color="rgb(16, 185, 129)" />
                     </Link>
                 </PressableAnimated>
