@@ -96,10 +96,6 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
                 height: e.nativeEvent.layout.height,
             })}
             delayLongPress={150}
-            android_ripple={{
-                color: task.done ? COLORS.emerald[100] : COLORS.red[100],
-                foreground: true,
-            }}
             onLongPress={() => longPress && longPress()}
             className="relative w-full flex flex-col gap-3 dark:bg-white/10 bg-white/80 rounded-2xl p-5 dark:border-0 border border-black/20 overflow-hidden"
         >

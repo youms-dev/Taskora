@@ -3,33 +3,31 @@ import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { Task } from "@/components/task";
+import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useDatabase } from "@/hooks/use-sqlite";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { SQLiteTaskType, TaskType } from "@/types/task";
-import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Octicons from "@expo/vector-icons/Octicons";
+import clsx from "clsx";
 import { BlurView } from "expo-blur";
 import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import PagerView from "react-native-pager-view";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
-import { TextAnimated } from "@/components/text-animated";
-import clsx from "clsx";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
+const ScrollPressableAnimated = Animated.createAnimatedComponent(Pressable);
 
 export default function Tasks() {
-    const pageRef = useRef<PagerView>(null);
-    const [modalVisible, setModalVisible] = useState<boolean>(false);
     const { width, height } = useWindowDimensions();
     const { setToast } = useToast();
     const [value, setValue] = useState<string>("");
@@ -40,10 +38,11 @@ export default function Tasks() {
     const [tasksTmp, setTasksTmp] = useState<TaskType[]>([]);
     const limit = 10;
     const [count, setCount] = useState<number>(0);
+    const [countTmp, setCountTmp] = useState<number>(0);
     const [tasksPressed, setTasksPressed] = useState<TaskType[]>([]);
     const [allPressed, setAllPressed] = useState<boolean>(false);
     const pathname = usePathname();
-    const inputRef = useRef<TextInput>(null);
+    const textInputRef = useRef<TextInput>(null);
     const { db } = useDatabase();
     const [sync, setSync] = useState<boolean>(false);
     const otherElement = Gesture.Native();
@@ -57,43 +56,9 @@ export default function Tasks() {
     const { t } = useTranslation();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-
-    const handleSubmit = async () => {
-        if (value.trim().length == 0) {
-            setToast("Veuillez renseigner la description de la tâche !", "warning");
-            return;
-        }
-        else if (!checkLength(value.trim(), [3, null])) {
-            setToast("La longueur minimale requise est de 3", "warning");
-            return;
-        }
-
-        const valueFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
-
-        try {
-            setLoading(true);
-            await api.post("/task/create", {
-                content: valueFormatted,
-            });
-            setToast("Tâche créée 😉", "success");
-            setValue("");
-            setTimeout(() => {
-                router.replace("/");
-            }, 500);
-            setLoading(false);
-        }
-        catch (e) {
-            const { data } = e as { data: any };
-
-            setLoading(false);
-            if (data.message) {
-                setToast(data.message, "error");
-            }
-            else {
-                setToast("Une erreur d'est produite", "error");
-            }
-        }
-    }
+    const sharedTextInputValue = useSharedValue<string>("");
+    const showButton = useSharedValue<boolean>(false);
+    const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const syncData = async (position: number = 0) => {
         if (pathname != "/" || syncLoading) return;
@@ -184,59 +149,77 @@ export default function Tasks() {
     }
 
     useEffect(() => {
-        getCount();
-        getTasks();
+        // getCount();
+        // getTasks();
     }, []);
 
-    const handleFilter = (filter: "all" | "done" | "not done") => {
-        if (filter == "all") {
-            return setTasksTmp([]);
+    const handleFilter = (entry: null | boolean) => {
+        tasksTmp.length == 0 && setTasksTmp(tasks);
+        countTmp == 0 && setCountTmp(count);
+        if (entry == null) {
+            tasksTmp.length > 0 && setTasks(tasksTmp);
+            countTmp > 0 && setCount(countTmp);
+            setTasksTmp([]);
+            setCountTmp(0);
+            return;
         }
-        else if (filter == "done") {
-            const result = tasks.filter((task) => task.done == true);
-            if (result.length > 0) {
-                return setTasksTmp(result);
-            }
-            else {
-                return setTasksTmp([]);
-            }
-        }
-        else if (filter == "not done") {
-            const result = tasks.filter((task) => task.done == false);
+        const result = (tasksTmp.length == 0 ? tasks : tasksTmp).filter((task) => task.done == entry);
 
-            if (result.length > 0) {
-                return setTasksTmp(result);
-            }
-            else {
-                return setTasksTmp([]);
-            }
-        }
+        setTasks(result);
+        setCount(result.length);
     }
 
-    const handleSearch = async (value: string) => {
+    const handleSearch = async (value: string, pagination: boolean = false) => {
         timeout.current && clearTimeout(timeout.current);
-        if (value.trim().length == 0) {
-            setTasks(tasksTmp);
+        if (pathname != "/" || value.trim().length == 0) {
+            tasksTmp.length > 0 && setTasks(tasksTmp);
+            countTmp > 0 && setCount(countTmp);
             setTasksTmp([]);
+            setCountTmp(0);
             return;
         }
         timeout.current = setTimeout(async () => {
-            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE $title LIKE $like OR content LIKE $like ORDER BY updated_at LIMIT $limit OFFSET $offset");
-            const exec = await stmt.executeAsync({
-                $title: value,
-                $like: value,
-                $limit: limit,
-                $offset: tasks.length,
-            });
-            const result = tasks.filter((task) => task.content.toLowerCase().indexOf(value.toLowerCase()) !== -1);
+            tasksTmp.length == 0 && setTasksTmp(tasks);
+            countTmp == 0 && setCountTmp(count);
+            try {
+                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE title LIKE $like OR content LIKE $like ORDER BY updated_at LIMIT $limit OFFSET $offset");
+                const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE title LIKE $like OR content LIKE $like");
+                const exec = await stmt.executeAsync({
+                    $like: `%${value}%`,
+                    $limit: limit,
+                    $offset: pagination ? tasks.length : 0,
+                });
+                const execCount = await countStmt.executeAsync({
+                    $like: `%${value}%`,
+                });
+                const data = await exec.getAllAsync() as SQLiteTaskType[];
+                const { count } = await execCount.getFirstAsync() as { count: number };
 
-            if (result.length > 0) {
-                setTasksTmp(result);
+                const dataParsed = data.length > 0 ? data.map(item => {
+                    const { id_task, created_at, updated_at, ...rest } = item;
+
+                    return ({
+                        ...rest,
+                        idTask: id_task,
+                        createdAt: created_at,
+                        updatedAt: updated_at,
+                    } as TaskType);
+                }) : [];
+
+                setCount(count);
+                if (pagination) {
+                    setTasks([...tasks, ...dataParsed.filter((task) => ![...tasks.map(t => t.idTask)].includes(task.idTask))]);
+                }
+                else {
+                    setTasks(dataParsed);
+                }
             }
-            else {
-                setTasksTmp([]);
+            catch (e) {
+                tasksTmp.length > 0 && setTasks(tasksTmp);
+                countTmp > 0 && setCount(countTmp);
+                console.log(e);
             }
-        }, 200);
+        }, 100);
     }
 
     const animation = useAnimatedStyle(() => ({
@@ -274,6 +257,20 @@ export default function Tasks() {
     };
 
     useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (tasksTmp.length > 0 && countTmp > 0) {
+                setTasks(tasksTmp);
+                setCount(countTmp);
+                setTasksPressed([]);
+                setTasksTmp([]);
+                setCountTmp(0);
+                setValue("");
+                return true;
+            }
+
+            return false;
+        });
+
         if (tasksTmp && value.trim().length > 0) {
             if (tasksPressed.length === tasksTmp.length) {
                 setAllPressed(true);
@@ -288,21 +285,15 @@ export default function Tasks() {
             }
         }
 
-        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (tasksPressed.length > 0) {
-                setTasksPressed([]);
-                return true;
-            }
-            return false;
-        });
+        sharedTextInputValue.value = value;
 
         return () => remove();
-    }, [tasksPressed]);
+    }, [tasksPressed, value, tasksTmp]);
 
     useEffect(() => {
         const { remove } = Keyboard.addListener("keyboardDidHide", () => {
-            if (!inputRef.current) return;
-            inputRef.current.blur();
+            if (!textInputRef.current) return;
+            textInputRef.current.blur();
         });
 
         return () => remove();
@@ -312,12 +303,12 @@ export default function Tasks() {
         .simultaneousWithExternalGesture(otherElement)
         .activeOffsetY(50)
         .onUpdate(({ translationY: y }) => {
-            if (scrollY.value == 0 && !sharedLoading.value && !scrolling.value) {
+            if (scrollY.value == 0 && !sharedLoading.value && !scrolling.value && sharedTextInputValue.value.trim().length == 0) {
                 translateY.value = y;
             }
         })
         .onEnd(() => {
-            if (sharedLoading.value) return;
+            if (sharedLoading.value || sharedTextInputValue.value.trim().length > 0) return;
             if (translateY.value >= 90) {
                 translateY.value = 180;
                 runOnJS(getTasks)(true);
@@ -372,15 +363,39 @@ export default function Tasks() {
         ]
     }));
 
+    const toggleShowButton = () => {
+        showButtonTimeout.current && clearTimeout(showButtonTimeout.current);
+        showButton.value = true;
+        showButtonTimeout.current = setTimeout(() => {
+            showButton.value = false;
+        }, 1500);
+    }
+
     const handleScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
-            scrollY.value = e.contentOffset.y;
+            const y = e.contentOffset.y;
+
+            scrollY.value = y;
+            if (y > 0) {
+                runOnJS(toggleShowButton)();
+            }
+            else {
+                showButton.value = false;
+            }
         }
     });
 
     useEffect(() => {
         sharedLoading.value = loading;
     }, [loading]);
+
+    const scrollButtonAnimation = useAnimatedStyle(() => ({
+        opacity: withTiming(showButton.value ? 1 : 0, {
+            duration: 300,
+            easing: Easing.inOut(Easing.quad),
+        }),
+        pointerEvents: showButton.value ? "auto" : "none",
+    }));
 
     return (
         <Container centerX>
@@ -397,42 +412,42 @@ export default function Tasks() {
             <View className="relative w-full flex flex-col items-center">
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "android" ? "height" : "padding"}
-                    className="w-full flex justify-center items-center my-5 px-2">
+                    className={clsx(
+                        "w-full flex justify-center items-center my-5 px-2",
+                        !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
+                    )}>
                     <TextInput
-                        ref={inputRef}
+                        ref={textInputRef}
                         placeholder={t("tasks_search")}
                         cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                        placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .2)"}
+                        placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
                         value={value}
-                        onChange={(e) => handleSearch(e.nativeEvent.text)}
-                        onChangeText={(e) => handleSearch(e)}
-                        onSubmitEditing={(e) => handleSearch(e.nativeEvent.text)}
-                        editable={!loading && tasks.length > 0}
-                        className={clsx(
-                            "w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20",
-                            !loading && tasks.length == 0 && tasksTmp.length == 0 && "opacity-60",
-                        )}
+                        onChangeText={(e) => {
+                            setValue(e);
+                            handleSearch(e);
+                        }}
+                        onSubmitEditing={() => handleSearch(value)}
+                        editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
+                        className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
                     />
-                    <Pressable
-                        onPress={() => getTasks()}
+                    <PressableAnimated
+                        onPress={() => {
+                            handleSearch(value);
+                            textInputRef.current?.blur();
+                        }}
                         className="absolute top-4 right-5 z-1 active:text-emerald-500 active:scale-[.8]"
                     >
                         <FontAwesome5
                             name="search"
                             size={24}
-                            color={theme == "dark" ? "white" : "black"}
+                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
                         />
-                    </Pressable>
+                    </PressableAnimated>
                     {
-                        tasksTmp && tasksTmp.length > 0 && (
+                        tasksTmp.length > 0 && (
                             <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
-                                ({tasksTmp.length})
+                                {count}
                             </Text>
-                        )
-                    }
-                    {
-                        !tasksTmp && (
-                            <Text className="absolute left-3 -top-6 text-lg dark:text-white/60 text-black/60 font-extrabold tracking-widest">Aucun élément</Text>
                         )
                     }
                 </KeyboardAvoidingView>
@@ -464,8 +479,8 @@ export default function Tasks() {
                                 contentContainerClassName="flex flex-row items-center gap-[10px]"
                             >
                                 <PressableAnimated
-                                    scale={.8}
-                                    onPress={() => handleFilter("all")}
+                                    scale={.95}
+                                    onPress={() => handleFilter(null)}
                                     className="w-[100px] h-12 flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 p-3 rounded-xl border dark:border-white/20 border-black/20"
                                 >
                                     <TextAnimated className="text-lg">
@@ -474,8 +489,8 @@ export default function Tasks() {
                                 </PressableAnimated>
 
                                 <PressableAnimated
-                                    scale={.8}
-                                    onPress={() => handleFilter("done")}
+                                    scale={.95}
+                                    onPress={() => handleFilter(true)}
                                     className="w-[100px] h-12 flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 p-3 rounded-xl border dark:border-white/20 border-black/20"
                                 >
                                     <TextAnimated className="text-lg">
@@ -484,8 +499,8 @@ export default function Tasks() {
                                 </PressableAnimated>
 
                                 <PressableAnimated
-                                    scale={.8}
-                                    onPress={() => handleFilter("not done")}
+                                    scale={.95}
+                                    onPress={() => handleFilter(false)}
                                     className="w-[100px] h-12 flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 p-3 rounded-xl border dark:border-white/20 border-black/20"
                                 >
                                     <TextAnimated className="text-lg">
@@ -549,10 +564,13 @@ export default function Tasks() {
                                 onScroll={handleScroll}
                                 onMomentumScrollBegin={() => scrolling.value = true}
                                 onMomentumScrollEnd={() => scrolling.value = false}
-                                onEndReached={() => value.trim().length == 0 && tasks.length < count && getTasks()}
+                                onEndReached={() => value.trim().length == 0 ?
+                                    tasks.length < count ? getTasks() : undefined
+                                    :
+                                    tasks.length < count ? handleSearch(value, true) : undefined
+                                }
                                 onEndReachedThreshold={.95}
                                 scrollEventThrottle={16}
-                                // data={tasks.length > 0 && tasksTmp && tasksTmp.length == 0 ? tasks : tasksTmp}
                                 data={tasks}
                                 keyExtractor={(item) => String((item as TaskType).idTask)}
                                 renderItem={({ item: task }) => (
@@ -583,7 +601,7 @@ export default function Tasks() {
                                                     color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
                                                 />
                                                 <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                                                    {t("tasks_no_tasks")}
+                                                    {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
                                                 </Text>
                                             </View>
                                         );
@@ -625,6 +643,32 @@ export default function Tasks() {
                     </View>
                 </GestureDetector>
 
+                <ScrollPressableAnimated
+                    onPress={() => flatListRef.current?.scrollToIndex({
+                        index: 0,
+                        animated: true,
+                    })}
+                    style={[
+                        {
+                            bottom: 0,
+                            transform: [
+                                {
+                                    translateY: -290,
+                                }
+                            ]
+                        },
+                        scrollButtonAnimation,
+                    ]}
+                    className="absolute dark:bg-black bg-white rounded-full overflow-hidden"
+                >
+                    <View className="size-full dark:bg-white/20 bg-black/50 p-2">
+                        <Ionicons
+                            name="chevron-up-sharp"
+                            size={30}
+                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(255, 255, 255, .8)"}
+                        />
+                    </View>
+                </ScrollPressableAnimated>
 
                 <Animated.View
                     style={[{
@@ -677,7 +721,7 @@ export default function Tasks() {
             </View >
 
             <PressableAnimated
-                onPress={() => setModalVisible(true)}
+                onPress={() => { }}
                 className="absolute right-[10px] bottom-[120px] size-[50px] flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-black/60 bg-white/60"
             >
                 <FontAwesome5 name="plus" size={20} color={COLORS.emerald[500]} />

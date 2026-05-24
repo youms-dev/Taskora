@@ -27,5 +27,6 @@
     "tasks_filter_all": "All",
     "tasks_filter_done": "Done",
     "tasks_filter_not_done": "Undone",
-    "tasks_search": "Search for one of your events"
+    "tasks_search": "Search for one of your events",
+    "tasks_search_tasks_empty": "No task or event found"
 }

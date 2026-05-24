@@ -27,5 +27,6 @@
     "tasks_filter_all": "Tout",
     "tasks_filter_done": "Fait",
     "tasks_filter_not_done": "En attente",
-    "tasks_search": "Recherchez un de vos évènements"
+    "tasks_search": "Recherchez un de vos évènements",
+    "tasks_search_tasks_empty": "Aucune tâche ou evenement trouvé"
 }
