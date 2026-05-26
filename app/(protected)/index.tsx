@@ -149,8 +149,8 @@ export default function Tasks() {
     }
 
     useEffect(() => {
-        // getCount();
-        // getTasks();
+        getCount();
+        getTasks();
     }, []);
 
     const handleFilter = (entry: null | boolean) => {
@@ -645,7 +645,7 @@ export default function Tasks() {
 
                 <ScrollPressableAnimated
                     onPress={() => flatListRef.current?.scrollToIndex({
-                        index: 0,
+                        index: 1,
                         animated: true,
                     })}
                     style={[

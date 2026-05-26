@@ -157,7 +157,7 @@ export default function Layout() {
                     },
                     animation,
                 ]}
-                colors={theme == "dark" ? ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .9)", "rgba(0, 0, 0, .5)"] : ["rgba(255, 255, 255, .5)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .5)"]}
+                colors={theme == "dark" ? ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .9)", "rgba(0, 0, 0, .5)"] : ["rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .9)"]}
                 className="absolute bottom-0 sm:w-max w-[95%] flex flex-row justify-center items-center px-3 py-2 rounded-[50px] border dark:border-white/20 border-black/20 overflow-hidden z-[1000]"
             >
                 <NavButton
@@ -211,22 +211,6 @@ export default function Layout() {
                     )}
                     onPress={() => router.navigate("/settings")}
                 />
-
-                {/* <NavButton
-                    name={t("profile")}
-                    focused={pathname == "/profile"}
-                    icon={(
-                        <Avatar
-                            size={25}
-                            scale={1.3}
-                            name={{
-                                value: "Youmbi Le-duc",
-                                size: 10,
-                            }}
-                        />
-                    )}
-                    onPress={() => router.navigate("/profile")}
-                /> */}
             </LinearGradientAnimated>
         </>
     )
