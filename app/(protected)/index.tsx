@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
-import { Task, TaskProps } from "@/components/task";
+import { Task } from "@/components/task";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useDatabase } from "@/hooks/use-sqlite";
@@ -17,9 +17,9 @@ import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { BlurView } from "expo-blur";
 import { usePathname, useRouter } from "expo-router";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, ScrollView, Text, TextInput, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
@@ -27,7 +27,7 @@ import { api } from "../../lib/axios";
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 const ScrollPressableAnimated = Animated.createAnimatedComponent(Pressable);
 
-interface Props extends TaskProps {
+interface Props extends PressableProps {
     task: TaskType;
     onRefresh: () => void;
     loading: boolean;
@@ -43,6 +43,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const loading = useSharedValue<boolean>(false);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
+    const heightShared = useSharedValue<number>(0);
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -86,11 +87,15 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         }
     }
 
-    const handleLongPress = () => onLongPress && onLongPress();
+    const handleLongPress = () => {
+        onLongPress && onLongPress();
+        Vibration.vibrate(100);
+    }
 
     const pan = Gesture.Race(
         Gesture.LongPress()
-            .onStart((e) => {
+            .minDuration(150)
+            .onStart(() => {
                 runOnJS(handleLongPress)();
             }),
         Gesture.Pan()
@@ -100,6 +105,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (x >= -100 && x <= 100 && !loading.value && !selected.value) translateX.value = x;
             })
             .onEnd(({ translationX: x }) => {
+                if (selected.value) return;
                 if (x <= -100) {
                     runOnJS(handleArchive)();
                 }
@@ -126,7 +132,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     useEffect(() => {
         loading.value = parentLoading;
         selected.value = index > 0;
-    }, [parentLoading, index]);
+        heightShared.value = height;
+    }, [parentLoading, index, height]);
 
     const selectAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(selected.value ? 1 : 0, {
@@ -139,13 +146,23 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const textAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateY: selected.value ? "100%" : withDelay(
-                    200,
-                    withSpring(0, {
-                        stiffness: 100,
-                        mass: 2,
-                        damping: 5,
-                    })),
+                translateY: !selected.value ? heightShared.value : withDelay(
+                    100,
+                    withSequence(
+                        withTiming(-20, {
+                            duration: 200,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
+                        withTiming(20, {
+                            duration: 200,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
+                        withTiming(0, {
+                            duration: 200,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
+                    ),
+                )
             }
         ]
     }));
@@ -153,6 +170,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     return (
         <GestureDetector gesture={pan}>
             <Pressable
+                {...rest}
+                onPress={() => console.log("Pressed")}
                 style={{
                     width: "100%",
                     height,
@@ -188,23 +207,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                     style={swipeAnimation}
                     className="absolute w-[105%] z-10"
                 >
-                    <Task
-                        {...rest}
-                        key={(task as TaskType).idTask}
-                        task={task as TaskType}
-                    // selected={tasksSelected.find((t) => (task as TaskType).idTask == t.idTask) != null}
-                    // selectedNumber={tasksSelected.indexOf((task as TaskType)) !== -1 ? tasksSelected.indexOf((task as TaskType)) + 1 : undefined}
-                    // longPress={() => {
-                    //     const element = tasksSelected.indexOf((task as TaskType));
-
-                    //     if (element !== -1) {
-                    //         setTasksSelected(tasksSelected.filter((item) => item.idTask !== (task as TaskType).idTask));
-                    //     }
-                    //     else {
-                    //         setTasksSelected([...tasksSelected, (task as TaskType)])
-                    //     }
-                    // }}
-                    />
+                    <Task task={task as TaskType} />
                 </Animated.View>
 
                 <Animated.View
@@ -214,14 +217,18 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                         },
                         selectAnimation,
                     ]}
-                    className="absolute w-[105%] h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70"
+                    className="absolute w-[105%] h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
                 >
-                    <TextAnimated
-                        style={textAnimation}
-                        className="text-5xl"
-                    >
-                        {index}
-                    </TextAnimated>
+                    {
+                        index > 0 && (
+                            <TextAnimated
+                                style={textAnimation}
+                                className="text-5xl"
+                            >
+                                {index}
+                            </TextAnimated>
+                        )
+                    }
                 </Animated.View>
             </Pressable>
         </GestureDetector>
@@ -260,6 +267,7 @@ export default function Tasks() {
     const sharedTextInputValue = useSharedValue<string>("");
     const showButton = useSharedValue<boolean>(false);
     const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const tasksSelectedShared = useSharedValue<boolean>(false);
 
     const syncData = async (position: number = 0) => {
         if (pathname != "/" || syncLoading) return;
@@ -430,12 +438,19 @@ export default function Tasks() {
         }, 100);
     }
 
-    const animation = useAnimatedStyle(() => ({
-        bottom: withTiming(tasksSelected.length > 0 ? height - height * 68.5 / 100 : -height * .5, {
-            duration: 300,
-            easing: Easing.inOut(Easing.quad),
-        }),
-    }))
+    const taskSelectedAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: -20,
+            },
+            {
+                translateY: withTiming(tasksSelectedShared.value ? -(height - (height * .66)) : height * .5, {
+                    duration: 300,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            },
+        ]
+    }));
 
     const handleDelete = async (confirm = false) => {
         const datas = tasksSelected;
@@ -466,9 +481,9 @@ export default function Tasks() {
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (tasksTmp.length > 0 && countTmp > 0) {
-                setTasks(tasksTmp);
-                setCount(countTmp);
+            if ((tasksTmp.length > 0 && countTmp > 0) || tasksSelected.length > 0) {
+                tasksTmp.length > 0 && setTasks(tasksTmp);
+                countTmp > 0 && setCount(countTmp);
                 setTasksSelected([]);
                 setTasksTmp([]);
                 setCountTmp(0);
@@ -596,7 +611,8 @@ export default function Tasks() {
 
     useEffect(() => {
         sharedLoading.value = loading;
-    }, [loading]);
+        tasksSelectedShared.value = tasksSelected.length > 0;
+    }, [loading, tasksSelected]);
 
     const scrollButtonAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(showButton.value ? 1 : 0, {
@@ -604,6 +620,24 @@ export default function Tasks() {
             easing: Easing.inOut(Easing.quad),
         }),
         pointerEvents: showButton.value ? "auto" : "none",
+    }));
+
+    const addTaskButtonAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: tasksSelectedShared.value ? withTiming(100, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                }) : withSpring(-20, {
+                    stiffness: 30,
+                    mass: 1,
+                    damping: 5,
+                }),
+            },
+            {
+                translateY: -120,
+            },
+        ]
     }));
 
     return (
@@ -796,10 +830,21 @@ export default function Tasks() {
                                         loading={loading}
                                         task={task as TaskType}
                                         selectedIndex={(() => {
-                                            return tasksSelected.findIndex((t) => t.idTask == (task as TaskType).idTask);
+                                            const child = task as TaskType;
+                                            const pos = tasksSelected.findIndex(t => t.idTask == child.idTask);
+
+                                            if (pos != -1) return pos + 1;
+                                            return 0;
                                         })()}
                                         onRefresh={() => getTasks(true)}
-                                        onLongPress={() => setTasksSelected([...tasksSelected, task as TaskType])}
+                                        onLongPress={() => {
+                                            const child = task as TaskType;
+
+                                            const pos = tasksSelected.findIndex(t => t.idTask == child.idTask);
+
+                                            if (pos == -1) setTasksSelected([...tasksSelected, task as TaskType]);
+                                            else setTasksSelected(tasksSelected.filter(t => t.idTask != child.idTask));
+                                        }}
                                     />
                                 )}
                                 ListEmptyComponent={() => {
@@ -864,7 +909,7 @@ export default function Tasks() {
                             bottom: 0,
                             transform: [
                                 {
-                                    translateY: -290,
+                                    translateY: tasksSelected.length > 0 ? -335 : -280,
                                 }
                             ]
                         },
@@ -882,61 +927,79 @@ export default function Tasks() {
                 </ScrollPressableAnimated>
 
                 <Animated.View
-                    style={[{
-                        width: 90,
-                        zIndex: tasksSelected.length > 0 ? 10 : -10,
-                    }, animation]}
-                    className="absolute right-22 w-auto flex flex-row items-center gap-5"
+                    style={[
+                        {
+                            zIndex: tasksSelected.length > 0 ? 10 : -10,
+                        },
+                        taskSelectedAnimation,
+                    ]}
+                    className="absolute right-0 bottom-0 dark:bg-white bg-black rounded-2xl"
                 >
-                    <View className="flex flex-row items-center gap-3">
-                        <View className="flex flex-row items-start gap-3">
-                            <Text className="text-lg dark:text-white text-black font-bold">Sélectionnés</Text>
-                            <Text className="text-lg dark:text-white text-black font-bold">
-                                ({tasksSelected.length})
-                            </Text>
+                    <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-black/80 bg-white rounded-2xl px-3 py-1 border-none border border-black/20">
+                        <View className="flex flex-row items-center gap-3">
+                            <View className="flex flex-row items-start gap-3">
+                                <TextAnimated className="text-lg font-bold">
+                                    {t("tasks_selected")}
+                                </TextAnimated>
+                                <TextAnimated className="text-lg font-bold">
+                                    ({tasksSelected.length})
+                                </TextAnimated>
+                            </View>
+                            <PressableAnimated
+                                onPress={() => {
+                                    if (value.trim().length > 0 && tasksTmp) {
+                                        if (tasksTmp.length === tasksSelected.length) {
+                                            setTasksSelected([]);
+                                        }
+                                        else {
+                                            setTasksSelected(tasksTmp);
+                                        }
+                                    }
+                                    else {
+                                        if (tasks.length === tasksSelected.length) {
+                                            setTasksSelected([]);
+                                        }
+                                        else {
+                                            setTasksSelected(tasks);
+                                        }
+                                    }
+                                }}
+                                className="size-[40px] flex justify-center items-center border-2 dark:border-white/20 border-black/20 rounded-xl"
+                            >
+                                {
+                                    allPressed && (
+                                        <FontAwesome5 name="check" size={25} color={COLORS.emerald[500]} />
+                                    )
+                                }
+                            </PressableAnimated>
                         </View>
-                        <PressableAnimated
-                            onPress={() => {
-                                if (value.trim().length > 0 && tasksTmp) {
-                                    if (tasksTmp.length === tasksSelected.length) {
-                                        setTasksSelected([]);
-                                    }
-                                    else {
-                                        setTasksSelected(tasksTmp);
-                                    }
-                                }
-                                else {
-                                    if (tasks.length === tasksSelected.length) {
-                                        setTasksSelected([]);
-                                    }
-                                    else {
-                                        setTasksSelected(tasks);
-                                    }
-                                }
-                            }}
-                            className="size-[40px] flex justify-center items-center border-2 dark:border-white/20 border-black/20 rounded-xl"
-                        >
-                            {
-                                allPressed && (
-                                    <FontAwesome5 name="check" size={25} color={COLORS.emerald[500]} />
-                                )
-                            }
+
+                        <PressableAnimated onPress={() => handleDelete()}>
+                            <FontAwesome6
+                                name="trash-alt"
+                                size={30}
+                                color="red"
+                            />
                         </PressableAnimated>
                     </View>
-                    <PressableAnimated
-                        onPress={() => handleDelete()}
-                    >
-                        <FontAwesome6 name="trash-alt" size={30} color="red" />
-                    </PressableAnimated>
                 </Animated.View>
-            </View >
+            </View>
 
-            <PressableAnimated
-                onPress={() => { }}
-                className="absolute right-[10px] bottom-[120px] size-[50px] flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-black/60 bg-white/60"
+            <Animated.View
+                style={addTaskButtonAnimation}
+                className="absolute right-0 bottom-0 size-[50px] dark:bg-white bg-black rounded-full"
             >
-                <FontAwesome5 name="plus" size={20} color={COLORS.emerald[500]} />
-            </PressableAnimated>
-        </Container >
+                <Pressable
+                    onPress={() => { }}
+                    className="size-full flex justify-center items-center rounded-full dark:border-none border border-black/20 dark:bg-black/80 bg-white"
+                >
+                    <FontAwesome5
+                        name="plus"
+                        size={20}
+                        color={COLORS.emerald[500]}
+                    />
+                </Pressable>
+            </Animated.View>
+        </Container>
     );
 }

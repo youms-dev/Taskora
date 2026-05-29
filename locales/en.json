@@ -10,6 +10,7 @@
     "logout_question": "Are your sure you want to log out ?",
     "discard": "Discard",
     "logout_confirmed": "Log out",
+    "toast_cancel": "Cancel",
     "theme": "Theme",
     "lock_app": "Lock app",
     "deleting_setting": "Confirm before deleting",
@@ -29,5 +30,5 @@
     "tasks_filter_not_done": "Undone",
     "tasks_search": "Search for one of your events",
     "tasks_search_tasks_empty": "No task or event found",
-    "toast_cancel": "Cancel"
+    "tasks_selected": "Selecteted"
 }

@@ -10,6 +10,7 @@
     "logout_question": "Êtes-vous sûr de vouloir vous deconnecter ?",
     "discard": "Annuler",
     "logout_confirmed": "Déconnexion",
+    "toast_cancel": "Annuler",
     "theme": "Thème",
     "lock_app": "Vérrouillage de l'app",
     "deleting_setting": "Confirmation avant suppression",
@@ -29,5 +30,5 @@
     "tasks_filter_not_done": "En attente",
     "tasks_search": "Recherchez un de vos évènements",
     "tasks_search_tasks_empty": "Aucune tâche ou evenement trouvé",
-    "toast_cancel": "Annuler"
+    "tasks_selected": "Selectionnées"
 }
