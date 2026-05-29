@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
-import { Task } from "@/components/task";
+import { Task, TaskProps } from "@/components/task";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useDatabase } from "@/hooks/use-sqlite";
@@ -17,19 +17,220 @@ import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { BlurView } from "expo-blur";
 import { usePathname, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 const ScrollPressableAnimated = Animated.createAnimatedComponent(Pressable);
 
+interface Props extends TaskProps {
+    task: TaskType;
+    onRefresh: () => void;
+    loading: boolean;
+    selectedIndex?: number;
+    onLongPress?: () => void;
+}
+const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, ...rest }: Props) => {
+    const translateX = useSharedValue<number>(0);
+    const { width } = useWindowDimensions();
+    const { theme } = useTheme();
+    const [height, setHeight] = useState<number>(0);
+    const { db } = useDatabase();
+    const loading = useSharedValue<boolean>(false);
+    const { setToast, setDismiss } = useToast();
+    const selected = useSharedValue<boolean>(false);
+
+    const swipeAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: translateX.value,
+            },
+        ]
+    }));
+
+    const handleDelete = () => {
+        if (loading.value) return;
+        setDismiss(5, deleteTask);
+    }
+
+    const deleteTask = async () => {
+        if (loading.value) return;
+        try {
+            loading.value = true;
+            await db!.runAsync(`DELETE FROM task WHERE id_task = ${task.idTask}`);
+            onRefresh();
+            loading.value = false;
+        }
+        catch (e) {
+            console.log(e);
+            loading.value = false;
+        }
+    }
+
+    const handleArchive = async () => {
+        if (loading.value) return;
+        try {
+            loading.value = true;
+            await db!.runAsync(`UPDATE task SET archived = ${1} WHERE id_task = ${task.idTask}`);
+            setToast("Archivé");
+            onRefresh();
+            loading.value = false;
+        }
+        catch (e) {
+            console.log(e);
+            loading.value = false;
+        }
+    }
+
+    const handleLongPress = () => onLongPress && onLongPress();
+
+    const pan = Gesture.Race(
+        Gesture.LongPress()
+            .onStart((e) => {
+                runOnJS(handleLongPress)();
+            }),
+        Gesture.Pan()
+            .activeOffsetX([-5, 5])
+            .failOffsetY([-10, 10])
+            .onUpdate(({ translationX: x }) => {
+                if (x >= -100 && x <= 100 && !loading.value && !selected.value) translateX.value = x;
+            })
+            .onEnd(({ translationX: x }) => {
+                if (x <= -100) {
+                    runOnJS(handleArchive)();
+                }
+                else if (x >= 100) {
+                    runOnJS(handleDelete)();
+                }
+                translateX.value = withSpring(0, {
+                    stiffness: 100,
+                    mass: 2,
+                    damping: 10,
+                });
+            })
+    );
+
+    const opacityAnimation = useAnimatedStyle(() => ({
+        opacity: interpolate(
+            translateX.value,
+            [-95, 0, 95],
+            [1, 0, 1],
+            Extrapolation.CLAMP,
+        ),
+    }));
+
+    useEffect(() => {
+        loading.value = parentLoading;
+        selected.value = index > 0;
+    }, [parentLoading, index]);
+
+    const selectAnimation = useAnimatedStyle(() => ({
+        opacity: withTiming(selected.value ? 1 : 0, {
+            duration: 200,
+            easing: Easing.inOut(Easing.linear),
+        }),
+        pointerEvents: selected.value ? "auto" : "none",
+    }));
+
+    const textAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: selected.value ? "100%" : withDelay(
+                    200,
+                    withSpring(0, {
+                        stiffness: 100,
+                        mass: 2,
+                        damping: 5,
+                    })),
+            }
+        ]
+    }));
+
+    return (
+        <GestureDetector gesture={pan}>
+            <Pressable
+                style={{
+                    width: "100%",
+                    height,
+                }}
+                className="flex flex-row justify-center rounded-2xl p-2"
+            >
+                <Animated.View
+                    style={opacityAnimation}
+                    className="w-1/2 h-full flex justify-center bg-red-500 rounded-l-2xl pl-10"
+                >
+                    <FontAwesome6
+                        name="trash-alt"
+                        size={30}
+                        color="rgba(255, 255, 255, .8)"
+                    />
+                </Animated.View>
+
+                <Animated.View
+                    style={opacityAnimation}
+                    className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
+                >
+                    <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
+                        <Ionicons
+                            name="archive-sharp"
+                            size={30}
+                            color="rgba(255, 255, 255, .8)"
+                        />
+                    </View>
+                </Animated.View>
+
+                <Animated.View
+                    onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+                    style={swipeAnimation}
+                    className="absolute w-[105%] z-10"
+                >
+                    <Task
+                        {...rest}
+                        key={(task as TaskType).idTask}
+                        task={task as TaskType}
+                    // selected={tasksSelected.find((t) => (task as TaskType).idTask == t.idTask) != null}
+                    // selectedNumber={tasksSelected.indexOf((task as TaskType)) !== -1 ? tasksSelected.indexOf((task as TaskType)) + 1 : undefined}
+                    // longPress={() => {
+                    //     const element = tasksSelected.indexOf((task as TaskType));
+
+                    //     if (element !== -1) {
+                    //         setTasksSelected(tasksSelected.filter((item) => item.idTask !== (task as TaskType).idTask));
+                    //     }
+                    //     else {
+                    //         setTasksSelected([...tasksSelected, (task as TaskType)])
+                    //     }
+                    // }}
+                    />
+                </Animated.View>
+
+                <Animated.View
+                    style={[
+                        {
+                            height,
+                        },
+                        selectAnimation,
+                    ]}
+                    className="absolute w-[105%] h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70"
+                >
+                    <TextAnimated
+                        style={textAnimation}
+                        className="text-5xl"
+                    >
+                        {index}
+                    </TextAnimated>
+                </Animated.View>
+            </Pressable>
+        </GestureDetector>
+    );
+});
+
 export default function Tasks() {
     const { width, height } = useWindowDimensions();
-    const { setToast } = useToast();
+    const { setToast, setDismiss } = useToast();
     const [value, setValue] = useState<string>("");
     const router = useRouter();
     const { theme } = useTheme();
@@ -39,7 +240,7 @@ export default function Tasks() {
     const limit = 10;
     const [count, setCount] = useState<number>(0);
     const [countTmp, setCountTmp] = useState<number>(0);
-    const [tasksPressed, setTasksPressed] = useState<TaskType[]>([]);
+    const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
     const [allPressed, setAllPressed] = useState<boolean>(false);
     const pathname = usePathname();
     const textInputRef = useRef<TextInput>(null);
@@ -94,10 +295,15 @@ export default function Tasks() {
 
     const getTasks = async (refresh: boolean = false) => {
         if (pathname != "/" || loading) return;
+        setTasksSelected([]);
+        setCountTmp(0);
+        setTasksTmp([]);
+        setValue("");
         try {
             setLoading(true);
-            const stmt = await db!.prepareAsync("SELECT * FROM task ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
+            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
             const execResult = await stmt.executeAsync({
+                $archived: 0,
                 $limit: limit,
                 $offset: refresh ? 0 : tasks.length,
             });
@@ -115,7 +321,7 @@ export default function Tasks() {
 
             if (refresh) {
                 setTasks(dataParsed);
-                flatListRef.current?.scrollToIndex({
+                tasks.length > 0 && flatListRef.current?.scrollToIndex({
                     index: 0,
                     animated: false,
                 });
@@ -138,7 +344,7 @@ export default function Tasks() {
     const getCount = async () => {
         if (pathname != "/") return;
         try {
-            const data: { count: number; } | undefined | null = await db?.getFirstAsync("SELECT COUNT(*) as count FROM task");
+            const data: { count: number; } | undefined | null = await db?.getFirstAsync(`SELECT COUNT(*) as count FROM task WHERE archived = ${0}`);
 
             data?.count && setCount(data.count);
         }
@@ -149,8 +355,8 @@ export default function Tasks() {
     }
 
     useEffect(() => {
-        getCount();
-        getTasks();
+        // getCount();
+        // getTasks();
     }, []);
 
     const handleFilter = (entry: null | boolean) => {
@@ -182,14 +388,16 @@ export default function Tasks() {
             tasksTmp.length == 0 && setTasksTmp(tasks);
             countTmp == 0 && setCountTmp(count);
             try {
-                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE title LIKE $like OR content LIKE $like ORDER BY updated_at LIMIT $limit OFFSET $offset");
-                const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE title LIKE $like OR content LIKE $like");
+                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE title LIKE $like OR content LIKE $like AND archived = $archived ORDER BY updated_at LIMIT $limit OFFSET $offset");
+                const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE title LIKE $like OR content LIKE $like AND archived = $archived");
                 const exec = await stmt.executeAsync({
+                    $archived: 0,
                     $like: `%${value}%`,
                     $limit: limit,
                     $offset: pagination ? tasks.length : 0,
                 });
                 const execCount = await countStmt.executeAsync({
+                    $archived: 0,
                     $like: `%${value}%`,
                 });
                 const data = await exec.getAllAsync() as SQLiteTaskType[];
@@ -223,20 +431,20 @@ export default function Tasks() {
     }
 
     const animation = useAnimatedStyle(() => ({
-        bottom: withTiming(tasksPressed.length > 0 ? height - height * 68.5 / 100 : -height * .5, {
+        bottom: withTiming(tasksSelected.length > 0 ? height - height * 68.5 / 100 : -height * .5, {
             duration: 300,
             easing: Easing.inOut(Easing.quad),
         }),
     }))
 
     const handleDelete = async (confirm = false) => {
-        const datas = tasksPressed;
+        const datas = tasksSelected;
 
-        if (tasksPressed.length === 0) return;
+        if (tasksSelected.length === 0) return;
         const result = tasks.filter(task => ![...datas.map(data => data.idTask)].includes(task.idTask));
 
         setTasks(result);
-        setTasksPressed([]);
+        setTasksSelected([]);
 
         try {
             await api.delete(`/task/delete`, {
@@ -244,7 +452,7 @@ export default function Tasks() {
                     tasks: [...datas.map((task) => task.idTask)]
                 }
             });
-            setTasksPressed([]);
+            setTasksSelected([]);
             setToast("Tâche(s) supprimée(s)", "success");
             setTimeout(() => {
                 router.replace("/");
@@ -261,7 +469,7 @@ export default function Tasks() {
             if (tasksTmp.length > 0 && countTmp > 0) {
                 setTasks(tasksTmp);
                 setCount(countTmp);
-                setTasksPressed([]);
+                setTasksSelected([]);
                 setTasksTmp([]);
                 setCountTmp(0);
                 setValue("");
@@ -272,12 +480,12 @@ export default function Tasks() {
         });
 
         if (tasksTmp && value.trim().length > 0) {
-            if (tasksPressed.length === tasksTmp.length) {
+            if (tasksSelected.length === tasksTmp.length) {
                 setAllPressed(true);
             }
         }
         else {
-            if (tasksPressed.length === tasks.length) {
+            if (tasksSelected.length === tasks.length) {
                 setAllPressed(true);
             }
             else {
@@ -288,7 +496,7 @@ export default function Tasks() {
         sharedTextInputValue.value = value;
 
         return () => remove();
-    }, [tasksPressed, value, tasksTmp]);
+    }, [tasksSelected, value, tasksTmp]);
 
     useEffect(() => {
         const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -302,6 +510,7 @@ export default function Tasks() {
     const pan = Gesture.Pan()
         .simultaneousWithExternalGesture(otherElement)
         .activeOffsetY(50)
+        .failOffsetX([-10, 10])
         .onUpdate(({ translationY: y }) => {
             if (scrollY.value == 0 && !sharedLoading.value && !scrolling.value && sharedTextInputValue.value.trim().length == 0) {
                 translateY.value = y;
@@ -368,7 +577,7 @@ export default function Tasks() {
         showButton.value = true;
         showButtonTimeout.current = setTimeout(() => {
             showButton.value = false;
-        }, 1500);
+        }, 500);
     }
 
     const handleScroll = useAnimatedScrollHandler({
@@ -431,9 +640,15 @@ export default function Tasks() {
                         className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
                     />
                     <PressableAnimated
+                        // onPress={() => {
+                        //     handleSearch(value);
+                        //     textInputRef.current?.blur();
+                        // }}
                         onPress={() => {
-                            handleSearch(value);
-                            textInputRef.current?.blur();
+                            setTasks([]);
+                            setTasksTmp([]);
+                            setCount(0);
+                            setCountTmp(0);
                         }}
                         className="absolute top-4 right-5 z-1 active:text-emerald-500 active:scale-[.8]"
                     >
@@ -481,6 +696,7 @@ export default function Tasks() {
                                 <PressableAnimated
                                     scale={.95}
                                     onPress={() => handleFilter(null)}
+                                    // onPress={() => setDismiss(10)}
                                     className="w-[100px] h-12 flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 p-3 rounded-xl border dark:border-white/20 border-black/20"
                                 >
                                     <TextAnimated className="text-lg">
@@ -561,6 +777,8 @@ export default function Tasks() {
                             <FlatListAnimated
                                 ref={flatListRef}
                                 horizontal={false}
+                                initialNumToRender={5}
+                                showsVerticalScrollIndicator={false}
                                 onScroll={handleScroll}
                                 onMomentumScrollBegin={() => scrolling.value = true}
                                 onMomentumScrollEnd={() => scrolling.value = false}
@@ -574,21 +792,14 @@ export default function Tasks() {
                                 data={tasks}
                                 keyExtractor={(item) => String((item as TaskType).idTask)}
                                 renderItem={({ item: task }) => (
-                                    <Task
-                                        key={(task as TaskType).idTask}
+                                    <TaskCard
+                                        loading={loading}
                                         task={task as TaskType}
-                                        selected={tasksPressed.find((t) => (task as TaskType).idTask == t.idTask) != null}
-                                        selectedNumber={tasksPressed.indexOf((task as TaskType)) !== -1 ? tasksPressed.indexOf((task as TaskType)) + 1 : undefined}
-                                        longPress={() => {
-                                            const element = tasksPressed.indexOf((task as TaskType));
-
-                                            if (element !== -1) {
-                                                setTasksPressed(tasksPressed.filter((item) => item.idTask !== (task as TaskType).idTask));
-                                            }
-                                            else {
-                                                setTasksPressed([...tasksPressed, (task as TaskType)])
-                                            }
-                                        }}
+                                        selectedIndex={(() => {
+                                            return tasksSelected.findIndex((t) => t.idTask == (task as TaskType).idTask);
+                                        })()}
+                                        onRefresh={() => getTasks(true)}
+                                        onLongPress={() => setTasksSelected([...tasksSelected, task as TaskType])}
                                     />
                                 )}
                                 ListEmptyComponent={() => {
@@ -645,7 +856,7 @@ export default function Tasks() {
 
                 <ScrollPressableAnimated
                     onPress={() => flatListRef.current?.scrollToIndex({
-                        index: 1,
+                        index: 0,
                         animated: true,
                     })}
                     style={[
@@ -673,7 +884,7 @@ export default function Tasks() {
                 <Animated.View
                     style={[{
                         width: 90,
-                        zIndex: tasksPressed.length > 0 ? 10 : -10,
+                        zIndex: tasksSelected.length > 0 ? 10 : -10,
                     }, animation]}
                     className="absolute right-22 w-auto flex flex-row items-center gap-5"
                 >
@@ -681,25 +892,25 @@ export default function Tasks() {
                         <View className="flex flex-row items-start gap-3">
                             <Text className="text-lg dark:text-white text-black font-bold">Sélectionnés</Text>
                             <Text className="text-lg dark:text-white text-black font-bold">
-                                ({tasksPressed.length})
+                                ({tasksSelected.length})
                             </Text>
                         </View>
                         <PressableAnimated
                             onPress={() => {
                                 if (value.trim().length > 0 && tasksTmp) {
-                                    if (tasksTmp.length === tasksPressed.length) {
-                                        setTasksPressed([]);
+                                    if (tasksTmp.length === tasksSelected.length) {
+                                        setTasksSelected([]);
                                     }
                                     else {
-                                        setTasksPressed(tasksTmp);
+                                        setTasksSelected(tasksTmp);
                                     }
                                 }
                                 else {
-                                    if (tasks.length === tasksPressed.length) {
-                                        setTasksPressed([]);
+                                    if (tasks.length === tasksSelected.length) {
+                                        setTasksSelected([]);
                                     }
                                     else {
-                                        setTasksPressed(tasks);
+                                        setTasksSelected(tasks);
                                     }
                                 }
                             }}

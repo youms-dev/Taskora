@@ -29,9 +29,15 @@ export const INIT_DATABASE = `
         title TEXT,
         content TEXT NOT NULL,
         done BOOLEAN DEFAULT 0,
+        archived BOOLEAN DEFAULT 0,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
     ); 
+
+    CREATE INDEX IF NOT EXISTS task_title_index ON task(title);
+    CREATE INDEX IF NOT EXISTS task_content_index ON task(content);
+    CREATE INDEX IF NOT EXISTS task_done_index ON task(done);
+    CREATE INDEX IF NOT EXISTS task_archived_index ON task(archived);
 
     ${init} 
     `;

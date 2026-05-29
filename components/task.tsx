@@ -7,13 +7,13 @@ import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
 import { TextAnimated } from "./text-animated";
 
-interface Props extends PressableProps {
+export interface TaskProps extends PressableProps {
     task: TaskType;
     longPress?: () => void;
     selected?: boolean;
@@ -38,7 +38,7 @@ interface Props extends PressableProps {
  * @returns Task component
  */
 
-export const Task = ({ task, longPress, selected = false, loading = false, selectedNumber, ...rest }: Props) => {
+export const Task = memo(({ task, longPress, selected = false, loading = false, selectedNumber, ...rest }: TaskProps) => {
     const { theme } = useTheme();
     const [layout, setLayout] = useState<{
         width: number;
@@ -97,117 +97,119 @@ export const Task = ({ task, longPress, selected = false, loading = false, selec
             })}
             delayLongPress={150}
             onLongPress={() => longPress && longPress()}
-            className="relative w-full flex flex-col gap-3 dark:bg-white/10 bg-white/80 rounded-2xl p-5 dark:border-0 border border-black/20 overflow-hidden"
+            className="w-full dark:bg-black bg-white rounded-2xl overflow-hidden border dark:border-white/30 border-black/20"
         >
-            <Animated.View
-                style={[{
-                    width: layout.width,
-                    height: layout.height,
-                }, animation]}
-                className="absolute flex justify-center items-center dark:bg-black/80 bg-white/80 rounded-2xl border-2 dark:border-white/20 border-black/20"
-            >
-                <View
-                    style={{
-                        width: 100,
-                        height: 100,
-                    }}
-                    className="flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-white/30 bg-black/30"
+            <View className="w-full flex items-center gap-3 dark:bg-white/20 bg-white p-5 overflow-hidden rounded-2xl">
+                <Animated.View
+                    style={[{
+                        width: layout.width,
+                        height: layout.height,
+                    }, animation]}
+                    className="absolute flex justify-center items-center dark:bg-black/80 bg-white/80 rounded-2xl"
                 >
-                    {
-                        selectedNumber && (
-                            <TextAnimated className="text-3xl font-extrabold tracking-widest">
-                                {selectedNumber}
-                            </TextAnimated>
-                        )
-                    }
-                </View>
-            </Animated.View>
-
-            <TextAnimated className="text-lg">
-                {task.content}
-            </TextAnimated>
-
-            <View className="w-full flex flex-row items-center gap-3">
-                <TextAnimated className="text-lg">
-                    Statut :
-                </TextAnimated>
-                <View>
-                    {
-                        task.done
-                            ?
-                            (
-                                <View className="flex flex-row items-center gap-4">
-                                    <TextAnimated className="text-lg font-bold">
-                                        faite
-                                    </TextAnimated>
-                                    <FontAwesome5
-                                        name="check"
-                                        size={18}
-                                        color={COLORS.emerald[500]}
-                                    />
-                                </View>
-                            )
-                            :
-                            (
-                                <View className="flex flex-row items-center gap-4">
-                                    <TextAnimated className="text-lg font-bold">
-                                        en attente
-                                    </TextAnimated>
-                                    <FontAwesome6
-                                        name="xmark"
-                                        size={19}
-                                        color="red"
-                                    />
-                                </View>
-                            )
-                    }
-                </View>
-            </View>
-            {
-                updateLoading && (
-                    <ActivityIndicator size={25} color={theme === "dark" ? "white" : "black"} />
-                )
-            }
-            {
-                !updateLoading && !task.done && (
-                    <PressableAnimated
-                        scale={.9}
-                        onPress={() => handleUpdate()}
-                        className="flex flex-row items-center gap-4 self-start shrink dark:bg-white/15 bg-black/10 p-3 border dark:border-white/20 border-black/20 rounded-2xl"
+                    <View
+                        style={{
+                            width: 100,
+                            height: 100,
+                        }}
+                        className="flex justify-center items-center rounded-full border-2 dark:border-white/20 border-black/20 dark:bg-white/30 bg-black/30"
                     >
-                        <Text className="text-lg dark:text-white text-black">Marquer comme faite ?</Text>
-                        <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
-                    </PressableAnimated>
-                )
-            }
-            <View className="w-full flex flex-row items-center gap-1">
-                <TextAnimated className="dark:text-white text-lg">
-                    Créée
-                </TextAnimated>
-                <TextAnimated className="dark:text-white text-lg">
-                    {dateGraduation(task.createdAt)}
-                </TextAnimated>
-            </View>
-            <View className="w-full flex flex-row items-center gap-1">
-                <TextAnimated className="text-lg">
-                    Faite ou modifiée
-                </TextAnimated>
-                <TextAnimated className="text-lg">
-                    {dateGraduation(task.updatedAt)}
-                </TextAnimated>
-            </View>
-            <View className="w-full flex flex-row justify-end items-center gap-3 px-3">
-                <PressableAnimated>
-                    <Link href={{
-                        pathname: "/[id]",
-                        params: {
-                            id: task.idTask ?? ""
+                        {
+                            selectedNumber && (
+                                <TextAnimated className="text-3xl font-extrabold tracking-widest">
+                                    {selectedNumber}
+                                </TextAnimated>
+                            )
                         }
-                    }}>
-                        <FontAwesome5 name="edit" size={22} color="rgb(16, 185, 129)" />
-                    </Link>
-                </PressableAnimated>
+                    </View>
+                </Animated.View>
+
+                <TextAnimated className="text-lg">
+                    {task.content}
+                </TextAnimated>
+
+                <View className="w-full flex flex-row items-center gap-3">
+                    <TextAnimated className="text-lg">
+                        Statut :
+                    </TextAnimated>
+                    <View>
+                        {
+                            task.done
+                                ?
+                                (
+                                    <View className="flex flex-row items-center gap-4">
+                                        <TextAnimated className="text-lg font-bold">
+                                            faite
+                                        </TextAnimated>
+                                        <FontAwesome5
+                                            name="check"
+                                            size={18}
+                                            color={COLORS.emerald[500]}
+                                        />
+                                    </View>
+                                )
+                                :
+                                (
+                                    <View className="flex flex-row items-center gap-4">
+                                        <TextAnimated className="text-lg font-bold">
+                                            en attente
+                                        </TextAnimated>
+                                        <FontAwesome6
+                                            name="xmark"
+                                            size={19}
+                                            color="red"
+                                        />
+                                    </View>
+                                )
+                        }
+                    </View>
+                </View>
+                {
+                    updateLoading && (
+                        <ActivityIndicator size={25} color={theme === "dark" ? "white" : "black"} />
+                    )
+                }
+                {
+                    !updateLoading && !task.done && (
+                        <PressableAnimated
+                            scale={.9}
+                            onPress={() => handleUpdate()}
+                            className="flex flex-row items-center gap-4 self-start shrink dark:bg-white/15 bg-black/10 p-3 border dark:border-white/20 border-black/20 rounded-2xl"
+                        >
+                            <Text className="text-lg dark:text-white text-black">Marquer comme faite ?</Text>
+                            <FontAwesome5 name="check" size={18} color={COLORS.emerald[500]} />
+                        </PressableAnimated>
+                    )
+                }
+                <View className="w-full flex flex-row items-center gap-1">
+                    <TextAnimated className="dark:text-white text-lg">
+                        Créée
+                    </TextAnimated>
+                    <TextAnimated className="dark:text-white text-lg">
+                        {dateGraduation(task.createdAt)}
+                    </TextAnimated>
+                </View>
+                <View className="w-full flex flex-row items-center gap-1">
+                    <TextAnimated className="text-lg">
+                        Faite ou modifiée
+                    </TextAnimated>
+                    <TextAnimated className="text-lg">
+                        {dateGraduation(task.updatedAt)}
+                    </TextAnimated>
+                </View>
+                <View className="w-full flex flex-row justify-end items-center gap-3 px-3">
+                    <PressableAnimated>
+                        <Link href={{
+                            pathname: "/[id]",
+                            params: {
+                                id: task.idTask ?? ""
+                            }
+                        }}>
+                            <FontAwesome5 name="edit" size={22} color="rgb(16, 185, 129)" />
+                        </Link>
+                    </PressableAnimated>
+                </View>
             </View>
         </Pressable>
     );
-}
+});
