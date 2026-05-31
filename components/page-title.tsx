@@ -1,39 +1,42 @@
+import { COLORS } from "@/constants/colors";
 import { useAuth } from "@/hooks/auth-provider";
+import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
 import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
+import Entypo from "@expo/vector-icons/Entypo";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { createId } from "@paralleldrive/cuid2";
 import { decode } from "base64-arraybuffer";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { ReactNode, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { Avatar } from "./avatar";
 import { PressableAnimated } from "./pressable-animated";
 
 interface Props {
-    icon?: ReactNode;
-    title: string;
+    children: ReactNode;
 }
 
 /**
+ * @param children
  * 
- * @param icon Page title icon
- * 
- * @param title Page title title
  * @returns Page title component
  */
 
-export const PageTitle = ({ icon, title }: Props) => {
+export const PageTitle = ({ children }: Props) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [image, setImage] = useState<string | null>(null);
     const { setToast } = useToast();
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
-    const router = useRouter(); 
+    const router = useRouter();
+    const { theme } = useTheme();
+    const pathname = usePathname();
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -108,42 +111,60 @@ export const PageTitle = ({ icon, title }: Props) => {
 
     return (
         <View className="w-full flex flex-row justify-between items-center px-4">
-            <View className="w-[70%] flex flex-row items-center gap-3">
-                {icon}
-                <Text
-                    numberOfLines={1}
-                    className="max-w-[80%] text-xl text-emerald-500 font-extrabold tracking-widest"
-                >
-                    {title}
-                </Text>
+            <View className="w-[50%] h-full flex flex-row items-center gap-3 overflow-hidden">
+                {children}
             </View>
 
-            <PressableAnimated
-                className="size-[50px] rounded-full p-1"
-                onPress={() => router.navigate("/profile")}
-            >
+            <View className="w-[50%] flex flex-row justify-end items-center gap-6">
                 {
-                    user && !user.user_metadata.photoUrl && (
-                        <Avatar
-                            name={user.user_metadata.name}
-                            size={50}
-                        />
+                    !["/settings"].includes(pathname) && (
+                        <>
+                            <PressableAnimated>
+                                <FontAwesome6
+                                    name="plus"
+                                    size={25}
+                                    color={COLORS.emerald[500]}
+                                />
+                            </PressableAnimated>
+
+                            <PressableAnimated>
+                                <Entypo
+                                    name="archive"
+                                    size={25}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                />
+                            </PressableAnimated>
+                        </>
                     )
                 }
-                {
-                    user && user.user_metadata.photoUrl && (
-                        <Image
-                            source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                borderRadius: 9999,
-                            }}
-                            contentFit="cover"
-                        />
-                    )
-                }
-            </PressableAnimated>
-        </View >
+
+                <PressableAnimated
+                    className="size-[50px] rounded-full p-1"
+                    onPress={() => router.navigate("/profile")}
+                >
+                    {
+                        user && !user.user_metadata.photoUrl && (
+                            <Avatar
+                                name={user.user_metadata.name}
+                                size={50}
+                            />
+                        )
+                    }
+                    {
+                        user && user.user_metadata.photoUrl && (
+                            <Image
+                                source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: 9999,
+                                }}
+                                contentFit="cover"
+                            />
+                        )
+                    }
+                </PressableAnimated>
+            </View>
+        </View>
     );
 } 

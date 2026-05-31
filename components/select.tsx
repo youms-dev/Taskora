@@ -1,3 +1,4 @@
+import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
 import { ReactNode, useEffect, useState } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
@@ -25,6 +26,7 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
     const active = useSharedValue(!!selectOpen);
     const contentHeight = useSharedValue(0);
     const [measuredHeight, setMeasuredHeight] = useState(0);
+    const { theme } = useTheme();
 
     useEffect(() => {
         active.value = selectOpen;
@@ -77,7 +79,7 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
                         <Entypo
                             name="chevron-right"
                             size={30}
-                            color={"rgba(255,255,255,.5)"}
+                            color={theme == "dark" ? "rgba(255,255,255,.5)" : "rgba(0, 0, 0, .5)"}
                         />
                     </Animated.View>
                 </View>

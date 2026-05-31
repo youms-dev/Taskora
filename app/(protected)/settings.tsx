@@ -67,11 +67,10 @@ export default function Settings() {
             [headerHeight, minHeaderHeight],
             Extrapolation.CLAMP,
         ),
-        backgroundColor: interpolateColor(
-            scrollY.value,
-            [0, headerHeight - minHeaderHeight],
-            [appTheme.value == "dark" ? "rgba(255, 255,255, .1)" : "rgba(0, 0, 0, .8)", appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)"],
-        ),
+        backgroundColor: scrollY.value >= headerHeight - minHeaderHeight ?
+            appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)"
+            :
+            appTheme.value == "dark" ? "rgba(255, 255,255, .1)" : "rgba(0, 0, 0, .8)",
     }));
 
     const avatarAnimation = useAnimatedStyle(() => ({
@@ -87,8 +86,8 @@ export default function Settings() {
             {
                 scale: interpolate(
                     scrollY.value,
-                    [0, 150],
-                    [1, 0.5],
+                    [0, 100],
+                    [1, 0.2],
                     Extrapolation.CLAMP
                 ),
             },
@@ -107,7 +106,7 @@ export default function Settings() {
                 translateY: interpolate(
                     scrollY.value,
                     [0, 100],
-                    [0, -20],
+                    [0, -50],
                     Extrapolation.CLAMP
                 ),
             },
@@ -215,18 +214,20 @@ export default function Settings() {
 
                     <Animated.View
                         style={titleAnimation}
-                        className="absolute left-0 top-0 w-full h-full flex flex-row items-center px-3 pt-10 border-b dark:border-b-white/20 border-b-black/20"
+                        className="absolute left-0 top-0 w-full h-full flex flex-row items-center pt-10 border-b dark:border-b-white/20 border-b-black/20"
                     >
-                        <PageTitle
-                            title={t("settings")}
-                            icon={(
+                        <PageTitle>
+                            <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
                                 <FontAwesome6
                                     name="gears"
                                     size={25}
                                     color={COLORS.emerald[500]}
                                 />
-                            )}
-                        />
+                                <Text className="text-xl text-emerald-500 font-bold">
+                                    {t("settings")}
+                                </Text>
+                            </View>
+                        </PageTitle>
                     </Animated.View>
                 </Animated.View>
 

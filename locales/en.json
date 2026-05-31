@@ -30,5 +30,6 @@
     "tasks_filter_not_done": "Undone",
     "tasks_search": "Search for one of your events",
     "tasks_search_tasks_empty": "No task or event found",
-    "tasks_selected": "Selecteted"
+    "tasks_selected": "Selecteted",
+    "tasks_page_title": "Events"
 }
