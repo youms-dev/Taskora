@@ -7,8 +7,8 @@ import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Link } from "expo-router";
-import { memo, useState } from "react";
-import { ActivityIndicator, Pressable, PressableProps, Text, View, ViewProps } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Text, View, ViewProps } from "react-native";
 import { PressableAnimated } from "./pressable-animated";
 import { TextAnimated } from "./text-animated";
 
@@ -26,7 +26,7 @@ export interface TaskProps extends ViewProps {
  * @returns Task component
  */
 
-export const Task = memo(({ task, onRefresh, ...rest }: TaskProps) => {
+export const Task = ({ task, onRefresh, ...rest }: TaskProps) => {
     const { theme } = useTheme();
     const [updateLoading, setUpdateLoading] = useState<boolean>(false);
     const { setToast } = useToast();
@@ -145,4 +145,4 @@ export const Task = memo(({ task, onRefresh, ...rest }: TaskProps) => {
             </View>
         </View>
     );
-});
+};

@@ -12,7 +12,7 @@ type ToastType = "success" | "error" | "warning" | "default";
 const Context = createContext<{
     toast: string;
     setToast: (value: string, type?: ToastType, duration?: number) => void;
-    setDismiss: (duration?: number, action?: () => void) => void;
+    setDismiss: (action?: (() => void) | null, reverse?: (() => void) | null, duration?: number) => void;
 }>({
     toast: "",
     setToast: () => { },
@@ -42,6 +42,8 @@ export const ToastProvider = ({ children }: Props) => {
     const refreshDismissTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const closeDismissTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const { t } = useTranslation();
+    const [reverseAction, setReverseAction] = useState<(() => void) | null>(null);
+    const [available, setAvailable] = useState<boolean>(true);
 
     const setToast = (value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
@@ -122,34 +124,28 @@ export const ToastProvider = ({ children }: Props) => {
         dismissTranslateY.value = dismissHideValue;
     }, [text, hideValue, dismissHideValue]);
 
-    const setDismiss = (duration: number = 5, action: () => void = () => {}) => {
+    const setDismiss = (action: (() => void) | null = null, reverse: (() => void) | null = null, duration: number = 5) => {
         if (duration > 10) {
             throw new Error("Duration too high the max value is 10");
         }
+        if (!available) return;
         let i = duration;
-        let prevCount = count;
 
         setCount(i);
+        setReverseAction(() => reverse);
+        setAvailable(false);
         closeDismissTimeout.current && clearTimeout(closeDismissTimeout.current);
         refreshDismissTimeout.current && clearTimeout(refreshDismissTimeout.current);
         dismissInterval.current && clearInterval(dismissInterval.current);
-        if (prevCount > 0) {
-            dismissTranslateY.value = dismissHideValue;
-            refreshDismissTimeout.current = setTimeout(() => {
-                dismissTranslateY.value = 0;
-            }, 200);
-        }
-        else {
-            refreshDismissTimeout.current = setTimeout(() => {
-                dismissTranslateY.value = 0;
-            }, 200);
-        }
+        refreshDismissTimeout.current = setTimeout(() => {
+            dismissTranslateY.value = 0;
+        }, 200);
         dismissInterval.current = setInterval(() => {
             setCount(i == duration ? i - 1 : i);
             if (i == 0) {
                 dismissInterval.current && clearInterval(dismissInterval.current);
                 handleCloseDismiss();
-                action();
+                action && action();
                 return;
             }
             i -= i == duration ? 2 : 1;
@@ -183,13 +179,15 @@ export const ToastProvider = ({ children }: Props) => {
         ]
     }));
 
-    const handleCloseDismiss = () => {
+    const handleCloseDismiss = (reverse: boolean = false) => {
         refreshDismissTimeout.current && clearTimeout(refreshDismissTimeout.current);
         dismissInterval.current && clearTimeout(dismissInterval.current);
         closeDismissTimeout.current && clearTimeout(closeDismissTimeout.current);
         dismissTranslateY.value = dismissHideValue;
         closeDismissTimeout.current = setTimeout(() => {
             setCount(0);
+            reverse && reverseAction && reverseAction();
+            setAvailable(true);
         }, 200);
     }
 
@@ -199,7 +197,7 @@ export const ToastProvider = ({ children }: Props) => {
         })
         .onEnd(({ translationY: y }) => {
             if (y >= 10) {
-                runOnJS(handleCloseDismiss)();
+                runOnJS(handleCloseDismiss)(true);
                 return;
             }
             dismissTranslateY.value = 0;
@@ -276,7 +274,7 @@ export const ToastProvider = ({ children }: Props) => {
                     className="absolute bottom-[100px] w-11/12 sm:w-[400px] h-[50px] overflow-hidden rounded-2xl dark:bg-white bg-black"
                 >
                     <Pressable
-                        onPress={() => handleCloseDismiss()}
+                        onPress={() => handleCloseDismiss(true)}
                         className="w-full h-full flex flex-row justify-center items-center gap-6 px-3 py-2 rounded-2xl dark:bg-black/80 bg-white/30 border dark:border-white/5 border-black/20"
                     >
                         <TextAnimated

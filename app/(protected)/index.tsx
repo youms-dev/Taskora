@@ -1,8 +1,8 @@
+import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
-import { Task } from "@/components/task";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useDatabase } from "@/hooks/use-sqlite";
@@ -17,33 +17,32 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { usePathname, useRouter } from "expo-router";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, ScrollView, Text, TextInput, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { api } from "../../lib/axios";
-import { Checkbox } from "@/components/checkbox";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
 
-interface Props extends PressableProps {
+interface TaskCardProps extends PressableProps {
     task: TaskType;
     onRefresh: () => void;
     loading: boolean;
     selectedIndex?: number;
     onLongPress?: () => void;
     selection?: boolean;
+    onDelete?: () => void;
+    onArchive?: () => void;
 }
-const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, ...rest }: Props) => {
+const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
-    const [height, setHeight] = useState<number>(0);
     const { db } = useDatabase();
     const loading = useSharedValue<boolean>(false);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
-    const heightShared = useSharedValue<number>(0);
     const selection = useSharedValue<boolean>(false);
 
     const swipeAnimation = useAnimatedStyle(() => ({
@@ -56,7 +55,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
 
     const handleDelete = () => {
         if (loading.value) return;
-        setDismiss(5, deleteTask);
+        onDelete?.();
+        setDismiss(deleteTask, () => onRefresh());
     }
 
     const deleteTask = async () => {
@@ -68,13 +68,15 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             loading.value = false;
         }
         catch (e) {
-            console.log(e);
+            onRefresh();
             loading.value = false;
+            console.log(e);
         }
     }
 
     const handleArchive = async () => {
         if (loading.value) return;
+        onArchive?.();
         try {
             loading.value = true;
             await db!.runAsync(`UPDATE task SET archived = ${1} WHERE id_task = ${task.idTask}`);
@@ -83,8 +85,9 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             loading.value = false;
         }
         catch (e) {
-            console.log(e);
+            onRefresh();
             loading.value = false;
+            console.log(e);
         }
     }
 
@@ -93,7 +96,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         Vibration.vibrate(100);
     }
 
-    const pan = Gesture.Race(
+    const gesturesList = Gesture.Race(
         Gesture.LongPress()
             .minDuration(150)
             .onStart(() => {
@@ -133,9 +136,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     useEffect(() => {
         loading.value = parentLoading;
         selected.value = index > 0;
-        heightShared.value = height;
         selection.value = selecting;
-    }, [parentLoading, index, height, selecting]);
+    }, [parentLoading, index, selecting]);
 
     const selectAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(selected.value ? 1 : 0, {
@@ -148,84 +150,98 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const textAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateY: !selected.value ? heightShared.value : withDelay(
-                    100,
-                    withSequence(
-                        withTiming(-20, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(20, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(0, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                    ),
-                )
+                translateY: !selected.value ? "100%" : withSequence(
+                    withTiming(-20, {
+                        duration: 200,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+                    withTiming(20, {
+                        duration: 200,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+                    withTiming(0, {
+                        duration: 200,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+                ),
             }
         ]
     }));
 
+    const taskComponent = useCallback(() => (
+        <Animated.View
+            style={swipeAnimation}
+            className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
+        >
+            <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
+                {
+                    task.title && (
+                        <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
+                            <TextAnimated
+                                numberOfLines={1}
+                                className="text-lg tracking-widest"
+                            >
+                                {task.title}
+                            </TextAnimated>
+                        </View>
+                    )
+                }
+
+                <View className="w-full">
+                    <TextAnimated
+                        numberOfLines={2}
+                        className="text-lg dark:opacity-70 opacity-60"
+                    >
+                        {task.content}
+                    </TextAnimated>
+                </View>
+            </View>
+        </Animated.View>
+    ), [task]);
+
     return (
-        <GestureDetector gesture={pan}>
+        <GestureDetector gesture={gesturesList}>
             <Pressable
                 {...rest}
-                onPress={() => console.log("Pressed")}
-                style={{
-                    width: "100%",
-                    height,
-                }}
-                className="flex flex-row justify-center rounded-2xl p-2"
+                className="w-full h-[100px] flex justify-center items-center rounded-2xl"
             >
-                <Animated.View
-                    style={opacityAnimation}
-                    className="w-1/2 h-full flex justify-center bg-red-500 rounded-l-2xl pl-10"
-                >
-                    <FontAwesome6
-                        name="trash-alt"
-                        size={30}
-                        color="rgba(255, 255, 255, .8)"
-                    />
-                </Animated.View>
+                {taskComponent()}
 
-                <Animated.View
-                    style={opacityAnimation}
-                    className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
-                >
-                    <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
-                        <MaterialCommunityIcons
-                            name="archive-arrow-down"
-                            size={40}
+                <View className="w-full h-full flex flex-row justify-center items-center p-2 rounded-2xl pointer-events-none">
+                    <Animated.View
+                        style={opacityAnimation}
+                        className="w-1/2 h-full flex justify-center bg-red-500 rounded-l-2xl pl-10"
+                    >
+                        <FontAwesome6
+                            name="trash-alt"
+                            size={25}
                             color="rgba(255, 255, 255, .8)"
                         />
-                    </View>
-                </Animated.View>
+                    </Animated.View>
+
+                    <Animated.View
+                        style={opacityAnimation}
+                        className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
+                    >
+                        <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
+                            <MaterialCommunityIcons
+                                name="archive-arrow-down"
+                                size={30}
+                                color="rgba(255, 255, 255, .8)"
+                            />
+                        </View>
+                    </Animated.View>
+                </View>
 
                 <Animated.View
-                    onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
-                    style={swipeAnimation}
-                    className="absolute w-[105%] z-10"
-                >
-                    <Task task={task as TaskType} />
-                </Animated.View>
-
-                <Animated.View
-                    style={[
-                        {
-                            height,
-                        },
-                        selectAnimation,
-                    ]}
-                    className="absolute w-[105%] h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
+                    style={selectAnimation}
+                    className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
                 >
                     {
                         index > 0 && (
                             <TextAnimated
                                 style={textAnimation}
-                                className="text-5xl"
+                                className="absolute text-4xl"
                             >
                                 {index}
                             </TextAnimated>
@@ -275,6 +291,12 @@ export default function Tasks() {
     const [folders, setFolders] = useState<[]>([]);
     const hasFolders = useSharedValue<boolean>(true);
     const selectLimit = 50;
+    const archiveTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const deleteTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const [deleting, setDeleting] = useState<boolean>(false);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const textInputContainerHeight = useSharedValue<number>(0);
+    const itemHeight = 100;
 
     const syncData = async (position: number = 0) => {
         if (pathname != "/" || syncLoading) return;
@@ -315,7 +337,7 @@ export default function Tasks() {
         setTasksTmp([]);
         setValue("");
         try {
-            setLoading(true);
+            !refresh && setLoading(true);
             const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
             const execResult = await stmt.executeAsync({
                 $archived: 0,
@@ -341,11 +363,12 @@ export default function Tasks() {
                     animated: false,
                 });
             }
-            else setTasks([...tasks, ...dataParsed.filter(item => ![...tasks.map(e => e.idTask)].includes(item.idTask))]);
+            else setTasks([...tasks, ...dataParsed.filter(item => !tasks.find(t => t.idTask == item.idTask))]);
 
             translateY.value = 0;
             setLoading(false);
-            if (!sync) syncData(data?.length);
+            if (!sync) syncData(data.length);
+            setDeleting(false);
         }
         catch (e) {
             setLoading(false);
@@ -369,10 +392,6 @@ export default function Tasks() {
         }
     }
 
-    useEffect(() => {
-        // getCount();
-        // getTasks();
-    }, []);
 
     const handleFilter = (entry: null | boolean) => {
         tasksTmp.length == 0 && setTasksTmp(tasks);
@@ -400,6 +419,7 @@ export default function Tasks() {
             return;
         }
         timeout.current = setTimeout(async () => {
+            tasksSelected.length > 0 && setTasksSelected([]);
             tasksTmp.length == 0 && setTasksTmp(tasks);
             countTmp == 0 && setCountTmp(count);
             try {
@@ -431,7 +451,7 @@ export default function Tasks() {
 
                 setCount(count);
                 if (pagination) {
-                    setTasks([...tasks, ...dataParsed.filter((task) => ![...tasks.map(t => t.idTask)].includes(task.idTask))]);
+                    setTasks([...tasks, ...dataParsed.filter((task) => !tasks.find(t => t.idTask == task.idTask))]);
                 }
                 else {
                     setTasks(dataParsed);
@@ -458,33 +478,6 @@ export default function Tasks() {
             },
         ]
     }));
-
-    const handleDelete = async (confirm = false) => {
-        const datas = tasksSelected;
-
-        if (tasksSelected.length === 0) return;
-        const result = tasks.filter(task => ![...datas.map(data => data.idTask)].includes(task.idTask));
-
-        setTasks(result);
-        setTasksSelected([]);
-
-        try {
-            await api.delete(`/task/delete`, {
-                data: {
-                    tasks: [...datas.map((task) => task.idTask)]
-                }
-            });
-            setTasksSelected([]);
-            setToast("Tâche(s) supprimée(s)", "success");
-            setTimeout(() => {
-                router.replace("/");
-            }, 500);
-        }
-        catch (e) {
-            setToast("Aucune connexion internet", "error");
-            setTasks([...datas, ...tasks]);
-        }
-    };
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -542,7 +535,7 @@ export default function Tasks() {
                 translateY: interpolate(
                     translateY.value,
                     [0, 90],
-                    [90, 180],
+                    [160, 230],
                     Extrapolation.CLAMP,
                 ),
             }
@@ -573,7 +566,7 @@ export default function Tasks() {
             {
                 translateY: interpolate(
                     translateY.value,
-                    [70, 100],
+                    [60, 100],
                     [0, 150],
                     Extrapolation.CLAMP,
                 ),
@@ -654,102 +647,76 @@ export default function Tasks() {
         ],
     }));
 
-    const headerAnimation = useAnimatedStyle(() => ({
-        opacity: interpolate(
-            scrollY.value,
-            [0, scrollCheckPoint * .6],
-            [1, 0],
-            Extrapolation.CLAMP,
-        ),
-        width: scrollY.value >= scrollCheckPoint * .6 ? "95%" : "100%",
-    }));
-
-    const firstSectionAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollY.value,
-                    [0, scrollCheckPoint],
-                    [55, -70],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-    }));
-
-    const flatListAnimation = useAnimatedStyle(() => ({
-        paddingTop: interpolate(
-            scrollY.value,
-            [0, scrollCheckPoint],
-            [hasFolders.value ? 230 : 190, 0],
-            Extrapolation.CLAMP,
-        )
-    }));
-
-    const textInputAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateX: interpolate(
-                    scrollY.value,
-                    [0, scrollCheckPoint * .8],
-                    [0, width],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ]
-    }));
-
-    const filterContainerAnimation = useAnimatedStyle(() => ({
-        width: withTiming(scrollY.value >= (scrollCheckPoint * .8) ? (width - width * .05) : width, {
-            duration: 200,
-            easing: Easing.inOut(Easing.quad),
-        }),
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollY.value,
-                    [0, scrollCheckPoint],
-                    [0, 5],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-    }));
-
-    const subContainerAnimation = useAnimatedStyle(() => ({
-        borderWidth: 1,
-        borderColor: scrollY.value >= (scrollCheckPoint * .8) ?
-            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"
-            :
-            themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)",
-        borderRadius: scrollY.value >= (scrollCheckPoint * .8) ? 20 : 0,
-    }));
-
-    const foldersAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollY.value >= (scrollCheckPoint * .8) ?
-            (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .10)")
-            :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)"),
-        paddingHorizontal: scrollY.value >= (scrollCheckPoint * .8) ? 5 : 20,
-    }));
-
-    const filterAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollY.value >= (scrollCheckPoint * .8) ?
-            (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .10)")
-            :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)"),
-    }));
 
     useEffect(() => {
         themeShared.value = theme;
     }, [theme]);
 
+    const handleDelete = async (init: boolean = true) => {
+        if (tasksSelected.length == 0) return;
+        setDeleting(true);
+        const tab = [...tasksSelected];
+
+        if (init) {
+            const filter = tasks.filter(t => !tab.find(e => e.idTask == t.idTask))
+            setTasks(filter);
+            setDismiss(
+                () => handleDelete(false),
+                () => {
+                    setDeleting(false);
+                    getTasks(true);
+                });
+            return;
+        }
+        try {
+            const placeholder = Array(tab.length).fill(0).map((_) => "?").join(",");
+
+            await db!.runAsync(`DELETE FROM task WHERE id_task IN (${placeholder})`, tab.map(t => t.idTask));
+
+            setTasksSelected([]);
+            getCount();
+            getTasks(true);
+        }
+        catch (e) {
+            console.log(e);
+            setToast("Une erreur s'est produite", "error");
+        }
+    }
+
+    useEffect(() => {
+        // getCount();
+        // getTasks();
+    }, []);
+
+    const selectMap = useMemo(() => new Map(
+        tasksSelected.map((t, i) => [t.idTask, i + 1]),
+    ), [tasksSelected]);
+
+    const handleLongPress = useCallback((task: TaskType) => {
+        const pos = tasksSelected.findIndex(t => t.idTask == task.idTask);
+
+        if (pos == -1) setTasksSelected([...tasksSelected, task]);
+        else setTasksSelected(tasksSelected.filter(t => t.idTask != task.idTask));
+    }, [tasksSelected]);
+
+    const renderItem = useCallback((task: TaskType) => (
+        <TaskCard
+            loading={loading}
+            task={task}
+            selection={tasksSelected.length > 0}
+            selectedIndex={selectMap.get(task.idTask) ?? 0}
+            // onPress={() => router.navigate("/ddzveoz")}
+            onPress={() => console.log("Press", task.idTask)}
+            onRefresh={() => getTasks(true)}
+            onLongPress={() => handleLongPress(task)}
+            onDelete={() => setTasks(tasks.filter(t => t.idTask != task.idTask))}
+            onArchive={() => setTasks(tasks.filter(t => t.idTask != task.idTask))}
+        />
+    ), [tasksSelected, loading]);
+
     return (
         <Container centerX>
-            <Animated.View
-                style={headerAnimation}
-                className="absolute"
-            >
+            <View className="w-full flex items-center">
                 <PageTitle>
                     <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
                         <FontAwesome6
@@ -765,141 +732,69 @@ export default function Tasks() {
                         </Text>
                     </View>
                 </PageTitle>
-            </Animated.View>
+            </View>
 
-            <Animated.View
-                style={firstSectionAnimation}
-                className="absolute w-full flex items-center z-[10]"
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "android" ? "height" : "padding"}
+                className={clsx(
+                    "w-full flex items-center mb-3 px-2",
+                    !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
+                )}
             >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "android" ? "height" : "padding"}
-                    className={clsx(
-                        "w-full flex justify-center items-center mb-3 px-2",
-                        !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
-                    )}>
-                    <Animated.View
-                        style={textInputAnimation}
-                        className="w-full flex items-center"
-                    >
-                        <TextInput
-                            ref={textInputRef}
-                            placeholder={t("tasks_search")}
-                            cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                            placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                            value={value}
-                            onChangeText={(e) => {
-                                setValue(e);
-                                handleSearch(e);
-                            }}
-                            onSubmitEditing={() => handleSearch(value)}
-                            editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
-                            className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
-                        />
-                    </Animated.View>
-                    <PressableAnimated
-                        // onPress={() => {
-                        //     handleSearch(value);
-                        //     textInputRef.current?.blur();
-                        // }}
-                        onPress={() => {
-                            if (tasks.length > 0) {
-                                setTasks([]);
-                                setTasksTmp([]);
-                                setCount(0);
-                                setCountTmp(0);
-                            }
-                            else getTasks();
-                        }}
-                        className="absolute top-4 right-5 z-1 active:text-emerald-500 active:scale-[.8]"
-                    >
-                        <FontAwesome5
-                            name="search"
-                            size={24}
-                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
-                        />
-                    </PressableAnimated>
-                    {
-                        tasksTmp.length > 0 && (
-                            <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
-                                {count}
-                            </Text>
-                        )
-                    }
-                </KeyboardAvoidingView>
-
-                <Animated.View
-                    style={[filterContainerAnimation]}
-                    className="flex items-center gap-1 overflow-hidden"
+                <TextInput
+                    ref={textInputRef}
+                    placeholder={t("tasks_search")}
+                    cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
+                    placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                    value={value}
+                    onChangeText={(e) => {
+                        setValue(e);
+                        handleSearch(e);
+                    }}
+                    onSubmitEditing={() => handleSearch(value)}
+                    editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
+                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
+                />
+                <PressableAnimated
+                    // onPress={() => {
+                    //     handleSearch(value);
+                    //     textInputRef.current?.blur();
+                    // }}
+                    onPress={() => {
+                        if (tasks.length > 0) {
+                            setTasks([]);
+                            setTasksTmp([]);
+                            setCount(0);
+                            setCountTmp(0);
+                        }
+                        else getTasks();
+                    }}
+                    className="absolute top-4 right-5 z-[1]"
                 >
-                    {
-                        // folders.length > 0 && (
-                        (
-                            <Animated.View
-                                style={subContainerAnimation}
-                                className="w-full dark:bg-black bg-white overflow-hidden"
-                            >
-                                <Animated.View
-                                    style={foldersAnimation}
-                                    className="w-full flex flex-row items-center gap-5 py-1"
-                                >
-                                    {
-                                        loading && (
-                                            <View className="w-[70%] sm:w-[300px] h-[40px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                                <Skeleton />
-                                            </View>
-                                        )
-                                    }
-                                    {
-                                        !loading && (
-                                            <ScrollView
-                                                horizontal
-                                                showsHorizontalScrollIndicator={false}
-                                                className="w-full"
-                                                contentContainerClassName="flex flex-row items-center gap-[10px]"
-                                            >
-                                                {
-                                                    Array(5).fill(0).map((_, i) => (
-                                                        <PressableAnimated
-                                                            key={i}
-                                                            scale={.95}
-                                                            onPress={() => handleFilter(null)}
-                                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 py-1 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                                        >
-                                                            <TextAnimated className="text-lg">
-                                                                {t("folder")}
-                                                            </TextAnimated>
-                                                        </PressableAnimated>
-                                                    ))
-                                                }
-                                            </ScrollView>
-                                        )
-                                    }
-                                </Animated.View>
-                            </Animated.View>
-                        )
-                    }
+                    <FontAwesome5
+                        name="search"
+                        size={24}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                    />
+                </PressableAnimated>
 
-                    <Animated.View
-                        style={subContainerAnimation}
-                        className="w-full dark:bg-black bg-white overflow-hidden"
-                    >
-                        <Animated.View
-                            style={filterAnimation}
-                            className="w-full flex flex-row items-center gap-5 px-5 py-1"
-                        >
-                            <View className="flex flex-row items-center gap-1 shrink-0">
-                                <TextAnimated className="text-lg">
-                                    {t("tasks_filter")}
-                                </TextAnimated>
-                                <FontAwesome5
-                                    name="filter"
-                                    size={15}
-                                    color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </View>
+                {
+                    tasksTmp.length > 0 && (
+                        <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
+                            {count}
+                        </Text>
+                    )
+                }
+            </KeyboardAvoidingView>
+
+            <View className="w-full flex items-center gap-1">
+                {
+                    // folders.length > 0 && (
+                    (
+                        <View className="w-full flex flex-row items-center gap-5 px-3 py-1">
                             {
                                 loading && (
-                                    <View className="w-[70%] sm:w-[300px] h-[40px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                    <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                         <Skeleton />
                                     </View>
                                 )
@@ -909,211 +804,231 @@ export default function Tasks() {
                                     <ScrollView
                                         horizontal
                                         showsHorizontalScrollIndicator={false}
+                                        nestedScrollEnabled
                                         className="w-full"
                                         contentContainerClassName="flex flex-row items-center gap-[10px]"
                                     >
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(null)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_all")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
-
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(true)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_done")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
-
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(false)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_not_done")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
+                                        {
+                                            Array(5).fill(0).map((_, i) => (
+                                                <PressableAnimated
+                                                    key={i}
+                                                    scale={.95}
+                                                    onPress={() => scrollViewRef.current?.scrollTo({
+                                                        x: i * width,
+                                                        animated: true,
+                                                    })}
+                                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 py-1 px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                                >
+                                                    <TextAnimated className="text-lg">
+                                                        {t("folder")}
+                                                    </TextAnimated>
+                                                </PressableAnimated>
+                                            ))
+                                        }
                                     </ScrollView>
                                 )
                             }
-                        </Animated.View>
-                    </Animated.View>
-                </Animated.View>
+                        </View>
+                    )
+                }
 
-                <Animated.View
-                    onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
-                    style={[
-                        refreshPanAnimation,
-                        {
-                            left,
-                        }
-                    ]}
-                    className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
-                >
-                    <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
-                        <Octicons
-                            name="tasklist"
-                            size={25}
-                            color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                <View className="w-full flex flex-row items-center gap-3 px-3 py-1">
+                    <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
+                        <TextAnimated className="text-lg">
+                            {t("tasks_filter")}
+                        </TextAnimated>
+                        <FontAwesome5
+                            name="filter"
+                            size={15}
+                            color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                         />
                     </View>
+                    {
+                        loading && (
+                            <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                <Skeleton />
+                            </View>
+                        )
+                    }
 
-                    <Animated.View
-                        style={showRefreshAnimation}
-                        className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
-                    >
-                        <View className="size-full dark:bg-black/90 bg-white/80" />
-                    </Animated.View>
+                    {
+                        !loading && (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                nestedScrollEnabled
+                                className="w-full"
+                                contentContainerClassName="flex flex-row items-center gap-[10px]"
+                            >
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => handleFilter(null)}
+                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                >
+                                    <TextAnimated className="text-lg">
+                                        {t("tasks_filter_all")}
+                                    </TextAnimated>
+                                </PressableAnimated>
+
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => handleFilter(true)}
+                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                >
+                                    <TextAnimated className="text-lg">
+                                        {t("tasks_filter_done")}
+                                    </TextAnimated>
+                                </PressableAnimated>
+
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => handleFilter(false)}
+                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                >
+                                    <TextAnimated className="text-lg">
+                                        {t("tasks_filter_not_done")}
+                                    </TextAnimated>
+                                </PressableAnimated>
+                            </ScrollView>
+                        )
+                    }
+                </View>
+            </View>
+
+            <Animated.View
+                onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
+                style={[
+                    refreshPanAnimation,
+                    {
+                        left,
+                    }
+                ]}
+                className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
+            >
+                <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
+                    <Octicons
+                        name="tasklist"
+                        size={25}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                    />
+                </View>
+
+                <Animated.View
+                    style={showRefreshAnimation}
+                    className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
+                >
+                    <View className="size-full dark:bg-black/90 bg-white/80" />
                 </Animated.View>
             </Animated.View>
 
-            <GestureDetector gesture={pan}>
-                <ScrollView
-                    horizontal
-                    className="w-full"
-                    contentContainerClassName="w-full"
-                >
-                    <Animated.View
-                        onLayout={(e) => setFlatListContainerWidth(e.nativeEvent.layout.width)}
-                        className="w-full flex items-center"
-                    >
-                        <GestureDetector gesture={otherElement}>
-                            <FlatListAnimated
-                                ref={flatListRef}
-                                nestedScrollEnabled
-                                horizontal={false}
-                                initialNumToRender={5}
-                                showsVerticalScrollIndicator={false}
-                                onScroll={handleScroll}
-                                onMomentumScrollBegin={() => scrolling.value = true}
-                                onMomentumScrollEnd={() => {
-                                    scrolling.value = false
-                                    if (scrollY.value >= scrollCheckPoint / 2) scrollY.value = withTiming(scrollCheckPoint, {
-                                        duration: 200,
-                                        easing: Easing.inOut(Easing.quad),
-                                    });
-                                    else scrollY.value = withTiming(0, {
-                                        duration: 200,
-                                        easing: Easing.inOut(Easing.quad),
-                                    });
-                                }}
-                                onEndReached={() => value.trim().length == 0 ?
-                                    tasks.length < count ? getTasks() : undefined
-                                    :
-                                    tasks.length < count ? handleSearch(value, true) : undefined
-                                }
-                                onEndReachedThreshold={.95}
-                                scrollEventThrottle={16}
-                                data={tasks}
-                                keyExtractor={(item) => String((item as TaskType).idTask)}
-                                renderItem={({ item: task }) => (
-                                    <TaskCard
-                                        loading={loading}
-                                        task={task as TaskType}
-                                        selection={tasksSelected.length > 0}
-                                        selectedIndex={(() => {
-                                            const child = task as TaskType;
-                                            const pos = tasksSelected.findIndex(t => t.idTask == child.idTask);
-
-                                            if (pos != -1) return pos + 1;
-                                            return 0;
-                                        })()}
-                                        onRefresh={() => getTasks(true)}
-                                        onLongPress={() => {
-                                            const child = task as TaskType;
-
-                                            const pos = tasksSelected.findIndex(t => t.idTask == child.idTask);
-
-                                            if (pos == -1) setTasksSelected([...tasksSelected, task as TaskType]);
-                                            else setTasksSelected(tasksSelected.filter(t => t.idTask != child.idTask));
-                                        }}
-                                    />
-                                )}
-                                ListEmptyComponent={() => {
-                                    if (!loading) {
-                                        return (
-                                            <View className="w-full flex justify-center items-center gap-4 pt-10">
-                                                <MaterialIcons
-                                                    name="playlist-remove"
-                                                    size={120}
-                                                    color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                                />
-                                                <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                                                    {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
-                                                </Text>
-                                            </View>
-                                        );
+            <ScrollView
+                ref={scrollViewRef}
+                horizontal
+                scrollEnabled={false}
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                pagingEnabled
+                className="w-full mt-3"
+                contentContainerClassName="flex flex-row"
+            >
+                <GestureDetector gesture={pan}>
+                    <View className="w-full flex flex-row">
+                        <View className="w-screen flex items-center shrink-0">
+                            <GestureDetector gesture={otherElement}>
+                                <FlatListAnimated
+                                    ref={flatListRef}
+                                    nestedScrollEnabled
+                                    horizontal={false}
+                                    initialNumToRender={10}
+                                    removeClippedSubviews
+                                    showsVerticalScrollIndicator={false}
+                                    onScroll={handleScroll}
+                                    onMomentumScrollBegin={() => scrolling.value = true}
+                                    onMomentumScrollEnd={() => scrolling.value = false}
+                                    data={tasks}
+                                    keyExtractor={(item) => String((item as TaskType).idTask)}
+                                    renderItem={({ item }) => renderItem(item as TaskType)}
+                                    onEndReachedThreshold={.95}
+                                    scrollEventThrottle={16}
+                                    onEndReached={() => !deleting ? (
+                                        value.trim().length == 0 ?
+                                            tasks.length < count ? getTasks() : undefined
+                                            :
+                                            tasks.length < count ? handleSearch(value, true) : undefined
+                                    )
+                                        :
+                                        undefined
                                     }
-                                }}
-                                ListFooterComponent={loading ? (
-                                    <View className="w-full flex gap-6 px-3 overflow-hidden pt-5">
-                                        {
-                                            Array(3).fill(0).map((_, i) => (
-                                                <View
-                                                    key={i}
-                                                    style={{
-                                                        width: (() => {
-                                                            const w = flatListContainerWidth - 30;
-                                                            return w - i * 100;
-                                                        })(),
-                                                        height: (() => {
-                                                            const h = 60;
-                                                            const hf = h - (15 * i);
-
-                                                            return hf > 0 ? hf : 10;
-                                                        })(),
-                                                    }}
-                                                    className="rounded-2xl overflow-hidden"
-                                                >
-                                                    <Skeleton />
+                                    getItemLayout={(_, index) => ({
+                                        length: itemHeight,
+                                        offset: index * itemHeight,
+                                        index,
+                                    })}
+                                    ListEmptyComponent={() => {
+                                        if (!loading) {
+                                            return (
+                                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                                    <MaterialIcons
+                                                        name="playlist-remove"
+                                                        size={120}
+                                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                                    />
+                                                    <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                                                        {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
+                                                    </Text>
                                                 </View>
-                                            ))
+                                            );
                                         }
-                                    </View>
-                                ) : null}
-                                style={flatListAnimation}
-                                className="w-full min-h-full"
-                                contentContainerClassName="w-full flex flex-col items-center gap-5 pb-[150px] px-3"
-                            />
-                        </GestureDetector>
-
-                        <PressableToScrollAnimated
-                            onPress={() => flatListRef.current?.scrollToIndex({
-                                index: 0,
-                                animated: true,
-                            })}
-                            style={[
-                                {
-                                    bottom: 0,
-                                    transform: [
-                                        {
-                                            translateY: tasksSelected.length > 0 ? -height * .17 : -height * .1,
-                                        }
-                                    ]
-                                },
-                                scrollButtonAnimation,
-                            ]}
-                            className="absolute dark:bg-black bg-white rounded-full overflow-hidden"
-                        >
-                            <View className="size-full dark:bg-white/20 bg-black/50 p-2">
-                                <Ionicons
-                                    name="chevron-up-sharp"
-                                    size={30}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(255, 255, 255, .8)"}
+                                    }}
+                                    ListFooterComponent={loading ? (
+                                        <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                            {
+                                                Array(3).fill(0).map((_, i) => (
+                                                    <View
+                                                        key={i}
+                                                        className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                                    >
+                                                        <Skeleton />
+                                                    </View>
+                                                ))
+                                            }
+                                        </View>
+                                    ) : null}
+                                    className="w-full"
+                                    contentContainerClassName="w-full flex flex-col items-center gap-5 pb-[110px] px-3"
                                 />
-                            </View>
-                        </PressableToScrollAnimated>
-                    </Animated.View>
-                </ScrollView>
-            </GestureDetector>
+                            </GestureDetector>
+                        </View>
+                    </View>
+                </GestureDetector>
+            </ScrollView>
+
+            <PressableToScrollAnimated
+                onPress={() => flatListRef.current?.scrollToIndex({
+                    index: 0,
+                    animated: true,
+                })}
+                style={[
+                    {
+                        bottom: 0,
+                        transform: [
+                            {
+                                translateY: tasksSelected.length > 0 ? -height * .17 : -height * .1,
+                            }
+                        ]
+                    },
+                    scrollButtonAnimation,
+                ]}
+                className="absolute dark:bg-black bg-white rounded-full overflow-hidden"
+            >
+                <View className="size-full dark:bg-white/20 bg-black/50 p-2">
+                    <Ionicons
+                        name="chevron-up-sharp"
+                        size={30}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(255, 255, 255, .8)"}
+                    />
+                </View>
+            </PressableToScrollAnimated>
 
             <Animated.View
                 style={[
@@ -1180,7 +1095,15 @@ export default function Tasks() {
                 className="absolute right-0 bottom-0 size-[50px] dark:bg-white bg-black rounded-full"
             >
                 <Pressable
-                    onPress={() => { }}
+                    onPress={() => {
+                        if (tasks.length > 0) {
+                            setTasks([]);
+                            setTasksTmp([]);
+                            setCount(0);
+                            setCountTmp(0);
+                        }
+                        else getTasks();
+                    }}
                     className="size-full flex justify-center items-center rounded-full dark:border-none border border-black/10 dark:bg-black/85 bg-white"
                 >
                     <FontAwesome5
