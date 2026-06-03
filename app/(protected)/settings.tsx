@@ -45,10 +45,7 @@ export default function Settings() {
     }
 
     const forceScroll = (value: number) => {
-        scrollViewRef.current?.scrollTo({
-            y: value,
-            animated: true,
-        });
+
     }
 
     const scrollHandler = useAnimatedScrollHandler({
@@ -236,10 +233,16 @@ export default function Settings() {
                     onScroll={scrollHandler}
                     onMomentumScrollEnd={() => {
                         if (scroll > 0 && scroll < Math.round((headerHeight - minHeaderHeight) / 2)) {
-                            forceScroll(0);
+                            scrollViewRef.current?.scrollTo({
+                                y: 0,
+                                animated: true,
+                            });
                         }
                         else if (scroll > 0 && scroll < Math.round(headerHeight - minHeaderHeight)) {
-                            forceScroll(headerHeight - minHeaderHeight);
+                            scrollViewRef.current?.scrollTo({
+                                y: headerHeight - minHeaderHeight,
+                                animated: true,
+                            });
                         }
                     }}
                     scrollEventThrottle={16}

@@ -291,12 +291,11 @@ export default function Tasks() {
     const [folders, setFolders] = useState<[]>([]);
     const hasFolders = useSharedValue<boolean>(true);
     const selectLimit = 50;
-    const archiveTimeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const deleteTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [deleting, setDeleting] = useState<boolean>(false);
     const scrollViewRef = useRef<ScrollView>(null);
-    const textInputContainerHeight = useSharedValue<number>(0);
     const itemHeight = 100;
+    const [headerHeight, setHeaderHeight] = useState<number>(0);
+    const getTaskTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const syncData = async (position: number = 0) => {
         if (pathname != "/" || syncLoading) return;
@@ -331,52 +330,55 @@ export default function Tasks() {
     }
 
     const getTasks = async (refresh: boolean = false) => {
+        getTaskTimeout.current && clearTimeout(getTaskTimeout.current);
         if (pathname != "/" || loading) return;
-        setTasksSelected([]);
-        setCountTmp(0);
-        setTasksTmp([]);
-        setValue("");
-        try {
-            !refresh && setLoading(true);
-            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
-            const execResult = await stmt.executeAsync({
-                $archived: 0,
-                $limit: limit,
-                $offset: refresh ? 0 : tasks.length,
-            });
-            const data = await execResult.getAllAsync() as SQLiteTaskType[];
-            const dataParsed: TaskType[] = data.length > 0 ? data.map((item) => {
-                const { id_task, created_at, updated_at, ...rest } = item;
-
-                return ({
-                    ...rest,
-                    idTask: id_task,
-                    createdAt: created_at,
-                    updatedAt: updated_at,
+        getTaskTimeout.current = setTimeout(async () => {
+            setTasksSelected([]);
+            setCountTmp(0);
+            setTasksTmp([]);
+            setValue("");
+            try {
+                !refresh && setLoading(true);
+                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
+                const execResult = await stmt.executeAsync({
+                    $archived: 0,
+                    $limit: limit,
+                    $offset: refresh ? 0 : tasks.length,
                 });
-            }) : [];
+                const data = await execResult.getAllAsync() as SQLiteTaskType[];
+                const dataParsed: TaskType[] = data.length > 0 ? data.map((item) => {
+                    const { id_task, created_at, updated_at, ...rest } = item;
 
-            if (refresh) {
-                setTasks(dataParsed);
-                tasks.length > 0 && flatListRef.current?.scrollToIndex({
-                    index: 0,
-                    animated: false,
-                });
+                    return ({
+                        ...rest,
+                        idTask: id_task,
+                        createdAt: created_at,
+                        updatedAt: updated_at,
+                    });
+                }) : [];
+
+                if (refresh) {
+                    setTasks(dataParsed);
+                    tasks.length > 0 && flatListRef.current?.scrollToIndex({
+                        index: 0,
+                        animated: false,
+                    });
+                }
+                else setTasks([...tasks, ...dataParsed.filter(item => !tasks.find(t => t.idTask == item.idTask))]);
+
+                translateY.value = 0;
+                setLoading(false);
+                if (!sync) syncData(data.length);
+                setDeleting(false);
             }
-            else setTasks([...tasks, ...dataParsed.filter(item => !tasks.find(t => t.idTask == item.idTask))]);
-
-            translateY.value = 0;
-            setLoading(false);
-            if (!sync) syncData(data.length);
-            setDeleting(false);
-        }
-        catch (e) {
-            setLoading(false);
-            sharedLoading.value = false;
-            translateY.value = 0;
-            setToast("Aucune connexion internet", "error");
-            console.log(e);
-        }
+            catch (e) {
+                setLoading(false);
+                sharedLoading.value = false;
+                translateY.value = 0;
+                setToast("Aucune connexion internet", "error");
+                console.log(e);
+            }
+        }, refresh ? 100 : 0);
     }
 
     const getCount = async () => {
@@ -521,7 +523,7 @@ export default function Tasks() {
             if (sharedLoading.value || sharedTextInputValue.value.trim().length > 0) return;
             if (translateY.value >= 90) {
                 translateY.value = 180;
-                // runOnJS(getTasks)(true);
+                runOnJS(getTasks)(true);
                 translateY.value = 0;
             }
             else {
@@ -714,91 +716,248 @@ export default function Tasks() {
         />
     ), [tasksSelected, loading]);
 
+    const headerContainerAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    scrollY.value,
+                    [0, scrollCheckPoint],
+                    [10, -100],
+                    Extrapolation.CLAMP,
+                )
+            }
+        ]
+    }));
+
+    const textInputAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    scrollY.value,
+                    [0, scrollCheckPoint],
+                    [0, -100],
+                    Extrapolation.CLAMP,
+                )
+            }
+        ],
+        opacity: interpolate(
+            scrollY.value,
+            [0, scrollCheckPoint],
+            [1, 0],
+            Extrapolation.CLAMP,
+        ),
+        zIndex: scrollY.value >= scrollCheckPoint * .1 ? -10 : 0,
+    }));
+
+    const headerAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    scrollY.value,
+                    [0, scrollCheckPoint * .5],
+                    [0, 100],
+                    Extrapolation.CLAMP,
+                )
+            }
+        ],
+        opacity: interpolate(
+            scrollY.value,
+            [0, scrollCheckPoint],
+            [1, 0],
+            Extrapolation.CLAMP,
+        ),
+        zIndex: scrollY.value >= scrollCheckPoint * .1 ? -10 : 0,
+    }));
+
+    const stickyAnimation = useAnimatedStyle(() => ({
+        width: withSpring(scrollY.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
+            stiffness: 500,
+            mass: 1,
+            damping: 10,
+        }),
+        backgroundColor: themeShared.value == "dark" ? "black" : "white",
+    }));
+
+    const subSectionAnimation = useAnimatedStyle(() => ({
+        backgroundColor: scrollY.value >= scrollCheckPoint * .5 ?
+            (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .15)")
+            :
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)")
+        ,
+        borderWidth: 1,
+        borderColor: scrollY.value >= scrollCheckPoint * .5 ?
+            (themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)")
+            :
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)")
+        ,
+        borderRadius: scrollY.value >= scrollCheckPoint * .5 ? 20 : 0,
+    }));
+
     return (
         <Container centerX>
-            <View className="w-full flex items-center">
-                <PageTitle>
-                    <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                        <FontAwesome6
-                            name="list-check"
-                            size={20}
-                            color={COLORS.emerald[500]}
-                        />
-                        <Text
-                            numberOfLines={1}
-                            className="text-2xl text-emerald-500 font-bold"
-                        >
-                            {t("tasks_page_title")}
-                        </Text>
-                    </View>
-                </PageTitle>
-            </View>
-
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "android" ? "height" : "padding"}
-                className={clsx(
-                    "w-full flex items-center mb-3 px-2",
-                    !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
-                )}
+            <Animated.View
+                onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+                style={headerContainerAnimation}
+                className="absolute w-full z-[50]"
             >
-                <TextInput
-                    ref={textInputRef}
-                    placeholder={t("tasks_search")}
-                    cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                    placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                    value={value}
-                    onChangeText={(e) => {
-                        setValue(e);
-                        handleSearch(e);
-                    }}
-                    onSubmitEditing={() => handleSearch(value)}
-                    editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
-                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
-                />
-                <PressableAnimated
-                    // onPress={() => {
-                    //     handleSearch(value);
-                    //     textInputRef.current?.blur();
-                    // }}
-                    onPress={() => {
-                        if (tasks.length > 0) {
-                            setTasks([]);
-                            setTasksTmp([]);
-                            setCount(0);
-                            setCountTmp(0);
-                        }
-                        else getTasks();
-                    }}
-                    className="absolute top-4 right-5 z-[1]"
+                <Animated.View
+                    style={headerAnimation}
+                    className="w-full flex items-center"
                 >
-                    <FontAwesome5
-                        name="search"
-                        size={24}
-                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
-                    />
-                </PressableAnimated>
+                    <PageTitle>
+                        <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                            <FontAwesome6
+                                name="list-check"
+                                size={20}
+                                color={COLORS.emerald[500]}
+                            />
+                            <Text
+                                numberOfLines={1}
+                                className="text-2xl text-emerald-500 font-bold"
+                            >
+                                {t("tasks_page_title")}
+                            </Text>
+                        </View>
+                    </PageTitle>
+                </Animated.View>
 
-                {
-                    tasksTmp.length > 0 && (
-                        <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
-                            {count}
-                        </Text>
-                    )
-                }
-            </KeyboardAvoidingView>
+                <Animated.View
+                    style={textInputAnimation}
+                    className="w-full flex items-center"
+                >
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === "android" ? "height" : "padding"}
+                        className={clsx(
+                            "w-full flex items-center mb-3 px-2",
+                            !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
+                        )}
+                    >
+                        <TextInput
+                            ref={textInputRef}
+                            placeholder={t("tasks_search")}
+                            cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
+                            placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                            value={value}
+                            onChangeText={(e) => {
+                                setValue(e);
+                                handleSearch(e);
+                            }}
+                            onSubmitEditing={() => handleSearch(value)}
+                            editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
+                            className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
+                        />
+                        <PressableAnimated
+                            // onPress={() => {
+                            //     handleSearch(value);
+                            //     textInputRef.current?.blur();
+                            // }}
+                            onPress={() => {
+                                if (tasks.length > 0) {
+                                    setTasks([]);
+                                    setTasksTmp([]);
+                                    setCount(0);
+                                    setCountTmp(0);
+                                }
+                                else getTasks();
+                            }}
+                            className="absolute top-4 right-5 z-[1]"
+                        >
+                            <FontAwesome5
+                                name="search"
+                                size={24}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                            />
+                        </PressableAnimated>
 
-            <View className="w-full flex items-center gap-1">
-                {
-                    // folders.length > 0 && (
-                    (
-                        <View className="w-full flex flex-row items-center gap-5 px-3 py-1">
+                        {
+                            tasksTmp.length > 0 && (
+                                <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
+                                    {count}
+                                </Text>
+                            )
+                        }
+                    </KeyboardAvoidingView>
+                </Animated.View>
+
+                <View className="w-full flex items-center gap-1">
+                    {
+                        // folders.length > 0 && (
+                        (
+                            <Animated.View
+                                style={stickyAnimation}
+                                className="flex items-center"
+                            >
+                                <Animated.View
+                                    style={subSectionAnimation}
+                                    className="w-full flex flex-row items-center gap-5 px-3 py-1"
+                                >
+                                    {
+                                        loading && (
+                                            <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                                <Skeleton />
+                                            </View>
+                                        )
+                                    }
+                                    {
+                                        !loading && (
+                                            <ScrollView
+                                                horizontal
+                                                showsHorizontalScrollIndicator={false}
+                                                nestedScrollEnabled
+                                                className="w-full"
+                                                contentContainerClassName="flex flex-row items-center gap-[10px]"
+                                            >
+                                                {
+                                                    Array(5).fill(0).map((_, i) => (
+                                                        <PressableAnimated
+                                                            key={i}
+                                                            scale={.95}
+                                                            onPress={() => scrollViewRef.current?.scrollTo({
+                                                                x: i * width,
+                                                                animated: true,
+                                                            })}
+                                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 py-1 px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                                        >
+                                                            <TextAnimated className="text-lg">
+                                                                {t("folder")}
+                                                            </TextAnimated>
+                                                        </PressableAnimated>
+                                                    ))
+                                                }
+                                            </ScrollView>
+                                        )
+                                    }
+                                </Animated.View>
+                            </Animated.View>
+                        )
+                    }
+
+                    <Animated.View
+                        style={stickyAnimation}
+                        className="flex items-center"
+                    >
+                        <Animated.View
+                            style={subSectionAnimation}
+                            className="w-full flex flex-row items-center gap-3 px-3 py-1"
+                        >
+                            <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
+                                <TextAnimated className="text-lg">
+                                    {t("tasks_filter")}
+                                </TextAnimated>
+                                <FontAwesome5
+                                    name="filter"
+                                    size={15}
+                                    color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                />
+                            </View>
                             {
                                 loading && (
-                                    <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                    <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                         <Skeleton />
                                     </View>
                                 )
                             }
+
                             {
                                 !loading && (
                                     <ScrollView
@@ -808,116 +967,66 @@ export default function Tasks() {
                                         className="w-full"
                                         contentContainerClassName="flex flex-row items-center gap-[10px]"
                                     >
-                                        {
-                                            Array(5).fill(0).map((_, i) => (
-                                                <PressableAnimated
-                                                    key={i}
-                                                    scale={.95}
-                                                    onPress={() => scrollViewRef.current?.scrollTo({
-                                                        x: i * width,
-                                                        animated: true,
-                                                    })}
-                                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 py-1 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                                >
-                                                    <TextAnimated className="text-lg">
-                                                        {t("folder")}
-                                                    </TextAnimated>
-                                                </PressableAnimated>
-                                            ))
-                                        }
+                                        <PressableAnimated
+                                            scale={.95}
+                                            onPress={() => handleFilter(null)}
+                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                        >
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_filter_all")}
+                                            </TextAnimated>
+                                        </PressableAnimated>
+
+                                        <PressableAnimated
+                                            scale={.95}
+                                            onPress={() => handleFilter(true)}
+                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                        >
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_filter_done")}
+                                            </TextAnimated>
+                                        </PressableAnimated>
+
+                                        <PressableAnimated
+                                            scale={.95}
+                                            onPress={() => handleFilter(false)}
+                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
+                                        >
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_filter_not_done")}
+                                            </TextAnimated>
+                                        </PressableAnimated>
                                     </ScrollView>
                                 )
                             }
-                        </View>
-                    )
-                }
-
-                <View className="w-full flex flex-row items-center gap-3 px-3 py-1">
-                    <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
-                        <TextAnimated className="text-lg">
-                            {t("tasks_filter")}
-                        </TextAnimated>
-                        <FontAwesome5
-                            name="filter"
-                            size={15}
-                            color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                        />
-                    </View>
-                    {
-                        loading && (
-                            <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                <Skeleton />
-                            </View>
-                        )
-                    }
-
-                    {
-                        !loading && (
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                nestedScrollEnabled
-                                className="w-full"
-                                contentContainerClassName="flex flex-row items-center gap-[10px]"
-                            >
-                                <PressableAnimated
-                                    scale={.95}
-                                    onPress={() => handleFilter(null)}
-                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                >
-                                    <TextAnimated className="text-lg">
-                                        {t("tasks_filter_all")}
-                                    </TextAnimated>
-                                </PressableAnimated>
-
-                                <PressableAnimated
-                                    scale={.95}
-                                    onPress={() => handleFilter(true)}
-                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                >
-                                    <TextAnimated className="text-lg">
-                                        {t("tasks_filter_done")}
-                                    </TextAnimated>
-                                </PressableAnimated>
-
-                                <PressableAnimated
-                                    scale={.95}
-                                    onPress={() => handleFilter(false)}
-                                    className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                >
-                                    <TextAnimated className="text-lg">
-                                        {t("tasks_filter_not_done")}
-                                    </TextAnimated>
-                                </PressableAnimated>
-                            </ScrollView>
-                        )
-                    }
-                </View>
-            </View>
-
-            <Animated.View
-                onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
-                style={[
-                    refreshPanAnimation,
-                    {
-                        left,
-                    }
-                ]}
-                className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
-            >
-                <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
-                    <Octicons
-                        name="tasklist"
-                        size={25}
-                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                    />
+                        </Animated.View>
+                    </Animated.View>
                 </View>
 
                 <Animated.View
-                    style={showRefreshAnimation}
-                    className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
+                    onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
+                    style={[
+                        refreshPanAnimation,
+                        {
+                            left,
+                        }
+                    ]}
+                    className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
                 >
-                    <View className="size-full dark:bg-black/90 bg-white/80" />
+                    <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
+                        <Octicons
+                            name="tasklist"
+                            size={25}
+                            color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                        />
+                    </View>
+
+                    <Animated.View
+                        style={showRefreshAnimation}
+                        className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
+                    >
+                        <View className="size-full dark:bg-black/90 bg-white/80" />
+                    </Animated.View>
                 </Animated.View>
             </Animated.View>
 
@@ -942,12 +1051,23 @@ export default function Tasks() {
                                     initialNumToRender={10}
                                     removeClippedSubviews
                                     showsVerticalScrollIndicator={false}
-                                    onScroll={handleScroll}
-                                    onMomentumScrollBegin={() => scrolling.value = true}
-                                    onMomentumScrollEnd={() => scrolling.value = false}
                                     data={tasks}
                                     keyExtractor={(item) => String((item as TaskType).idTask)}
                                     renderItem={({ item }) => renderItem(item as TaskType)}
+                                    onScroll={handleScroll}
+                                    onMomentumScrollBegin={() => scrolling.value = true}
+                                    onMomentumScrollEnd={(e) => {
+                                        const y = e.nativeEvent.contentOffset.y;
+                                        scrolling.value = false;
+                                        if (y >= scrollCheckPoint * .2) flatListRef.current?.scrollToOffset({
+                                            offset: scrollCheckPoint,
+                                            animated: true,
+                                        });
+                                        else flatListRef.current?.scrollToOffset({
+                                            offset: 0,
+                                            animated: true,
+                                        });
+                                    }}
                                     onEndReachedThreshold={.95}
                                     scrollEventThrottle={16}
                                     onEndReached={() => !deleting ? (
@@ -995,6 +1115,9 @@ export default function Tasks() {
                                         </View>
                                     ) : null}
                                     className="w-full"
+                                    contentContainerStyle={{
+                                        paddingTop: headerHeight + 10,
+                                    }}
                                     contentContainerClassName="w-full flex flex-col items-center gap-5 pb-[110px] px-3"
                                 />
                             </GestureDetector>
