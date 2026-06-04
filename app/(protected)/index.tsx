@@ -29,7 +29,7 @@ const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
 
 interface TaskCardProps extends PressableProps {
     task: TaskType;
-    onRefresh: () => void;
+    onRefresh: (error?: boolean) => void;
     loading: boolean;
     selectedIndex?: number;
     onLongPress?: () => void;
@@ -56,19 +56,19 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const handleDelete = () => {
         if (loading.value) return;
         onDelete?.();
-        setDismiss(deleteTask, () => onRefresh());
+        setDismiss(deleteTask, () => onRefresh(true));
     }
 
     const deleteTask = async () => {
         if (loading.value) return;
         try {
             loading.value = true;
-            await db!.runAsync(`DELETE FROM task WHERE id_task = ${task.idTask}`);
+            await db!.runAsync("DELETE FROM task WHERE id_task = ?", [task.idTask]);
             onRefresh();
             loading.value = false;
         }
         catch (e) {
-            onRefresh();
+            onRefresh(true);
             loading.value = false;
             console.log(e);
         }
@@ -79,13 +79,12 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         onArchive?.();
         try {
             loading.value = true;
-            await db!.runAsync(`UPDATE task SET archived = ${1} WHERE id_task = ${task.idTask}`);
+            await db!.runAsync(`UPDATE task SET archived = ${1} WHERE id_task = ?`, [task.idTask]);
             setToast("Archivé");
-            onRefresh();
             loading.value = false;
         }
         catch (e) {
-            onRefresh();
+            onRefresh(true);
             loading.value = false;
             console.log(e);
         }
@@ -109,7 +108,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (x >= -100 && x <= 100 && !loading.value && !selected.value && !selection.value) translateX.value = x;
             })
             .onEnd(({ translationX: x }) => {
-                if (selected.value || selection.value) return;
+                if (selected.value || selection.value || loading.value) return;
                 if (x <= -100) {
                     runOnJS(handleArchive)();
                 }
@@ -274,10 +273,8 @@ export default function Tasks() {
     const scrollY = useSharedValue<number>(0);
     const translateY = useSharedValue<number>(0);
     const [left, setLeft] = useState<number>(0);
-    const sharedLoading = useSharedValue<boolean>(false);
     const flatListRef = useRef<FlatList>(null);
     const [syncLoading, setSyncLoading] = useState<boolean>(false);
-    const [flatListContainerWidth, setFlatListContainerWidth] = useState<number>(0);
     const { t } = useTranslation();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -291,11 +288,13 @@ export default function Tasks() {
     const [folders, setFolders] = useState<[]>([]);
     const hasFolders = useSharedValue<boolean>(true);
     const selectLimit = 50;
-    const [deleting, setDeleting] = useState<boolean>(false);
     const scrollViewRef = useRef<ScrollView>(null);
     const itemHeight = 100;
     const [headerHeight, setHeaderHeight] = useState<number>(0);
     const getTaskTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const quietProcessing = useSharedValue<boolean>(false);
+    const [processing, setProcessing] = useState<boolean>(false);
 
     const syncData = async (position: number = 0) => {
         if (pathname != "/" || syncLoading) return;
@@ -329,6 +328,39 @@ export default function Tasks() {
         }
     }
 
+    const getTasksTest = async (refresh: boolean = false) => {
+        if (pathname != "/" || loading) return;
+        const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
+        try {
+            const execResult = await stmt.executeAsync({
+                $archived: 0,
+                $limit: 100,
+                $offset: 0,
+            });
+            const data = await execResult.getAllAsync() as SQLiteTaskType[];
+            const dataParsed: TaskType[] = data.length > 0 ? data.map((item) => {
+                const { id_task, created_at, updated_at, ...rest } = item;
+
+                return ({
+                    ...rest,
+                    idTask: id_task,
+                    createdAt: created_at,
+                    updatedAt: updated_at,
+                });
+            }) : [];
+
+            console.log(dataParsed);
+
+        }
+        catch (e) {
+            setToast("Test échoué", "error");
+            console.log(e);
+        }
+        finally {
+            await stmt.finalizeAsync();
+        }
+    }
+
     const getTasks = async (refresh: boolean = false) => {
         getTaskTimeout.current && clearTimeout(getTaskTimeout.current);
         if (pathname != "/" || loading) return;
@@ -337,9 +369,10 @@ export default function Tasks() {
             setCountTmp(0);
             setTasksTmp([]);
             setValue("");
+            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
+
             try {
                 !refresh && setLoading(true);
-                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
                 const execResult = await stmt.executeAsync({
                     $archived: 0,
                     $limit: limit,
@@ -369,16 +402,19 @@ export default function Tasks() {
                 translateY.value = 0;
                 setLoading(false);
                 if (!sync) syncData(data.length);
-                setDeleting(false);
+                setProcessing(false);
             }
             catch (e) {
                 setLoading(false);
-                sharedLoading.value = false;
+                setProcessing(false);
                 translateY.value = 0;
                 setToast("Aucune connexion internet", "error");
                 console.log(e);
             }
-        }, refresh ? 100 : 0);
+            finally {
+                await stmt.finalizeAsync();
+            }
+        }, 0);
     }
 
     const getCount = async () => {
@@ -393,7 +429,6 @@ export default function Tasks() {
             console.log(e);
         }
     }
-
 
     const handleFilter = (entry: null | boolean) => {
         tasksTmp.length == 0 && setTasksTmp(tasks);
@@ -424,9 +459,10 @@ export default function Tasks() {
             tasksSelected.length > 0 && setTasksSelected([]);
             tasksTmp.length == 0 && setTasksTmp(tasks);
             countTmp == 0 && setCountTmp(count);
+            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE (title LIKE $like OR content LIKE $like) AND archived = $archived ORDER BY updated_at LIMIT $limit OFFSET $offset");
+            const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE $like OR content LIKE $like) AND archived = $archived");
+
             try {
-                const stmt = await db!.prepareAsync("SELECT * FROM task WHERE title LIKE $like OR content LIKE $like AND archived = $archived ORDER BY updated_at LIMIT $limit OFFSET $offset");
-                const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE title LIKE $like OR content LIKE $like AND archived = $archived");
                 const exec = await stmt.executeAsync({
                     $archived: 0,
                     $like: `%${value}%`,
@@ -453,16 +489,20 @@ export default function Tasks() {
 
                 setCount(count);
                 if (pagination) {
-                    setTasks([...tasks, ...dataParsed.filter((task) => !tasks.find(t => t.idTask == task.idTask))]);
+                    setTasks(prev => [...prev, ...dataParsed.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
                 }
                 else {
-                    setTasks(dataParsed);
+                    setTasks([...dataParsed]);
                 }
             }
             catch (e) {
                 tasksTmp.length > 0 && setTasks(tasksTmp);
                 countTmp > 0 && setCount(countTmp);
                 console.log(e);
+            }
+            finally {
+                await stmt.finalizeAsync();
+                await countStmt.finalizeAsync();
             }
         }, 100);
     }
@@ -515,18 +555,17 @@ export default function Tasks() {
         .activeOffsetY(50)
         .failOffsetX([-10, 10])
         .onUpdate(({ translationY: y }) => {
-            if (scrollY.value == 0 && !sharedLoading.value && !scrolling.value && sharedTextInputValue.value.trim().length == 0) {
+            if (scrollY.value == 0 && !scrolling.value && sharedTextInputValue.value.trim().length == 0) {
                 translateY.value = y;
             }
         })
         .onEnd(() => {
-            if (sharedLoading.value || sharedTextInputValue.value.trim().length > 0) return;
             if (translateY.value >= 90) {
                 translateY.value = 180;
-                runOnJS(getTasks)(true);
-                translateY.value = 0;
+                scrollY.value == 0 && !quietProcessing.value && runOnJS(getTasks)(true);
             }
             else {
+
                 translateY.value = 0;
             }
         })
@@ -542,7 +581,7 @@ export default function Tasks() {
                 ),
             }
         ],
-        opacity: sharedLoading.value && translateY.value >= 90 ? withRepeat(
+        opacity: quietProcessing.value && translateY.value >= 90 ? withRepeat(
             withSequence(
                 withTiming(.5, {
                     duration: 1000,
@@ -560,7 +599,7 @@ export default function Tasks() {
             true,
         )
             :
-            translateY.value == 0 ? 0 : 1,
+            sharedTextInputValue.value.trim().length > 0 || translateY.value == 0 ? 0 : 1,
     }));
 
     const showRefreshAnimation = useAnimatedStyle(() => ({
@@ -582,6 +621,20 @@ export default function Tasks() {
         showButtonTimeout.current = setTimeout(() => {
             showScrollButton.value = false;
         }, 500);
+    }
+
+    const checkScroll = (y: number) => {
+        scrollTimeout.current && clearTimeout(scrollTimeout.current);
+        scrollTimeout.current = setTimeout(() => {
+            if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint) flatListRef.current?.scrollToOffset({
+                offset: scrollCheckPoint,
+                animated: true,
+            });
+            else if (y < (scrollCheckPoint * .3)) flatListRef.current?.scrollToOffset({
+                offset: 0,
+                animated: true,
+            });
+        }, 10);
     }
 
     const handleScroll = useAnimatedScrollHandler({
@@ -606,7 +659,6 @@ export default function Tasks() {
     });
 
     useEffect(() => {
-        sharedLoading.value = loading;
         tasksSelectedShared.value = tasksSelected.length > 0;
     }, [loading, tasksSelected]);
 
@@ -656,7 +708,7 @@ export default function Tasks() {
 
     const handleDelete = async (init: boolean = true) => {
         if (tasksSelected.length == 0) return;
-        setDeleting(true);
+        setProcessing(true);
         const tab = [...tasksSelected];
 
         if (init) {
@@ -665,7 +717,7 @@ export default function Tasks() {
             setDismiss(
                 () => handleDelete(false),
                 () => {
-                    setDeleting(false);
+                    setProcessing(false);
                     getTasks(true);
                 });
             return;
@@ -686,8 +738,8 @@ export default function Tasks() {
     }
 
     useEffect(() => {
-        // getCount();
-        // getTasks();
+        getCount();
+        getTasks();
     }, []);
 
     const selectMap = useMemo(() => new Map(
@@ -701,20 +753,40 @@ export default function Tasks() {
         else setTasksSelected(tasksSelected.filter(t => t.idTask != task.idTask));
     }, [tasksSelected]);
 
+    const handleDeleteTask = useCallback((task: TaskType) => {
+        setProcessing(true);
+        setCount(prev => prev - 1);
+        setTasks((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
+    }, [tasks, processing]);
+
+    const handleRefresh = useCallback((e: boolean = false) => {
+        setProcessing(false);
+        if (e) {
+            getTasks(true);
+        }
+        else {
+            setCount(prev => prev + 1);
+        }
+    }, [processing]);
+
+    const handleArchiveTask = useCallback((task: TaskType) => {
+        setCount(prev => prev - 1);
+        setTasks(prev => prev.filter(t => t.idTask !== task.idTask));
+    }, []);
+
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
-            loading={loading}
+            loading={loading || processing}
             task={task}
             selection={tasksSelected.length > 0}
             selectedIndex={selectMap.get(task.idTask) ?? 0}
-            // onPress={() => router.navigate("/ddzveoz")}
-            onPress={() => console.log("Press", task.idTask)}
-            onRefresh={() => getTasks(true)}
+            onPress={() => console.log("Pressed", task.idTask)}
+            onRefresh={(e) => handleRefresh(e)}
             onLongPress={() => handleLongPress(task)}
-            onDelete={() => setTasks(tasks.filter(t => t.idTask != task.idTask))}
-            onArchive={() => setTasks(tasks.filter(t => t.idTask != task.idTask))}
+            onDelete={() => handleDeleteTask(task)}
+            onArchive={() => handleArchiveTask(task)}
         />
-    ), [tasksSelected, loading]);
+    ), [tasksSelected, loading, processing, tasksTmp, countTmp]);
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -722,7 +794,7 @@ export default function Tasks() {
                 translateY: interpolate(
                     scrollY.value,
                     [0, scrollCheckPoint],
-                    [10, -100],
+                    [0, -120],
                     Extrapolation.CLAMP,
                 )
             }
@@ -742,7 +814,7 @@ export default function Tasks() {
         ],
         opacity: interpolate(
             scrollY.value,
-            [0, scrollCheckPoint],
+            [0, scrollCheckPoint * .8],
             [1, 0],
             Extrapolation.CLAMP,
         ),
@@ -754,8 +826,8 @@ export default function Tasks() {
             {
                 translateY: interpolate(
                     scrollY.value,
-                    [0, scrollCheckPoint * .5],
-                    [0, 100],
+                    [0, scrollCheckPoint * .8],
+                    [0, 150],
                     Extrapolation.CLAMP,
                 )
             }
@@ -782,16 +854,20 @@ export default function Tasks() {
         backgroundColor: scrollY.value >= scrollCheckPoint * .5 ?
             (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .15)")
             :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)")
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .05)")
         ,
         borderWidth: 1,
         borderColor: scrollY.value >= scrollCheckPoint * .5 ?
             (themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)")
             :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)")
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .05)")
         ,
         borderRadius: scrollY.value >= scrollCheckPoint * .5 ? 20 : 0,
     }));
+
+    useEffect(() => {
+        quietProcessing.value = processing;
+    }, [processing]);
 
     return (
         <Container centerX>
@@ -828,7 +904,7 @@ export default function Tasks() {
                     <KeyboardAvoidingView
                         behavior={Platform.OS === "android" ? "height" : "padding"}
                         className={clsx(
-                            "w-full flex items-center mb-3 px-2",
+                            "w-full flex items-center my-3 px-2",
                             !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
                         )}
                     >
@@ -852,13 +928,14 @@ export default function Tasks() {
                             //     textInputRef.current?.blur();
                             // }}
                             onPress={() => {
-                                if (tasks.length > 0) {
-                                    setTasks([]);
-                                    setTasksTmp([]);
-                                    setCount(0);
-                                    setCountTmp(0);
-                                }
-                                else getTasks();
+                                // if (tasks.length > 0) {
+                                //     setTasks([]);
+                                //     setTasksTmp([]);
+                                //     setCount(0);
+                                //     setCountTmp(0);
+                                // }
+                                // else getTasks();
+                                getTasksTest();
                             }}
                             className="absolute top-4 right-5 z-[1]"
                         >
@@ -870,7 +947,7 @@ export default function Tasks() {
                         </PressableAnimated>
 
                         {
-                            tasksTmp.length > 0 && (
+                            tasksTmp.length > 0 && value.trim().length > 0 && (
                                 <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
                                     {count}
                                 </Text>
@@ -892,7 +969,7 @@ export default function Tasks() {
                                     className="w-full flex flex-row items-center gap-5 px-3 py-1"
                                 >
                                     {
-                                        loading && (
+                                        loading && !processing && (
                                             <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                                 <Skeleton />
                                             </View>
@@ -951,7 +1028,7 @@ export default function Tasks() {
                                 />
                             </View>
                             {
-                                loading && (
+                                loading && !processing && (
                                     <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                         <Skeleton />
                                     </View>
@@ -1058,19 +1135,13 @@ export default function Tasks() {
                                     onMomentumScrollBegin={() => scrolling.value = true}
                                     onMomentumScrollEnd={(e) => {
                                         const y = e.nativeEvent.contentOffset.y;
+
                                         scrolling.value = false;
-                                        if (y >= scrollCheckPoint * .2) flatListRef.current?.scrollToOffset({
-                                            offset: scrollCheckPoint,
-                                            animated: true,
-                                        });
-                                        else flatListRef.current?.scrollToOffset({
-                                            offset: 0,
-                                            animated: true,
-                                        });
+                                        checkScroll(y);
                                     }}
                                     onEndReachedThreshold={.95}
                                     scrollEventThrottle={16}
-                                    onEndReached={() => !deleting ? (
+                                    onEndReached={() => !processing ? (
                                         value.trim().length == 0 ?
                                             tasks.length < count ? getTasks() : undefined
                                             :
