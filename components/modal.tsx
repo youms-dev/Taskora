@@ -1,6 +1,6 @@
 import { tabPaths } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
-import { event, MODAL_CLOSED, MODAL_OPEN } from "@/lib/event-emitter";
+import { event, SHOW_NAVBAR, HIDE_NAVBAR } from "@/lib/event-emitter";
 import { BlurTint, BlurView } from "expo-blur";
 import { usePathname } from "expo-router";
 import { CSSProperties, ReactNode, RefObject, useEffect, useRef } from "react";
@@ -170,11 +170,11 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
 
         if (modalActive) {
             translateY.value = 0;
-            event.emit(MODAL_OPEN);
+            event.emit(HIDE_NAVBAR);
         }
         else {
             handleClose();
-            if (tabPaths.includes(pathname)) event.emit(MODAL_CLOSED);
+            if (tabPaths.includes(pathname)) event.emit(SHOW_NAVBAR);
         }
 
         return () => remove();

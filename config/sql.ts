@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
 
+
 export const DATABASE_NAME = "taskora.db";
 
 function genData(max: number = 100) {

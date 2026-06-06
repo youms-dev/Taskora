@@ -2,5 +2,5 @@ import EventEmitter from "eventemitter3";
 
 export const event = new EventEmitter();
 
-export const MODAL_OPEN =  "modalOpen";
-export const MODAL_CLOSED =  "modalClosed";
+export const HIDE_NAVBAR =  "hide-navbar";
+export const SHOW_NAVBAR =  "show-navbar";

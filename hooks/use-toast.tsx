@@ -28,14 +28,14 @@ export const ToastProvider = ({ children }: Props) => {
     const { width, height } = useWindowDimensions();
     const [left, setLeft] = useState<DimensionValue>(0);
     const [type, setType] = useState<ToastType>("default");
-    const [hideValue, setHideValue] = useState<number>(0);
+    const [hideValue, setHideValue] = useState<number>(-height);
     const translateY = useSharedValue<number>(0);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const refreshTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const textValue = useSharedValue<string>(text);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [dismissBoxLeft, setDismissLeft] = useState<DimensionValue>(0);
-    const [dismissHideValue, setDismissHideValue] = useState<number>(0);
+    const [dismissHideValue, setDismissHideValue] = useState<number>(height);
     const dismissTranslateY = useSharedValue<number>(0);
     const [count, setCount] = useState<number>(0);
     const dismissInterval = useRef<ReturnType<typeof setInterval>>(null);

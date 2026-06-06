@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ColorValue, Text, View } from "react-native";
+import { ColorValue, Text, TextProps, View } from "react-native";
 
 interface Props {
     children: string | number;
@@ -18,14 +18,16 @@ interface Props {
  * @returns 
  */
 
-export const TextGradient = ({ children, className, colors }: Props) => {
+export const TextGradient = ({ children, className, colors: textColors }: Props) => {
     const [text, setText] = useState<typeof children>(children);
     const [count, setCount] = useState<number>(0);
+    const [colors, setColors] = useState<typeof textColors>([]);
 
     useEffect(() => {
         setText(children);
         setCount(String(children).length / colors.length);
-    }, [colors, children]);
+        setColors([...textColors]);
+    }, [textColors, children]);
 
     return (
         <View className="flex-row items-center">
@@ -37,8 +39,10 @@ export const TextGradient = ({ children, className, colors }: Props) => {
                     return (
                         <Text
                             key={i}
-                            className={className}
+                            numberOfLines={1}
+                            ellipsizeMode="clip"
                             style={{ color }}
+                            className={className}
                         >
                             {String(text).slice(start, end)}
                         </Text>

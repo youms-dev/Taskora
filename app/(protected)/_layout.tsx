@@ -3,7 +3,7 @@ import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { tabPaths } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
-import { event, MODAL_CLOSED, MODAL_OPEN } from "@/lib/event-emitter";
+import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Fontisto from '@expo/vector-icons/Fontisto';
@@ -67,12 +67,12 @@ export default function Layout() {
             if (tabPaths.includes(pathname)) hide.value = false;
         }
 
-        event.addListener(MODAL_OPEN, onOpen);
-        event.addListener(MODAL_CLOSED, onClose);
+        event.addListener(SHOW_NAVBAR, onClose);
+        event.addListener(HIDE_NAVBAR, onOpen);
 
         return () => {
-            event.removeAllListeners(MODAL_OPEN);
-            event.removeAllListeners(MODAL_CLOSED);
+            event.removeAllListeners(HIDE_NAVBAR);
+            event.removeAllListeners(SHOW_NAVBAR);
         }
     }, []);
 

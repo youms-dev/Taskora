@@ -5,10 +5,12 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
-import { useDatabase } from "@/hooks/use-sqlite";
+import { useTasks } from "@/hooks/use-task";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { SQLiteTaskType, TaskType } from "@/types/task";
+import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { TaskType } from "@/types/task";
+import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -22,28 +24,28 @@ import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, ScrollView, Text, TextInput, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { api } from "../../lib/axios";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
 
-interface TaskCardProps extends PressableProps {
+interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
     onRefresh: (error?: boolean) => void;
     loading: boolean;
     selectedIndex?: number;
-    onLongPress?: () => void;
+    onLongPress?: (task: TaskType) => void;
     selection?: boolean;
-    onDelete?: () => void;
-    onArchive?: () => void;
+    onDelete?: (task: TaskType) => void;
+    onArchive?: (task: TaskType) => void;
+    onPress?: (id: TaskType["idTask"]) => void;
 }
-const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, ...rest }: TaskCardProps) => {
+const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, onPress, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
-    const { db } = useDatabase();
     const loading = useSharedValue<boolean>(false);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
     const selection = useSharedValue<boolean>(false);
+    const { deleteTasks, archiveTasks } = useTasks();
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -53,34 +55,33 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         ]
     }));
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
         if (loading.value) return;
-        onDelete?.();
-        setDismiss(deleteTask, () => onRefresh(true));
-    }
+        onDelete?.(task);
+        setDismiss(handleDeleteTask, () => onRefresh(true));
+    }, [onDelete, task, onRefresh, setDismiss]);
 
-    const deleteTask = async () => {
+    const handleDeleteTask = useCallback(async () => {
         if (loading.value) return;
         try {
             loading.value = true;
-            await db!.runAsync("DELETE FROM task WHERE id_task = ?", [task.idTask]);
+            await deleteTasks([task.idTask]);
+            loading.value = false;
             onRefresh();
-            loading.value = false;
         }
         catch (e) {
             onRefresh(true);
             loading.value = false;
             console.log(e);
         }
-    }
+    }, [task.idTask, onRefresh]);
 
-    const handleArchive = async () => {
+    const handleArchive = useCallback(async (taskToArchive: TaskType) => {
         if (loading.value) return;
-        onArchive?.();
+        onArchive?.(taskToArchive);
         try {
             loading.value = true;
-            await db!.runAsync(`UPDATE task SET archived = ${1} WHERE id_task = ?`, [task.idTask]);
-            setToast("Archivé");
+            await archiveTasks([task.idTask]);
             loading.value = false;
         }
         catch (e) {
@@ -88,18 +89,22 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             loading.value = false;
             console.log(e);
         }
-    }
+    }, [onArchive, task.idTask, onRefresh, setToast]);
 
-    const handleLongPress = () => {
-        onLongPress && onLongPress();
+    const handleLongPressLocal = useCallback(() => {
+        onLongPress && onLongPress(task);
         Vibration.vibrate(100);
-    }
+    }, [onLongPress, task]);
 
-    const gesturesList = Gesture.Race(
+    const handlePressLocal = useCallback(() => {
+        onPress && onPress(task.idTask);
+    }, [onPress, task.idTask]);
+
+    const gesturesList = useMemo(() => Gesture.Race(
         Gesture.LongPress()
             .minDuration(150)
             .onStart(() => {
-                runOnJS(handleLongPress)();
+                runOnJS(handleLongPressLocal)();
             }),
         Gesture.Pan()
             .activeOffsetX([-5, 5])
@@ -110,7 +115,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             .onEnd(({ translationX: x }) => {
                 if (selected.value || selection.value || loading.value) return;
                 if (x <= -100) {
-                    runOnJS(handleArchive)();
+                    runOnJS(handleArchive)(task);
                 }
                 else if (x >= 100) {
                     runOnJS(handleDelete)();
@@ -121,7 +126,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                     damping: 10,
                 });
             })
-    );
+    ), [handleLongPressLocal, handleArchive, handleDelete, task.idTask, parentLoading, index, selecting]);
 
     const opacityAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
@@ -133,9 +138,9 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     }));
 
     useEffect(() => {
-        loading.value = parentLoading;
-        selected.value = index > 0;
-        selection.value = selecting;
+        loading.value = !!parentLoading;
+        if (selected.value !== (index > 0)) selected.value = index > 0;
+        if (selection.value !== selecting) selection.value = selecting;
     }, [parentLoading, index, selecting]);
 
     const selectAnimation = useAnimatedStyle(() => ({
@@ -167,44 +172,41 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         ]
     }));
 
-    const taskComponent = useCallback(() => (
-        <Animated.View
-            style={swipeAnimation}
-            className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
-        >
-            <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
-                {
-                    task.title && (
-                        <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
-                            <TextAnimated
-                                numberOfLines={1}
-                                className="text-lg tracking-widest"
-                            >
-                                {task.title}
-                            </TextAnimated>
-                        </View>
-                    )
-                }
-
-                <View className="w-full">
-                    <TextAnimated
-                        numberOfLines={2}
-                        className="text-lg dark:opacity-70 opacity-60"
-                    >
-                        {task.content}
-                    </TextAnimated>
-                </View>
-            </View>
-        </Animated.View>
-    ), [task]);
-
     return (
         <GestureDetector gesture={gesturesList}>
             <Pressable
                 {...rest}
+                onPress={handlePressLocal}
                 className="w-full h-[100px] flex justify-center items-center rounded-2xl"
             >
-                {taskComponent()}
+                <Animated.View
+                    style={swipeAnimation}
+                    className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
+                >
+                    <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
+                        {
+                            task.title && (
+                                <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="text-lg tracking-widest"
+                                    >
+                                        {task.title}
+                                    </TextAnimated>
+                                </View>
+                            )
+                        }
+
+                        <View className="w-full">
+                            <TextAnimated
+                                numberOfLines={2}
+                                className="text-lg dark:opacity-70 opacity-60"
+                            >
+                                {task.content}
+                            </TextAnimated>
+                        </View>
+                    </View>
+                </Animated.View>
 
                 <View className="w-full h-full flex flex-row justify-center items-center p-2 rounded-2xl pointer-events-none">
                     <Animated.View
@@ -267,14 +269,13 @@ export default function Tasks() {
     const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
     const pathname = usePathname();
     const textInputRef = useRef<TextInput>(null);
-    const { db } = useDatabase();
-    const [sync, setSync] = useState<boolean>(false);
     const otherElement = Gesture.Native();
     const scrollY = useSharedValue<number>(0);
     const translateY = useSharedValue<number>(0);
     const [left, setLeft] = useState<number>(0);
     const flatListRef = useRef<FlatList>(null);
-    const [syncLoading, setSyncLoading] = useState<boolean>(false);
+    const syncLoading = useRef<boolean>(false);
+    const sync = useRef<boolean>(false);
     const { t } = useTranslation();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -295,113 +296,63 @@ export default function Tasks() {
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const quietProcessing = useSharedValue<boolean>(false);
     const [processing, setProcessing] = useState<boolean>(false);
+    const showFilter = useSharedValue<boolean>(true);
+    const { syncTasks, getTasks, searchTasks, deleteTasks, archiveTasks, getTasksCount } = useTasks();
+    const [tasksSearch, setTasksSearch] = useState<TaskType[]>([]);
+    const searchScrollY = useSharedValue<number>(0);
+    const searchScrollCheckPoint = 100;
+    const searchSectionActive = useSharedValue<boolean>(false);
+    const [isSearchSectionActive, setIsSearchSectionActive] = useState<boolean>(false);
 
-    const syncData = async (position: number = 0) => {
-        if (pathname != "/" || syncLoading) return;
+    const syncData = useCallback(async (position: number = 0) => {
+        if (pathname != "/" || syncLoading.current) return;
         try {
-            setSyncLoading(true);
-            const { data }: { data: TaskType[] } = await api.post(`/task/list?skip=${position}`);
-
-            if (data.length > 0) {
-                await db?.runAsync(`
-                    INSERT INTO task(id_task, title, content, done) 
-                    VALUES
-                    ${(() => {
-                        return data.map((item, i) => {
-                            const val = `("${item.idTask}", ${item.title ? `${item.title}` : null}, "${item.content}", ${Number(item.done)})${i < data.length - 1 ? "," : ""}`;
-
-                            return val;
-                        }).join("");
-                    })()}
-                    ON CONFLICT(id_task)
-                    DO NOTHING;
-                `);
-            }
-            setSync(true);
-            setSyncLoading(false);
+            syncLoading.current = true;
+            await syncTasks(position);
+            sync.current = true;
+            syncLoading.current = false;
             console.log("sync");
         }
         catch (e) {
-            setSyncLoading(false);
-            setSync(false);
+            syncLoading.current = false;
+            sync.current = false;
             console.log(e);
         }
-    }
+    }, [pathname]);
 
     const getTasksTest = async (refresh: boolean = false) => {
         if (pathname != "/" || loading) return;
-        const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
         try {
-            const execResult = await stmt.executeAsync({
-                $archived: 0,
-                $limit: 100,
-                $offset: 0,
-            });
-            const data = await execResult.getAllAsync() as SQLiteTaskType[];
-            const dataParsed: TaskType[] = data.length > 0 ? data.map((item) => {
-                const { id_task, created_at, updated_at, ...rest } = item;
+            const data = await getTasks(100, 0);
 
-                return ({
-                    ...rest,
-                    idTask: id_task,
-                    createdAt: created_at,
-                    updatedAt: updated_at,
-                });
-            }) : [];
-
-            console.log(dataParsed);
-
+            console.log(data);
         }
         catch (e) {
             setToast("Test échoué", "error");
             console.log(e);
         }
-        finally {
-            await stmt.finalizeAsync();
-        }
     }
 
-    const getTasks = async (refresh: boolean = false) => {
+    const handleGetTasks = useCallback(async (refresh: boolean = false) => {
         getTaskTimeout.current && clearTimeout(getTaskTimeout.current);
         if (pathname != "/" || loading) return;
+
         getTaskTimeout.current = setTimeout(async () => {
             setTasksSelected([]);
             setCountTmp(0);
             setTasksTmp([]);
             setValue("");
-            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
 
             try {
                 !refresh && setLoading(true);
-                const execResult = await stmt.executeAsync({
-                    $archived: 0,
-                    $limit: limit,
-                    $offset: refresh ? 0 : tasks.length,
-                });
-                const data = await execResult.getAllAsync() as SQLiteTaskType[];
-                const dataParsed: TaskType[] = data.length > 0 ? data.map((item) => {
-                    const { id_task, created_at, updated_at, ...rest } = item;
+                const data = await getTasks(limit, refresh ? 0 : tasks.length) as TaskType[];
 
-                    return ({
-                        ...rest,
-                        idTask: id_task,
-                        createdAt: created_at,
-                        updatedAt: updated_at,
-                    });
-                }) : [];
-
-                if (refresh) {
-                    setTasks(dataParsed);
-                    tasks.length > 0 && flatListRef.current?.scrollToIndex({
-                        index: 0,
-                        animated: false,
-                    });
-                }
-                else setTasks([...tasks, ...dataParsed.filter(item => !tasks.find(t => t.idTask == item.idTask))]);
+                if (refresh) setTasks(data);
+                else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
                 translateY.value = 0;
+                if (!sync.current) syncData(data.length);
                 setLoading(false);
-                if (!sync) syncData(data.length);
                 setProcessing(false);
             }
             catch (e) {
@@ -411,24 +362,21 @@ export default function Tasks() {
                 setToast("Aucune connexion internet", "error");
                 console.log(e);
             }
-            finally {
-                await stmt.finalizeAsync();
-            }
         }, 0);
-    }
+    }, [pathname, tasks.length]);
 
-    const getCount = async () => {
+    const handleGetCount = useCallback(async () => {
         if (pathname != "/") return;
         try {
-            const data: { count: number; } | undefined | null = await db?.getFirstAsync(`SELECT COUNT(*) as count FROM task WHERE archived = ${0}`);
+            const data = await getTasksCount() as number;
 
-            data?.count && setCount(data.count);
+            setCount(data);
         }
         catch (e) {
             setToast("Aucune connexion internet", "error");
             console.log(e);
         }
-    }
+    }, [pathname]);
 
     const handleFilter = (entry: null | boolean) => {
         tasksTmp.length == 0 && setTasksTmp(tasks);
@@ -446,8 +394,9 @@ export default function Tasks() {
         setCount(result.length);
     }
 
-    const handleSearch = async (value: string, pagination: boolean = false) => {
+    const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
         timeout.current && clearTimeout(timeout.current);
+        setTasksSelected([]);
         if (pathname != "/" || value.trim().length == 0) {
             tasksTmp.length > 0 && setTasks(tasksTmp);
             countTmp > 0 && setCount(countTmp);
@@ -456,56 +405,31 @@ export default function Tasks() {
             return;
         }
         timeout.current = setTimeout(async () => {
-            tasksSelected.length > 0 && setTasksSelected([]);
             tasksTmp.length == 0 && setTasksTmp(tasks);
             countTmp == 0 && setCountTmp(count);
-            const stmt = await db!.prepareAsync("SELECT * FROM task WHERE (title LIKE $like OR content LIKE $like) AND archived = $archived ORDER BY updated_at LIMIT $limit OFFSET $offset");
-            const countStmt = await db!.prepareAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE $like OR content LIKE $like) AND archived = $archived");
-
             try {
-                const exec = await stmt.executeAsync({
-                    $archived: 0,
-                    $like: `%${value}%`,
-                    $limit: limit,
-                    $offset: pagination ? tasks.length : 0,
-                });
-                const execCount = await countStmt.executeAsync({
-                    $archived: 0,
-                    $like: `%${value}%`,
-                });
-                const data = await exec.getAllAsync() as SQLiteTaskType[];
-                const { count } = await execCount.getFirstAsync() as { count: number };
-
-                const dataParsed = data.length > 0 ? data.map(item => {
-                    const { id_task, created_at, updated_at, ...rest } = item;
-
-                    return ({
-                        ...rest,
-                        idTask: id_task,
-                        createdAt: created_at,
-                        updatedAt: updated_at,
-                    } as TaskType);
-                }) : [];
+                const { data, count } = await searchTasks(value, limit, pagination ? tasks.length : 0) as {
+                    data: TaskType[];
+                    count: number;
+                };
 
                 setCount(count);
                 if (pagination) {
-                    setTasks(prev => [...prev, ...dataParsed.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
+                    setTasks(prev => [...prev, ...data.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
                 }
                 else {
-                    setTasks([...dataParsed]);
+                    setTasks([...data]);
                 }
             }
             catch (e) {
                 tasksTmp.length > 0 && setTasks(tasksTmp);
                 countTmp > 0 && setCount(countTmp);
+                setTasksTmp([]);
+                setCountTmp(0);
                 console.log(e);
             }
-            finally {
-                await stmt.finalizeAsync();
-                await countStmt.finalizeAsync();
-            }
         }, 100);
-    }
+    }, [pathname, tasksTmp, countTmp, tasksSelected]);
 
     const taskSelectedAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -521,25 +445,6 @@ export default function Tasks() {
         ]
     }));
 
-    useEffect(() => {
-        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if ((tasksTmp.length > 0 && countTmp > 0) || tasksSelected.length > 0) {
-                tasksTmp.length > 0 && setTasks(tasksTmp);
-                countTmp > 0 && setCount(countTmp);
-                setTasksSelected([]);
-                setTasksTmp([]);
-                setCountTmp(0);
-                setValue("");
-                return true;
-            }
-
-            return false;
-        });
-
-        sharedTextInputValue.value = value;
-
-        return () => remove();
-    }, [tasksSelected, value, tasksTmp]);
 
     useEffect(() => {
         const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -550,7 +455,7 @@ export default function Tasks() {
         return () => remove();
     }, []);
 
-    const pan = Gesture.Pan()
+    const panRefresh = Gesture.Pan()
         .simultaneousWithExternalGesture(otherElement)
         .activeOffsetY(50)
         .failOffsetX([-10, 10])
@@ -562,10 +467,9 @@ export default function Tasks() {
         .onEnd(() => {
             if (translateY.value >= 90) {
                 translateY.value = 180;
-                scrollY.value == 0 && !quietProcessing.value && runOnJS(getTasks)(true);
+                scrollY.value == 0 && !quietProcessing.value && runOnJS(handleGetTasks)(true);
             }
             else {
-
                 translateY.value = 0;
             }
         })
@@ -626,8 +530,8 @@ export default function Tasks() {
     const checkScroll = (y: number) => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
         scrollTimeout.current = setTimeout(() => {
-            if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint) flatListRef.current?.scrollToOffset({
-                offset: scrollCheckPoint,
+            if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint + 50) flatListRef.current?.scrollToOffset({
+                offset: scrollCheckPoint + 50,
                 animated: true,
             });
             else if (y < (scrollCheckPoint * .3)) flatListRef.current?.scrollToOffset({
@@ -701,7 +605,6 @@ export default function Tasks() {
         ],
     }));
 
-
     useEffect(() => {
         themeShared.value = theme;
     }, [theme]);
@@ -712,81 +615,85 @@ export default function Tasks() {
         const tab = [...tasksSelected];
 
         if (init) {
-            const filter = tasks.filter(t => !tab.find(e => e.idTask == t.idTask))
+            const filter = tasks.filter(t => !tab.find(e => e.idTask == t.idTask));
+
             setTasks(filter);
             setDismiss(
                 () => handleDelete(false),
                 () => {
-                    setProcessing(false);
-                    getTasks(true);
+                    handleGetTasks(true);
                 });
             return;
         }
         try {
-            const placeholder = Array(tab.length).fill(0).map((_) => "?").join(",");
+            await deleteTasks([...tab.map(t => t.idTask)]);
 
-            await db!.runAsync(`DELETE FROM task WHERE id_task IN (${placeholder})`, tab.map(t => t.idTask));
-
+            setCount(count - tab.length);
             setTasksSelected([]);
-            getCount();
-            getTasks(true);
+            handleGetTasks(true);
         }
         catch (e) {
             console.log(e);
+            handleGetTasks(true);
             setToast("Une erreur s'est produite", "error");
         }
     }
 
-    useEffect(() => {
-        getCount();
-        getTasks();
-    }, []);
 
     const selectMap = useMemo(() => new Map(
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
     ), [tasksSelected]);
 
     const handleLongPress = useCallback((task: TaskType) => {
-        const pos = tasksSelected.findIndex(t => t.idTask == task.idTask);
+        setTasksSelected(prev => {
+            const pos = prev.findIndex(t => t.idTask == task.idTask);
 
-        if (pos == -1) setTasksSelected([...tasksSelected, task]);
-        else setTasksSelected(tasksSelected.filter(t => t.idTask != task.idTask));
-    }, [tasksSelected]);
+            if (pos == -1) return [...prev, task];
+            else return prev.filter(t => t.idTask != task.idTask);
+        });
+    }, []);
 
     const handleDeleteTask = useCallback((task: TaskType) => {
         setProcessing(true);
         setCount(prev => prev - 1);
         setTasks((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
-    }, [tasks, processing]);
+    }, []);
 
     const handleRefresh = useCallback((e: boolean = false) => {
-        setProcessing(false);
         if (e) {
-            getTasks(true);
+            setCount(prev => prev + 1);
+            handleGetTasks(true);
         }
         else {
-            setCount(prev => prev + 1);
+            setProcessing(false);
         }
-    }, [processing]);
+    }, []);
 
     const handleArchiveTask = useCallback((task: TaskType) => {
         setCount(prev => prev - 1);
         setTasks(prev => prev.filter(t => t.idTask !== task.idTask));
     }, []);
 
+    const handleTaskPress = useCallback((id: TaskType["idTask"]) => {
+        if (processing) return;
+        if (selectMap.size == 0) {
+            console.log("Pressed", id);
+        }
+    }, [selectMap.size, processing]);
+
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
             loading={loading || processing}
             task={task}
-            selection={tasksSelected.length > 0}
+            selection={selectMap.size > 0}
             selectedIndex={selectMap.get(task.idTask) ?? 0}
-            onPress={() => console.log("Pressed", task.idTask)}
-            onRefresh={(e) => handleRefresh(e)}
-            onLongPress={() => handleLongPress(task)}
-            onDelete={() => handleDeleteTask(task)}
-            onArchive={() => handleArchiveTask(task)}
+            onPress={handleTaskPress}
+            onRefresh={handleRefresh}
+            onLongPress={handleLongPress}
+            onDelete={handleDeleteTask}
+            onArchive={handleArchiveTask}
         />
-    ), [tasksSelected, loading, processing, tasksTmp, countTmp]);
+    ), [selectMap, loading, processing, handleRefresh, handleLongPress, handleDeleteTask, handleArchiveTask, handleTaskPress]);
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -801,33 +708,33 @@ export default function Tasks() {
         ]
     }));
 
-    const textInputAnimation = useAnimatedStyle(() => ({
+    const headerAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 translateY: interpolate(
                     scrollY.value,
                     [0, scrollCheckPoint],
-                    [0, -100],
+                    [0, 150],
                     Extrapolation.CLAMP,
                 )
             }
         ],
         opacity: interpolate(
             scrollY.value,
-            [0, scrollCheckPoint * .8],
+            [0, scrollCheckPoint],
             [1, 0],
             Extrapolation.CLAMP,
         ),
         zIndex: scrollY.value >= scrollCheckPoint * .1 ? -10 : 0,
     }));
 
-    const headerAnimation = useAnimatedStyle(() => ({
+    const fakeInputAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 translateY: interpolate(
                     scrollY.value,
-                    [0, scrollCheckPoint * .8],
-                    [0, 150],
+                    [0, scrollCheckPoint],
+                    [0, -100],
                     Extrapolation.CLAMP,
                 )
             }
@@ -850,7 +757,7 @@ export default function Tasks() {
         backgroundColor: themeShared.value == "dark" ? "black" : "white",
     }));
 
-    const subSectionAnimation = useAnimatedStyle(() => ({
+    const folderAnimation = useAnimatedStyle(() => ({
         backgroundColor: scrollY.value >= scrollCheckPoint * .5 ?
             (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .15)")
             :
@@ -868,6 +775,134 @@ export default function Tasks() {
     useEffect(() => {
         quietProcessing.value = processing;
     }, [processing]);
+
+    const filterAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: interpolate(
+                    scrollY.value,
+                    [0, scrollCheckPoint],
+                    [0, width],
+                    Extrapolation.CLAMP,
+                )
+            }
+        ],
+        opacity: (scrollY.value == 0 && showFilter.value) ? 1 : .3,
+        pointerEvents: (scrollY.value == 0 && showFilter.value) ? "auto" : "none",
+    }));
+
+    const handleArchive = async () => {
+        setProcessing(true);
+        const tab = [...tasksSelected];
+        try {
+            await archiveTasks([...tab.map(t => t.idTask)]);
+
+            setCount(count - tab.length);
+            setTasksSelected([]);
+            handleGetTasks(true);
+            setToast(t("tasks_archived"), "success");
+        }
+        catch (e) {
+            console.log(e);
+            handleGetTasks(true);
+            setToast("Une erreur s'est produite", "error");
+        }
+    }
+
+    const onSearchScroll = useAnimatedScrollHandler({
+        onScroll: (e) => {
+            const y = e.contentOffset.y;
+
+            searchScrollY.value = y;
+        }
+    })
+
+    const textInputAnimation = useAnimatedStyle(() => ({
+        width: interpolate(
+            searchScrollY.value,
+            [0, searchScrollCheckPoint],
+            [width, width * .8],
+            Extrapolation.CLAMP,
+        ),
+        transform: [
+            {
+                translateY: interpolate(
+                    searchScrollY.value,
+                    [0, searchScrollCheckPoint],
+                    [70, 0],
+                    Extrapolation.CLAMP,
+                )
+            }
+        ],
+        borderWidth: 1,
+        borderColor: themeShared.value == "dark" ?
+            "rgba(255,255, 255, .1)"
+            :
+            (searchScrollY.value >= searchScrollCheckPoint ? "rgba(0, 0, 0, .1)" : "rgba(0, 0, 0, 0)"),
+        borderRadius: 30,
+    }));
+
+    const searchHeaderAnimation = useAnimatedStyle(() => ({
+        backgroundColor: themeShared.value == "dark"
+            ?
+            "rgba(0, 0, 0, .5)"
+            :
+            (searchScrollY.value >= searchScrollCheckPoint ? "rgba(255, 255, 255, .6)" : "rgba(255, 255, 255, 0)")
+    }));
+
+    const searchSectionAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: searchSectionActive.value ? withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                }) : 50,
+            }
+        ],
+        opacity: searchSectionActive.value ? withTiming(1, {
+            duration: 200,
+            easing: Easing.inOut(Easing.linear),
+        }) : 0,
+        zIndex: searchSectionActive.value ? 100 : -100,
+    }));
+
+    useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (isSearchSectionActive) {
+                setIsSearchSectionActive(false);
+                event.emit(SHOW_NAVBAR);
+                return true;
+            }
+            else if ((tasksTmp.length > 0 && countTmp > 0) || tasksSelected.length > 0) {
+                tasksTmp.length > 0 && setTasks(tasksTmp);
+                countTmp > 0 && setCount(countTmp);
+                setTasksSelected([]);
+                setTasksTmp([]);
+                setCountTmp(0);
+                setValue("");
+                return true;
+            }
+
+            return false;
+        });
+
+        sharedTextInputValue.value = value;
+        showFilter.value = value.trim().length == 0;
+        searchSectionActive.value = isSearchSectionActive;
+        if (isSearchSectionActive) textInputRef.current?.focus();
+        else {
+            textInputRef.current?.blur();
+            setValue("");
+            setTasksSearch([]);
+        }
+
+        return () => remove();
+    }, [tasksSelected, value, tasksTmp, isSearchSectionActive]);
+
+    useEffect(() => {
+        // handleGetTasks();
+        // handleGetCount();
+    }, []);
 
     return (
         <Container centerX>
@@ -898,30 +933,23 @@ export default function Tasks() {
                 </Animated.View>
 
                 <Animated.View
-                    style={textInputAnimation}
-                    className="w-full flex items-center"
+                    style={fakeInputAnimation}
+                    className="w-full flex items-center px-3"
                 >
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === "android" ? "height" : "padding"}
+                    <Pressable
+                        onPress={() => {
+                            if (tasks.length == 0) return;
+                            setIsSearchSectionActive(true);
+                            event.emit(HIDE_NAVBAR);
+                        }}
                         className={clsx(
-                            "w-full flex items-center my-3 px-2",
+                            "w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12",
                             !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
                         )}
                     >
-                        <TextInput
-                            ref={textInputRef}
-                            placeholder={t("tasks_search")}
-                            cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                            placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                            value={value}
-                            onChangeText={(e) => {
-                                setValue(e);
-                                handleSearch(e);
-                            }}
-                            onSubmitEditing={() => handleSearch(value)}
-                            editable={!loading && (tasks.length > 0 || tasksTmp.length > 0)}
-                            className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl pl-3 pr-12 border-b dark:border-white/20 border-black/20"
-                        />
+                        <TextAnimated className="opacity-40 text-lg">
+                            {t("tasks_search")}
+                        </TextAnimated>
                         <PressableAnimated
                             // onPress={() => {
                             //     handleSearch(value);
@@ -936,6 +964,8 @@ export default function Tasks() {
                                 // }
                                 // else getTasks();
                                 getTasksTest();
+                                console.log(loading);
+                                console.log(processing);
                             }}
                             className="absolute top-4 right-5 z-[1]"
                         >
@@ -945,15 +975,7 @@ export default function Tasks() {
                                 color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
                             />
                         </PressableAnimated>
-
-                        {
-                            tasksTmp.length > 0 && value.trim().length > 0 && (
-                                <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
-                                    {count}
-                                </Text>
-                            )
-                        }
-                    </KeyboardAvoidingView>
+                    </Pressable>
                 </Animated.View>
 
                 <View className="w-full flex items-center gap-1">
@@ -965,7 +987,7 @@ export default function Tasks() {
                                 className="flex items-center"
                             >
                                 <Animated.View
-                                    style={subSectionAnimation}
+                                    style={folderAnimation}
                                     className="w-full flex flex-row items-center gap-5 px-3 py-1"
                                 >
                                     {
@@ -993,7 +1015,7 @@ export default function Tasks() {
                                                                 x: i * width,
                                                                 animated: true,
                                                             })}
-                                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 py-1 px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
                                                         >
                                                             <TextAnimated className="text-lg">
                                                                 {t("folder")}
@@ -1010,73 +1032,68 @@ export default function Tasks() {
                     }
 
                     <Animated.View
-                        style={stickyAnimation}
-                        className="flex items-center"
+                        style={filterAnimation}
+                        className="w-full flex flex-row items-center gap-3 px-3 py-1"
                     >
-                        <Animated.View
-                            style={subSectionAnimation}
-                            className="w-full flex flex-row items-center gap-3 px-3 py-1"
-                        >
-                            <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
-                                <TextAnimated className="text-lg">
-                                    {t("tasks_filter")}
-                                </TextAnimated>
-                                <FontAwesome5
-                                    name="filter"
-                                    size={15}
-                                    color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </View>
-                            {
-                                loading && !processing && (
-                                    <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                        <Skeleton />
-                                    </View>
-                                )
-                            }
+                        <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
+                            <TextAnimated className="text-lg">
+                                {t("tasks_filter")}
+                            </TextAnimated>
+                            <FontAwesome5
+                                name="filter"
+                                size={15}
+                                color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                            />
+                        </View>
+                        {
+                            loading && !processing && tasks.length == 0 && (
+                                <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                    <Skeleton />
+                                </View>
+                            )
+                        }
 
-                            {
-                                !loading && (
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        nestedScrollEnabled
-                                        className="w-full"
-                                        contentContainerClassName="flex flex-row items-center gap-[10px]"
+                        {
+                            !loading && (
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    nestedScrollEnabled
+                                    className="w-full"
+                                    contentContainerClassName="flex flex-row items-center gap-[10px]"
+                                >
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleFilter(null)}
+                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
                                     >
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(null)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_all")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
+                                        <TextAnimated className="text-lg">
+                                            {t("tasks_filter_all")}
+                                        </TextAnimated>
+                                    </PressableAnimated>
 
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(true)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_done")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleFilter(true)}
+                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("tasks_filter_done")}
+                                        </TextAnimated>
+                                    </PressableAnimated>
 
-                                        <PressableAnimated
-                                            scale={.95}
-                                            onPress={() => handleFilter(false)}
-                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 py-2 rounded-xl border dark:border-white/20 border-black/20"
-                                        >
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter_not_done")}
-                                            </TextAnimated>
-                                        </PressableAnimated>
-                                    </ScrollView>
-                                )
-                            }
-                        </Animated.View>
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleFilter(false)}
+                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("tasks_filter_not_done")}
+                                        </TextAnimated>
+                                    </PressableAnimated>
+                                </ScrollView>
+                            )
+                        }
                     </Animated.View>
                 </View>
 
@@ -1117,7 +1134,7 @@ export default function Tasks() {
                 className="w-full mt-3"
                 contentContainerClassName="flex flex-row"
             >
-                <GestureDetector gesture={pan}>
+                <GestureDetector gesture={panRefresh}>
                     <View className="w-full flex flex-row">
                         <View className="w-screen flex items-center shrink-0">
                             <GestureDetector gesture={otherElement}>
@@ -1126,6 +1143,8 @@ export default function Tasks() {
                                     nestedScrollEnabled
                                     horizontal={false}
                                     initialNumToRender={10}
+                                    maxToRenderPerBatch={5}
+                                    windowSize={5}
                                     removeClippedSubviews
                                     showsVerticalScrollIndicator={false}
                                     data={tasks}
@@ -1139,17 +1158,19 @@ export default function Tasks() {
                                         scrolling.value = false;
                                         checkScroll(y);
                                     }}
-                                    onEndReachedThreshold={.95}
+                                    onEndReachedThreshold={.1}
                                     scrollEventThrottle={16}
-                                    onEndReached={() => !processing ? (
-                                        value.trim().length == 0 ?
-                                            tasks.length < count ? getTasks() : undefined
-                                            :
-                                            tasks.length < count ? handleSearch(value, true) : undefined
-                                    )
-                                        :
-                                        undefined
-                                    }
+                                    onEndReached={() => {
+                                        if (loading) return;
+                                        if (tasksSelected.length == 0 && !processing) {
+                                            if (value.trim().length == 0) {
+                                                tasks.length < count ? handleGetTasks() : undefined
+                                            }
+                                            else {
+                                                tasks.length < count ? handleSearch(value, true) : undefined
+                                            }
+                                        }
+                                    }}
                                     getItemLayout={(_, index) => ({
                                         length: itemHeight,
                                         offset: index * itemHeight,
@@ -1266,7 +1287,7 @@ export default function Tasks() {
                         }}
                     />
 
-                    <PressableAnimated>
+                    <PressableAnimated onPress={() => handleArchive()}>
                         <MaterialCommunityIcons
                             name="archive-arrow-down"
                             size={30}
@@ -1306,6 +1327,130 @@ export default function Tasks() {
                         color={COLORS.emerald[500]}
                     />
                 </Pressable>
+            </Animated.View>
+
+            {/*Search section*/}
+
+            <Animated.View
+                style={searchSectionAnimation}
+                className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white"
+            >
+                <View className="w-full h-full flex items-center dark:bg-black bg-[rgba(0,0,0,.05)]">
+                    <Animated.View
+                        style={searchHeaderAnimation}
+                        className="absolute left-0 top-0 w-full flex flex-row justify-between px-3 py-2 z-[10]"
+                    >
+                        <PressableAnimated
+                            onPress={() => {
+                                setIsSearchSectionActive(false);
+                                event.emit(SHOW_NAVBAR);
+                            }}
+                            className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
+                        >
+                            <View className="flex flex-row gap-3 px-3 py-2 dark:bg-white/10 bg-white rounded-full">
+                                <Entypo
+                                    name="chevron-left"
+                                    size={30}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                />
+                            </View>
+                        </PressableAnimated>
+
+                        <Animated.View
+                            style={textInputAnimation}
+                            className="absolute right-0 top-0 w-[80%] flex items-center overflow-hidden"
+                        >
+                            <KeyboardAvoidingView
+                                behavior={Platform.OS === "android" ? "height" : "padding"}
+                                className="w-full flex items-center px-2 dark:bg-black bg-white"
+                            >
+                                <TextInput
+                                    ref={textInputRef}
+                                    placeholder={t("tasks_search")}
+                                    cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
+                                    placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                    value={value}
+                                    onChangeText={(e) => {
+                                        setValue(e);
+                                        // handleSearch(e);
+                                    }}
+                                    // onSubmitEditing={() => handleSearch(value)}
+                                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
+                                />
+                                <PressableAnimated
+                                    onPress={() => {
+                                        tasks.length > 0 ? setTasks([]) : handleGetTasks();
+                                    }}
+                                    className="absolute top-4 right-5 z-[1]"
+                                >
+                                    <FontAwesome5
+                                        name="search"
+                                        size={24}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                                    />
+                                </PressableAnimated>
+
+                                {
+                                    tasksTmp.length > 0 && (
+                                        <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
+                                            {count}
+                                        </Text>
+                                    )
+                                }
+                            </KeyboardAvoidingView>
+                        </Animated.View>
+                    </Animated.View>
+
+                    <FlatListAnimated
+                        horizontal={false}
+                        windowSize={5}
+                        removeClippedSubviews
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={10}
+                        getItemLayout={(_, index) => ({
+                            length: 100,
+                            offset: index * 100,
+                            index,
+                        })}
+                        data={tasksSearch}
+                        keyExtractor={(task) => (task as TaskType).idTask}
+                        renderItem={({ item }) => renderItem(item as TaskType)}
+                        onScroll={onSearchScroll}
+                        scrollEventThrottle={16}
+                        ListEmptyComponent={() => {
+                            if (!loading && value.trim().length > 0) {
+                                return (
+                                    <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                        <MaterialIcons
+                                            name="playlist-remove"
+                                            size={120}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                        />
+                                        <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                                            {t("tasks_search_tasks_empty")}
+                                        </Text>
+                                    </View>
+                                );
+                            }
+                        }}
+                        ListFooterComponent={loading ? (
+                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                {
+                                    Array(3).fill(0).map((_, i) => (
+                                        <View
+                                            key={i}
+                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                        >
+                                            <Skeleton />
+                                        </View>
+                                    ))
+                                }
+                            </View>
+                        ) : null}
+                        className="w-full"
+                        contentContainerClassName="w-full flex items-center gap-5 pt-[150px] pb-[120px] px-3"
+                    />
+                </View>
             </Animated.View>
         </Container>
     );

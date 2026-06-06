@@ -1,8 +1,10 @@
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
+import { SplashScreen } from "@/components/spash-screen";
+import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { LANGUAGE_STORAGE } from "@/constants/names";
 import { AuthProvider } from "@/hooks/auth-provider";
-import { DatabaseProvider } from "@/hooks/use-sqlite";
+import { DatabaseProvider } from "@/hooks/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +13,8 @@ import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
-import { preventAutoHideAsync } from "expo-router/build/utils/splash";
+import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
+import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,7 +24,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../lib/i18n";
 import "./global.css";
 
-// preventAutoHideAsync();
+preventAutoHideAsync();
 
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
@@ -35,6 +38,7 @@ export default function Layout() {
         "Magnetob": require("../assets/fonts/magnetob.ttf"),
         "Papyrus": require("../assets/fonts/papyrus.ttf"),
     });
+    const [db, setDb] = useState<SQLiteDatabase | null>(null);
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -56,9 +60,25 @@ export default function Layout() {
         })();
     }, []);
 
+    useEffect(() => {
+        (async () => {
+            if (!db) {
+                const database = await openDatabaseAsync(DATABASE_NAME);
+
+                setDb(database);
+                await database.execAsync(INIT_DATABASE);
+                await hideAsync();
+            }
+        })();
+    }, []);
+
+    if (!db) return (
+        <SplashScreen />
+    )
+
     return (
         <SafeAreaProvider>
-            <DatabaseProvider>
+            <DatabaseProvider db={db}>
                 <GestureHandlerRootView style={{
                     flex: 1,
                     backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .1)",
