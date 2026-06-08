@@ -24,7 +24,7 @@ export const useTasks = () => {
             throw e;
         }
     }
-    
+
     async function getTasks(limit: number = 10, offset: number = 0): Promise<TaskType[] | unknown> {
         if (!db) return;
         const stmt = await db.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
@@ -74,7 +74,7 @@ export const useTasks = () => {
         try {
             const data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? ORDER BY updated_at LIMIT ? OFFSET ?", [like, like, archived ? 1 : 0, limit, offset]) as SQLiteTaskType[];
 
-            const count = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ?", [like, like, archived ? 1 : 0]) as { count: number };
+            const { count } = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ?", [like, like, archived ? 1 : 0]) as { count: number };
 
             const dataParsed = data.length > 0 ? data.map(item => {
                 const { id_task, created_at, updated_at, ...rest } = item;

@@ -278,8 +278,7 @@ export default function Tasks() {
     const sync = useRef<boolean>(false);
     const { t } = useTranslation();
     const scrolling = useSharedValue<boolean>(false);
-    const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const sharedTextInputValue = useSharedValue<string>("");
+    const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const showScrollButton = useSharedValue<boolean>(false);
     const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const tasksSelectedShared = useSharedValue<boolean>(false);
@@ -303,6 +302,8 @@ export default function Tasks() {
     const searchScrollCheckPoint = 100;
     const searchSectionActive = useSharedValue<boolean>(false);
     const [isSearchSectionActive, setIsSearchSectionActive] = useState<boolean>(false);
+    const [countSearch, setCountSearch] = useState<number>(0);
+    const [searchLoading, setSearchLoading] = useState<boolean>(false);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -395,41 +396,39 @@ export default function Tasks() {
     }
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
-        timeout.current && clearTimeout(timeout.current);
-        setTasksSelected([]);
+        searchTimeout.current && clearTimeout(searchTimeout.current);
         if (pathname != "/" || value.trim().length == 0) {
-            tasksTmp.length > 0 && setTasks(tasksTmp);
-            countTmp > 0 && setCount(countTmp);
-            setTasksTmp([]);
-            setCountTmp(0);
+            setCountSearch(0);
+            setTasksSearch([]);
+            setSearchLoading(false);
             return;
         }
-        timeout.current = setTimeout(async () => {
-            tasksTmp.length == 0 && setTasksTmp(tasks);
-            countTmp == 0 && setCountTmp(count);
+        if (searchLoading) return;
+        setSearchLoading(true);
+        searchTimeout.current = setTimeout(async () => {
             try {
                 const { data, count } = await searchTasks(value, limit, pagination ? tasks.length : 0) as {
                     data: TaskType[];
                     count: number;
                 };
 
-                setCount(count);
+                setCountSearch(count);
                 if (pagination) {
-                    setTasks(prev => [...prev, ...data.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
+                    setTasksSearch(prev => [...prev, ...data.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
                 }
                 else {
-                    setTasks([...data]);
+                    setTasksSearch([...data]);
                 }
+                setSearchLoading(false);
+                console.log(count);
+                console.log(data);
             }
             catch (e) {
-                tasksTmp.length > 0 && setTasks(tasksTmp);
-                countTmp > 0 && setCount(countTmp);
-                setTasksTmp([]);
-                setCountTmp(0);
+                setSearchLoading(false);
                 console.log(e);
             }
         }, 100);
-    }, [pathname, tasksTmp, countTmp, tasksSelected]);
+    }, [pathname, searchLoading]);
 
     const taskSelectedAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -460,7 +459,7 @@ export default function Tasks() {
         .activeOffsetY(50)
         .failOffsetX([-10, 10])
         .onUpdate(({ translationY: y }) => {
-            if (scrollY.value == 0 && !scrolling.value && sharedTextInputValue.value.trim().length == 0) {
+            if (scrollY.value == 0 && !scrolling.value) {
                 translateY.value = y;
             }
         })
@@ -503,7 +502,7 @@ export default function Tasks() {
             true,
         )
             :
-            sharedTextInputValue.value.trim().length > 0 || translateY.value == 0 ? 0 : 1,
+            translateY.value == 0 ? 0 : 1,
     }));
 
     const showRefreshAnimation = useAnimatedStyle(() => ({
@@ -870,6 +869,9 @@ export default function Tasks() {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
             if (isSearchSectionActive) {
                 setIsSearchSectionActive(false);
+                setCountSearch(0);
+                setTasksSearch([]);
+                setValue("");
                 event.emit(SHOW_NAVBAR);
                 return true;
             }
@@ -879,25 +881,23 @@ export default function Tasks() {
                 setTasksSelected([]);
                 setTasksTmp([]);
                 setCountTmp(0);
-                setValue("");
                 return true;
             }
 
             return false;
         });
 
-        sharedTextInputValue.value = value;
-        showFilter.value = value.trim().length == 0;
         searchSectionActive.value = isSearchSectionActive;
-        if (isSearchSectionActive) textInputRef.current?.focus();
-        else {
+        if (isSearchSectionActive && value.trim().length == 0) textInputRef.current?.focus();
+        else if (!isSearchSectionActive) {
             textInputRef.current?.blur();
             setValue("");
             setTasksSearch([]);
+            setCountSearch(0);
         }
 
         return () => remove();
-    }, [tasksSelected, value, tasksTmp, isSearchSectionActive]);
+    }, [tasksSelected, value, tasksTmp, countTmp, isSearchSectionActive]);
 
     useEffect(() => {
         // handleGetTasks();
@@ -938,19 +938,15 @@ export default function Tasks() {
                 >
                     <Pressable
                         onPress={() => {
-                            if (tasks.length == 0) return;
                             setIsSearchSectionActive(true);
                             event.emit(HIDE_NAVBAR);
                         }}
-                        className={clsx(
-                            "w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12",
-                            !loading && tasks.length == 0 && tasksTmp.length == 0 && value.trim().length == 0 && "opacity-50",
-                        )}
+                        className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                     >
                         <TextAnimated className="opacity-40 text-lg">
                             {t("tasks_search")}
                         </TextAnimated>
-                        <PressableAnimated
+                        <Pressable
                             // onPress={() => {
                             //     handleSearch(value);
                             //     textInputRef.current?.blur();
@@ -974,7 +970,7 @@ export default function Tasks() {
                                 size={24}
                                 color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
                             />
-                        </PressableAnimated>
+                        </Pressable>
                     </Pressable>
                 </Animated.View>
 
@@ -1163,12 +1159,7 @@ export default function Tasks() {
                                     onEndReached={() => {
                                         if (loading) return;
                                         if (tasksSelected.length == 0 && !processing) {
-                                            if (value.trim().length == 0) {
-                                                tasks.length < count ? handleGetTasks() : undefined
-                                            }
-                                            else {
-                                                tasks.length < count ? handleSearch(value, true) : undefined
-                                            }
+                                            tasks.length < count ? handleGetTasks() : undefined;
                                         }
                                     }}
                                     getItemLayout={(_, index) => ({
@@ -1372,9 +1363,9 @@ export default function Tasks() {
                                     value={value}
                                     onChangeText={(e) => {
                                         setValue(e);
-                                        // handleSearch(e);
+                                        handleSearch(e);
                                     }}
-                                    // onSubmitEditing={() => handleSearch(value)}
+                                    onSubmitEditing={() => handleSearch(value)}
                                     className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
                                 />
                                 <PressableAnimated
@@ -1415,10 +1406,12 @@ export default function Tasks() {
                         data={tasksSearch}
                         keyExtractor={(task) => (task as TaskType).idTask}
                         renderItem={({ item }) => renderItem(item as TaskType)}
-                        onScroll={onSearchScroll}
                         scrollEventThrottle={16}
+                        onScroll={onSearchScroll}
+                        onEndReachedThreshold={.1}
+                        onEndReached={() => searchTasks.length < countSearch && !searchLoading && handleSearch(value, true)}
                         ListEmptyComponent={() => {
-                            if (!loading && value.trim().length > 0) {
+                            if (!searchLoading && value.trim().length > 0) {
                                 return (
                                     <View className="w-screen flex justify-center items-center gap-4 pt-10">
                                         <MaterialIcons
@@ -1433,7 +1426,7 @@ export default function Tasks() {
                                 );
                             }
                         }}
-                        ListFooterComponent={loading ? (
+                        ListFooterComponent={searchLoading ? (
                             <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
                                 {
                                     Array(3).fill(0).map((_, i) => (
