@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
-import { PressableAnimated } from "@/components/pressable-animated";
+import { PressableAnimated, PressableAnimatedProps } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
@@ -9,6 +9,7 @@ import { useTasks } from "@/hooks/use-task";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -18,6 +19,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -254,6 +256,39 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     );
 });
 
+interface FolderButtonProps extends PressableAnimatedProps {
+    children: Array<string> | string;
+    active?: boolean;
+}
+
+const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonProps) => {
+    const { theme } = useTheme();
+
+    return (
+        <PressableAnimated
+            {...rest}
+            style={{
+                backgroundColor: active ?
+                    (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
+                    :
+                    (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
+            }}
+            className="min-w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
+        >
+            <TextAnimated
+                dark={active ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
+                light={active ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                className={clsx(
+                    "text-lg",
+                    active && "font-bold",
+                )}
+            >
+                {children}
+            </TextAnimated>
+        </PressableAnimated>
+    );
+});
+
 export default function Tasks() {
     const { width, height } = useWindowDimensions();
     const { setToast, setDismiss } = useToast();
@@ -285,7 +320,7 @@ export default function Tasks() {
     const scrollCheckPoint = 100;
     const themeShared = useSharedValue<typeof theme>(theme);
     const showAddTaskButton = useSharedValue<boolean>(true);
-    const [folders, setFolders] = useState<[]>([]);
+    const [folders, setFolders] = useState<FolderType[]>([]);
     const hasFolders = useSharedValue<boolean>(true);
     const selectLimit = 50;
     const scrollViewRef = useRef<ScrollView>(null);
@@ -304,6 +339,11 @@ export default function Tasks() {
     const [isSearchSectionActive, setIsSearchSectionActive] = useState<boolean>(false);
     const [countSearch, setCountSearch] = useState<number>(0);
     const [searchLoading, setSearchLoading] = useState<boolean>(false);
+    const [currentFilter, setCurrentFilter] = useState<number>(1);
+    const [currentFolder, setCurrentFolder] = useState<number>(1);
+    const folderFlatListRef = useRef<FlatList>(null);
+    const filterScrollViewRef = useRef<ScrollView>(null);
+    const searchFlatListRef = useRef<FlatList>(null);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -407,7 +447,7 @@ export default function Tasks() {
         setSearchLoading(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasks.length : 0) as {
+                const { data, count } = await searchTasks(value, limit, pagination ? tasksSearch.length : 0) as {
                     data: TaskType[];
                     count: number;
                 };
@@ -420,15 +460,13 @@ export default function Tasks() {
                     setTasksSearch([...data]);
                 }
                 setSearchLoading(false);
-                console.log(count);
-                console.log(data);
             }
             catch (e) {
                 setSearchLoading(false);
                 console.log(e);
             }
         }, 100);
-    }, [pathname, searchLoading]);
+    }, [pathname, tasksSearch]);
 
     const taskSelectedAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -680,9 +718,13 @@ export default function Tasks() {
         }
     }, [selectMap.size, processing]);
 
+    const isBlocked = useMemo(() => {
+        return (loading || processing || tasksSearch.length > 0);
+    }, [loading, processing, tasksSearch]);
+
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
-            loading={loading || processing}
+            loading={isBlocked}
             task={task}
             selection={selectMap.size > 0}
             selectedIndex={selectMap.get(task.idTask) ?? 0}
@@ -692,7 +734,7 @@ export default function Tasks() {
             onDelete={handleDeleteTask}
             onArchive={handleArchiveTask}
         />
-    ), [selectMap, loading, processing, handleRefresh, handleLongPress, handleDeleteTask, handleArchiveTask, handleTaskPress]);
+    ), [selectMap, handleRefresh, handleLongPress, handleDeleteTask, handleArchiveTask, handleTaskPress, isBlocked]);
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -872,6 +914,8 @@ export default function Tasks() {
                 setCountSearch(0);
                 setTasksSearch([]);
                 setValue("");
+                setSearchLoading(false);
+                searchTimeout.current && clearTimeout(searchTimeout.current);
                 event.emit(SHOW_NAVBAR);
                 return true;
             }
@@ -898,6 +942,32 @@ export default function Tasks() {
 
         return () => remove();
     }, [tasksSelected, value, tasksTmp, countTmp, isSearchSectionActive]);
+
+    const foldersItems = useCallback((folder: FolderType) => {
+        return (
+            <FolderButton
+                onPress={() => {
+                    setCurrentFolder(i + 2);
+                    folderFlatListRef.current?.scrollToOffset({
+                        offset: i * 100 + item.length,
+                        animated: true,
+                    });
+                }}
+            >
+                {folder.title}
+            </FolderButton>
+        )
+    }, [folders]);
+
+    const foldersSnapOffset = useMemo(() => {
+        const tab: number[] = [];
+
+        for (let i = 0; i < folders.length; i++) {
+            tab.push(i + 1);
+        }
+
+        return tab;
+    }, [folders]);
 
     useEffect(() => {
         // handleGetTasks();
@@ -987,41 +1057,58 @@ export default function Tasks() {
                                     className="w-full flex flex-row items-center gap-5 px-3 py-1"
                                 >
                                     {
-                                        loading && !processing && (
+                                        loading && !processing && tasks.length == 0 && (
                                             <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                                 <Skeleton />
                                             </View>
                                         )
                                     }
+
                                     {
-                                        !loading && (
-                                            <ScrollView
-                                                horizontal
-                                                showsHorizontalScrollIndicator={false}
-                                                nestedScrollEnabled
-                                                className="w-full"
-                                                contentContainerClassName="flex flex-row items-center gap-[10px]"
-                                            >
+                                        (!loading || tasks.length > 0) && (
+                                            <>
+                                                <FolderButton
+                                                    active={currentFolder == 1}
+                                                    onPress={() => {
+                                                        setCurrentFolder(1);
+                                                        folderFlatListRef.current?.scrollToOffset({
+                                                            offset: 0,
+                                                            animated: true,
+                                                        });
+                                                    }}
+                                                >
+                                                    {t("tasks_all_folders")}
+                                                </FolderButton>
+
                                                 {
-                                                    Array(5).fill(0).map((_, i) => (
-                                                        <PressableAnimated
-                                                            key={i}
-                                                            scale={.95}
-                                                            onPress={() => scrollViewRef.current?.scrollTo({
-                                                                x: i * width,
-                                                                animated: true,
-                                                            })}
-                                                            className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                                        >
-                                                            <TextAnimated className="text-lg">
-                                                                {t("folder")}
-                                                            </TextAnimated>
-                                                        </PressableAnimated>
-                                                    ))
+                                                    // folders.length > 0 && (
+                                                    folders.length > 0 && (
+                                                        <FlatList
+                                                            ref={folderFlatListRef}
+                                                            horizontal
+                                                            showsHorizontalScrollIndicator={false}
+                                                            nestedScrollEnabled
+                                                            snapToOffsets={foldersSnapOffset}
+                                                            data={folders}
+                                                            keyExtractor={(item) => (item as FolderType).idFolder}
+                                                            renderItem={({ item }) => foldersItems(item as FolderType)}
+                                                            className="w-full"
+                                                            contentContainerClassName="flex flex-row items-center gap-[10px]"
+                                                        />
+                                                    )
                                                 }
-                                            </ScrollView>
+
+                                                <PressableAnimated>
+                                                    <FontAwesome5
+                                                        name="folder-plus"
+                                                        size={25}
+                                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                    />
+                                                </PressableAnimated>
+                                            </>
                                         )
                                     }
+
                                 </Animated.View>
                             </Animated.View>
                         )
@@ -1031,16 +1118,61 @@ export default function Tasks() {
                         style={filterAnimation}
                         className="w-full flex flex-row items-center gap-3 px-3 py-1"
                     >
-                        <View className="w-[20%] flex flex-row items-center gap-2 shrink-0">
-                            <TextAnimated className="text-lg">
-                                {t("tasks_filter")}
-                            </TextAnimated>
-                            <FontAwesome5
-                                name="filter"
-                                size={15}
-                                color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                            />
-                        </View>
+                        {
+                            !loading && (
+                                <>
+                                    <View className="absolute h-full flex flex-row items-center shrink-0 dark:bg-black bg-white z-[1]">
+                                        <View className="h-full flex flex-row items-center gap-2 px-3 dark:bg-black bg-[rgba(0,0,0,.06)]">
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_filter")}
+                                            </TextAnimated>
+                                            <FontAwesome5
+                                                name="filter"
+                                                size={15}
+                                                color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <LinearGradient
+                                            colors={theme == "dark" ? ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .2)"] : ["rgba(255, 255, 255, .8)", "rgba(255, 255, 255, .2)"]}
+                                            // colors={theme == "dark" ? ["red", "blue"] : ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .5)"]}
+                                            locations={[0, .9]}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={{
+                                                transform: [
+                                                    {
+                                                        translateX: 20,
+                                                    }
+                                                ],
+                                            }}
+                                            className="absolute right-0 w-[20px] h-full"
+                                        >
+                                            <View className="w-full h-full dark:bg-transparent bg-[rgba(0,0,0,.06)]" />
+                                        </LinearGradient>
+                                    </View>
+
+                                    <View className="absolute right-0 w-[30px] h-full z-[1] dark:bg-black/20 bg-white/20">
+                                        <LinearGradient
+                                            colors={theme == "dark" ? ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 1)"] : ["rgba(255, 255, 255, .5)", "rgba(255, 255, 255, 1)"]}
+                                            locations={[0, .3]}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            className="w-full h-full"
+                                        >
+                                            <LinearGradient
+                                                colors={theme == "dark" ? ["rgba(0, 0, 0, .05)", "rgba(0, 0, 0, 1)"] : ["rgba(255, 255, 255, .2)", "rgba(0, 0, 0, .06)"]}
+                                                locations={[0, .2]}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                className="w-full h-full"
+                                            />
+                                        </LinearGradient>
+                                    </View>
+                                </>
+                            )
+                        }
+
                         {
                             loading && !processing && tasks.length == 0 && (
                                 <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
@@ -1052,41 +1184,51 @@ export default function Tasks() {
                         {
                             !loading && (
                                 <ScrollView
+                                    ref={filterScrollViewRef}
                                     horizontal
                                     showsHorizontalScrollIndicator={false}
                                     nestedScrollEnabled
                                     className="w-full"
-                                    contentContainerClassName="flex flex-row items-center gap-[10px]"
+                                    contentContainerClassName="flex flex-row items-center gap-[10px] pl-[80px] pr-[20px]"
                                 >
-                                    <PressableAnimated
-                                        scale={.95}
-                                        onPress={() => handleFilter(null)}
-                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("tasks_filter_all")}
-                                        </TextAnimated>
-                                    </PressableAnimated>
-
-                                    <PressableAnimated
-                                        scale={.95}
-                                        onPress={() => handleFilter(true)}
-                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("tasks_filter_done")}
-                                        </TextAnimated>
-                                    </PressableAnimated>
-
-                                    <PressableAnimated
-                                        scale={.95}
-                                        onPress={() => handleFilter(false)}
-                                        className="w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("tasks_filter_not_done")}
-                                        </TextAnimated>
-                                    </PressableAnimated>
+                                    {
+                                        [
+                                            t("tasks_filter_all"),
+                                            t("tasks_filter_done"),
+                                            t("tasks_filter_not_done"),
+                                        ].map((item, i) => (
+                                            <PressableAnimated
+                                                key={i}
+                                                scale={.95}
+                                                onPress={() => {
+                                                    setCurrentFilter(i + 1);
+                                                    handleFilter(i == 0 ? null : (i == 1 ? true : false));
+                                                    filterScrollViewRef.current?.scrollTo({
+                                                        x: i * 100,
+                                                        animated: true,
+                                                    });
+                                                }}
+                                                style={{
+                                                    backgroundColor: currentFilter == (i + 1) ?
+                                                        (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
+                                                        :
+                                                        (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
+                                                }}
+                                                className="w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                            >
+                                                <TextAnimated
+                                                    dark={currentFilter == (i + 1) ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
+                                                    light={currentFilter == (i + 1) ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                    className={clsx(
+                                                        "text-lg",
+                                                        currentFilter == i + 1 && "font-bold",
+                                                    )}
+                                                >
+                                                    {item}
+                                                </TextAnimated>
+                                            </PressableAnimated>
+                                        ))
+                                    }
                                 </ScrollView>
                             )
                         }
@@ -1369,9 +1511,7 @@ export default function Tasks() {
                                     className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
                                 />
                                 <PressableAnimated
-                                    onPress={() => {
-                                        tasks.length > 0 ? setTasks([]) : handleGetTasks();
-                                    }}
+                                    onPress={() => value.trim().length == 0 ? textInputRef.current?.focus() : handleSearch(value)}
                                     className="absolute top-4 right-5 z-[1]"
                                 >
                                     <FontAwesome5
@@ -1393,6 +1533,7 @@ export default function Tasks() {
                     </Animated.View>
 
                     <FlatListAnimated
+                        ref={searchFlatListRef}
                         horizontal={false}
                         windowSize={5}
                         removeClippedSubviews
@@ -1408,8 +1549,18 @@ export default function Tasks() {
                         renderItem={({ item }) => renderItem(item as TaskType)}
                         scrollEventThrottle={16}
                         onScroll={onSearchScroll}
+                        onMomentumScrollEnd={() => {
+                            if (searchScrollY.value > 0 && searchScrollY.value < (searchScrollCheckPoint * .5)) searchFlatListRef.current?.scrollToOffset({
+                                offset: 0,
+                                animated: true,
+                            });
+                            else if (searchScrollY.value >= (searchScrollCheckPoint * .5) && searchScrollY.value < searchScrollCheckPoint) searchFlatListRef.current?.scrollToOffset({
+                                offset: searchScrollCheckPoint,
+                                animated: true,
+                            });
+                        }}
                         onEndReachedThreshold={.1}
-                        onEndReached={() => searchTasks.length < countSearch && !searchLoading && handleSearch(value, true)}
+                        onEndReached={() => tasksSearch.length < countSearch && !searchLoading && handleSearch(value, true)}
                         ListEmptyComponent={() => {
                             if (!searchLoading && value.trim().length > 0) {
                                 return (

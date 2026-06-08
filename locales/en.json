@@ -32,5 +32,6 @@
     "tasks_search_tasks_empty": "No task or event found",
     "tasks_selected": "Selected",
     "tasks_page_title": "Events",
-    "tasks_archived": "Events archived successfully"
+    "tasks_archived": "Events archived successfully",
+    "tasks_all_folders": "All"
 }
