@@ -310,6 +310,7 @@ interface FolderFlatListProps {
     ListFooterComponent: () => JSX.Element | null | undefined;
     handleRef: (ref: Component<AnimatedProps<FlatListProps<unknown>>, any, any> | null) => void;
     loading: boolean;
+    currentFolder: boolean;
 }
 
 const FolderFlatList = memo(({
@@ -325,22 +326,23 @@ const FolderFlatList = memo(({
     ListFooterComponent,
     handleRef,
     loading,
+    currentFolder,
 }: FolderFlatListProps) => {
     const handleMomentumScrollBegin = useCallback(() => onMomentumScrollBegin(), []);
 
     const handleMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => onMomentumScrollEnd(e), []);
 
-    const handleEndReached = useCallback(() => onEndReached(), [loading]);
-
     const handleItemLayout = useCallback(() => getItemLayout(), []);
 
-    const handleListEmptyComponent = useCallback(() => ListEmptyComponent(), [loading]);
+    const handleListEmptyComponent = useCallback(() => ListEmptyComponent(), [loading, currentFolder]);
 
-    const handleListFooterComponent = useCallback(() => ListFooterComponent(), [loading]);
+    const handleListFooterComponent = useCallback(() => ListFooterComponent(), [loading, currentFolder]);
+
+    const gesture = useMemo(() => withGesture, []);
 
     return (
         <View className="w-screen flex items-center shrink-0">
-            <GestureDetector gesture={withGesture}>
+            <GestureDetector gesture={gesture}>
                 <FlatListAnimated
                     ref={handleRef}
                     nestedScrollEnabled
@@ -358,7 +360,7 @@ const FolderFlatList = memo(({
                     onScroll={onScroll}
                     onMomentumScrollBegin={handleMomentumScrollBegin}
                     onMomentumScrollEnd={handleMomentumScrollEnd}
-                    onEndReached={handleEndReached}
+                    onEndReached={onEndReached}
                     getItemLayout={handleItemLayout}
                     ListEmptyComponent={handleListEmptyComponent}
                     ListFooterComponent={handleListFooterComponent}
@@ -376,7 +378,6 @@ export default function Tasks() {
     const [value, setValue] = useState<string>("");
     const router = useRouter();
     const { theme } = useTheme();
-    const [loading, setLoading] = useState<boolean>(false);
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [tasksTmp, setTasksTmp] = useState<TaskType[]>([]);
     const limit = 10;
@@ -429,6 +430,8 @@ export default function Tasks() {
         value: FlatList;
     }[]>([]);
     const [filterLoading, setFilterLoading] = useState<boolean>(false);
+    const loadingRef = useRef<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(false);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -461,7 +464,7 @@ export default function Tasks() {
 
     const handleGetTasks = useCallback(async (refresh: boolean = false) => {
         getTaskTimeout.current && clearTimeout(getTaskTimeout.current);
-        if (pathname != "/" || loading) return;
+        if (pathname != "/" || loadingRef.current) return;
 
         getTaskTimeout.current = setTimeout(async () => {
             setTasksSelected([]);
@@ -470,7 +473,10 @@ export default function Tasks() {
             setValue("");
 
             try {
-                !refresh && setLoading(true);
+                loadingRef.current = true;
+                if (!refresh) {
+                    setLoading(true);
+                }
                 const data = await getTasks(limit, refresh ? 0 : tasks.length) as TaskType[];
 
                 if (refresh) setTasks(data);
@@ -489,7 +495,7 @@ export default function Tasks() {
                 console.log(e);
             }
         }, 0);
-    }, [pathname, tasks]);
+    }, [pathname, tasks, loading]);
 
     const handleGetCount = useCallback(async () => {
         if (pathname != "/") return;
@@ -597,7 +603,7 @@ export default function Tasks() {
             else {
                 translateY.value = 0;
             }
-        }), [tasks]);
+        }), []);
 
     const refreshPanAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -1065,12 +1071,31 @@ export default function Tasks() {
                 });
             });
         }
+        setTasksSelected([]);
+        flatListsRef.current && flatListsRef.current.forEach(item => {
+            item.value.scrollToOffset({
+                offset: 0,
+                animated: false,
+            });
+        });
+        scrollY.value = 0;
     }, [currentFolder]);
 
     useEffect(() => {
+        loadingRef.current = loading;
+    }, [loading]);
+
+    const handleEndReached = useCallback(() => {
+        if (loading || currentFolder) return;
+        if (tasksSelected.length == 0 && !processing && tasks.length < count) {
+            handleGetTasks();
+        }
+    }, [loading, tasks, count]);
+
+    useEffect(() => {
         handleGetFolders();
-        // handleGetTasks();
-        // handleGetCount();
+        handleGetTasks();
+        handleGetCount();
     }, []);
 
     return (
@@ -1411,74 +1436,80 @@ export default function Tasks() {
                                 },
                                 ...folders,
                             ]
-                                .map((folder, i) => (
-                                    <FolderFlatList
-                                        key={folder.idFolder}
-                                        handleRef={(ref) => {
-                                            if (ref) {
-                                                flatListsRef.current[i] = {
-                                                    id: folder.idFolder,
-                                                    value: ref as FlatList,
-                                                }
-                                            }
-                                        }}
-                                        withGesture={otherElement}
-                                        loading={loading || processing}
-                                        data={i == 0 ? tasks : [...tasks.filter(t => t.idFolder == folder.idFolder)]}
-                                        renderItem={renderItem}
-                                        onScroll={handleScroll}
-                                        onMomentumScrollBegin={() => scrolling.value = true}
-                                        onMomentumScrollEnd={(e) => {
-                                            const y = e.nativeEvent.contentOffset.y;
+                                .map((folder, i) => {
+                                    const isActive = currentFolder === null
+                                        ? i === 0
+                                        : currentFolder === folder.idFolder;
 
-                                            scrolling.value = true;
-                                            checkScroll(i, folder.idFolder, y);
-                                        }}
-                                        onEndReached={() => {
-                                            if (loading) return;
-                                            if (tasksSelected.length == 0 && !processing) {
-                                                tasks.length < count ? handleGetTasks() : undefined;
-                                            }
-                                        }}
-                                        getItemLayout={() => ({
-                                            length: itemHeight,
-                                            offset: i * itemHeight,
-                                            index: i,
-                                        })}
-                                        ListEmptyComponent={() => {
-                                            if (!loading) {
-                                                return (
-                                                    <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                                        <MaterialIcons
-                                                            name="playlist-remove"
-                                                            size={120}
-                                                            color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                                        />
-                                                        <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                                                            {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
-                                                        </Text>
+                                    if (!isActive) return (
+                                        <View key={folder.idFolder} className="w-screen shrink-0" />
+                                    );
+
+                                    return (
+                                        <FolderFlatList
+                                            key={folder.idFolder}
+                                            handleRef={(ref) => {
+                                                if (ref) {
+                                                    flatListsRef.current[i] = {
+                                                        id: folder.idFolder,
+                                                        value: ref as FlatList,
+                                                    }
+                                                }
+                                            }}
+                                            loading={loading || processing}
+                                            withGesture={otherElement}
+                                            currentFolder={(currentFolder == folder.idFolder)}
+                                            data={i == 0 ? tasks : [...tasks.filter(t => t.idFolder == folder.idFolder)]}
+                                            renderItem={renderItem}
+                                            onScroll={handleScroll}
+                                            onMomentumScrollBegin={() => scrolling.value = true}
+                                            onMomentumScrollEnd={(e) => {
+                                                const y = e.nativeEvent.contentOffset.y;
+
+                                                scrolling.value = true;
+                                                checkScroll(i, folder.idFolder, y);
+                                            }}
+                                            onEndReached={handleEndReached}
+                                            getItemLayout={() => ({
+                                                length: itemHeight,
+                                                offset: i * itemHeight,
+                                                index: i,
+                                            })}
+                                            ListEmptyComponent={() => {
+                                                if (!loading) {
+                                                    return (
+                                                        <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                                            <MaterialIcons
+                                                                name="playlist-remove"
+                                                                size={120}
+                                                                color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                                            />
+                                                            <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                                                                {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
+                                                            </Text>
+                                                        </View>
+                                                    );
+                                                }
+                                            }}
+                                            ListFooterComponent={() => {
+                                                if (loading && !currentFolder) return (
+                                                    <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                                        {
+                                                            Array(3).fill(0).map((_, i) => (
+                                                                <View
+                                                                    key={i}
+                                                                    className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                                                >
+                                                                    <Skeleton />
+                                                                </View>
+                                                            ))
+                                                        }
                                                     </View>
                                                 );
-                                            }
-                                        }}
-                                        ListFooterComponent={() => {
-                                            if (loading) return (
-                                                <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                                                    {
-                                                        Array(3).fill(0).map((_, i) => (
-                                                            <View
-                                                                key={i}
-                                                                className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                                            >
-                                                                <Skeleton />
-                                                            </View>
-                                                        ))
-                                                    }
-                                                </View>
-                                            );
-                                        }}
-                                    />
-                                ))
+                                            }}
+                                        />
+                                    );
+                                })
                         }
                     </View>
                 </GestureDetector>
