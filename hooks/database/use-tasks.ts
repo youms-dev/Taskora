@@ -1,4 +1,4 @@
-import { useDatabase } from "@/hooks/use-database";
+import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 
@@ -27,16 +27,16 @@ export const useTasks = () => {
 
     async function getTasks(limit: number = 10, offset: number = 0): Promise<TaskType[] | unknown> {
         if (!db) return;
-        const stmt = await db.prepareAsync("SELECT * FROM task WHERE archived = $archived ORDER BY updated_at DESC LIMIT $limit OFFSET $offset");
 
         try {
             const result = await db.getAllAsync("SELECT * FROM task  WHERE archived = ?  ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [0, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
+                    idFolder: id_folder,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -46,9 +46,6 @@ export const useTasks = () => {
         }
         catch (e) {
             throw e;
-        }
-        finally {
-            await stmt.finalizeAsync();
         }
     }
 

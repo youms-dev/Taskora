@@ -1,5 +1,6 @@
 export type TaskType = {
     idTask: string;
+    idFolder?: string;
     title?: string;
     content: string;
     done: boolean;
@@ -9,6 +10,7 @@ export type TaskType = {
 
 export type SQLiteTaskType = {
     id_task: string;
+    id_folder?: string;
     title?: string;
     content: string;
     done: boolean;

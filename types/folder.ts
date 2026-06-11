@@ -6,7 +6,7 @@ export type FolderType = {
 }
 
 export type SQLiteFolderType = {
-    id_task: string;
+    id_folder: string;
     title: string;
     created_at: Date;
     updated_at: Date;
