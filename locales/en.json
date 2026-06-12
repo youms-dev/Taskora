@@ -33,5 +33,6 @@
     "tasks_selected": "Selected",
     "tasks_page_title": "Events",
     "tasks_archived": "Events archived successfully",
-    "tasks_all_folders": "All"
+    "tasks_all_folders": "All",
+    "tasks_archived_item": "Archived"
 }
