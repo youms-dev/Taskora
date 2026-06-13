@@ -1129,8 +1129,8 @@ export default function Tasks() {
 
     useEffect(() => {
         handleGetFolders();
-        handleGetTasks();
-        handleGetCount();
+        // handleGetTasks();
+        // handleGetCount();
     }, []);
 
     return (

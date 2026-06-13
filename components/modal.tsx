@@ -1,7 +1,6 @@
 import { tabPaths } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
-import { event, SHOW_NAVBAR, HIDE_NAVBAR } from "@/lib/event-emitter";
-import { BlurTint, BlurView } from "expo-blur";
+import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { usePathname } from "expo-router";
 import { CSSProperties, ReactNode, RefObject, useEffect, useRef } from "react";
 import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, ScrollView, ScrollViewProps, useWindowDimensions, View } from "react-native";
@@ -26,8 +25,6 @@ interface Props extends Omit<ScrollViewProps, "ref"> {
     zIndex?: number;
     background?: CSSProperties["backgroundColor"];
     children?: ReactNode;
-    blurTint?: BlurTint;
-    blurIntensity?: number;
 }
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -77,19 +74,31 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
  * 
  * @param children The children of the modal
  * 
- * @param blurIntensity The intensity of the blur
- * @default 100
- * 
- * @param blurTint The tint of the blur
- * @default "blur"
- * 
  * @returns Modal component 
  */
 
-export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scrollViewClassName = "w-full h-full", contentContainerClassName = "w-full flex items-center", className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black", animationDuration: modalAnimationDuration = 200, active: modalActive, onClose, containerRef, scrollViewRef, closable: modalClosable = true, zIndex: modalZIndex = 1000, background: modalBackground = "transparent", children, blurIntensity = 100, blurTint, ...rest }: Props) => {
+export const Modal = ({
+    height = "60%",
+    rounded = 30,
+    width,
+    dragHandler,
+    scrollViewClassName = "w-full h-full dark:bg-black/80 bg-white/80",
+    contentContainerClassName = "w-full flex items-center pt-6",
+    className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black",
+    animationDuration: modalAnimationDuration = 200,
+    active: modalActive,
+    onClose,
+    containerRef,
+    scrollViewRef,
+    closable: modalClosable = true,
+    zIndex: modalZIndex = 1000,
+    background: modalBackground = "transparent",
+    children,
+    ...rest
+}: Props) => {
     const { width: dW, height: dH } = useWindowDimensions();
-    const hideValue = dH + (dH * .2);
-    const translateY = useSharedValue<number>(hideValue);
+    const hideValue = useSharedValue<number>(dH);
+    const translateY = useSharedValue<number>(dH);
     const duration = useSharedValue<typeof modalAnimationDuration>(200);
     const scroll = useSharedValue<number>(0);
     const scrollGesture = Gesture.Native();
@@ -106,10 +115,7 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
     const panAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateY: withTiming(translateY.value, {
-                    duration: duration.value,
-                    easing: Easing.inOut(Easing.quad),
-                }),
+                translateY: translateY.value,
             }
         ]
     }));
@@ -117,7 +123,10 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
     const handleClose = () => {
         timeout.current && clearTimeout(timeout.current);
         if (!modalClosable) return;
-        translateY.value = hideValue;
+        translateY.value = withTiming(hideValue.value, {
+            duration: 200,
+            easing: Easing.inOut(Easing.quad),
+        });
         timeout.current = setTimeout(() => {
             onClose && onClose();
         }, Math.ceil(modalAnimationDuration / 2) > 100 ? Math.ceil(modalAnimationDuration / 2) : 100);
@@ -134,12 +143,18 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
         .onEnd(({ translationY: y }) => {
             dragging.value = false;
             if (scroll.value > 0) {
-                translateY.value = 0;
+                translateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
                 return;
             }
             if (y <= 100) {
-                translateY.value = 0;
                 scroll.value = 0;
+                translateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
                 return;
             }
             scroll.value = 0;
@@ -169,7 +184,10 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
         background.value = modalBackground;
 
         if (modalActive) {
-            translateY.value = 0;
+            translateY.value = withTiming(0, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            });
             event.emit(HIDE_NAVBAR);
         }
         else {
@@ -180,10 +198,8 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
         return () => remove();
     }, [modalActive, modalClosable, modalZIndex, modalAnimationDuration, modalBackground]);
 
-    const closedAnimation = useAnimatedStyle(() => ({
-        opacity: active.value ? 1 : 0,
+    const closeAnimation = useAnimatedStyle(() => ({
         pointerEvents: active.value ? "auto" : "none",
-        zIndex: active.value ? zIndex.value : 0,
     }));
 
     const backgroundAnimation = useAnimatedStyle(() => ({
@@ -209,6 +225,10 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
         appTheme.value = theme;
     }, [theme]);
 
+    useEffect(() => {
+        hideValue.value = dH + (dH * .2);
+    }, [dH]);
+
     return (
         <AnimatedKeyboardAvoidingView
             behavior={Platform.OS == "android" ? "height" : "padding"}
@@ -217,7 +237,7 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
                     width: dW,
                     height: dH,
                 },
-                closedAnimation,
+                closeAnimation,
             ]}
             className="absolute left-0 top-0 flex items-center"
         >
@@ -245,25 +265,23 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
                     ]}
                     className={className}
                 >
-                    <BlurView
-                        intensity={blurIntensity}
-                        tint={!blurTint ? theme == "dark" ? "systemChromeMaterialDark" : "systemChromeMaterialLight" : blurTint}
-                        className="w-full h-full"
-                    >
-                        <View className="w-full flex justify-center items-center py-2">
-                            {
-                                typeof dragHandler != "boolean" && (
-                                    dragHandler ?
-                                        dragHandler
-                                        :
-                                        (
-                                            <Animated.View
-                                                style={dragHandlerAnimation}
-                                                className="w-20 h-2 rounded-2xl"
-                                            />
-                                        )
-                                )
-                            }
+                    <View className="w-full h-full flex items-center">
+                        <View className="absolute w-full z-[1] dark:bg-black bg-white">
+                            <View className=" w-full flex justify-center items-center dark:bg-white/20 bg-black/20">
+                                {
+                                    typeof dragHandler != "boolean" && (
+                                        dragHandler ?
+                                            dragHandler
+                                            :
+                                            (
+                                                <Animated.View
+                                                    style={dragHandlerAnimation}
+                                                    className="w-20 h-2 rounded-2xl my-2"
+                                                />
+                                            )
+                                    )
+                                }
+                            </View>
                         </View>
 
                         <GestureDetector gesture={scrollGesture}>
@@ -279,7 +297,7 @@ export const Modal = ({ height = "60%", rounded = 30, width, dragHandler, scroll
                                 {children}
                             </AnimatedScrollView>
                         </GestureDetector>
-                    </BlurView>
+                    </View>
                 </Animated.View>
             </GestureDetector>
         </AnimatedKeyboardAvoidingView>
