@@ -1,9 +1,10 @@
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import clsx from "clsx";
+import { usePathname } from "expo-router";
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, DimensionValue, Pressable, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, BackHandler, DimensionValue, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
@@ -12,7 +13,7 @@ type ToastType = "success" | "error" | "warning" | "default";
 const Context = createContext<{
     toast: string;
     setToast: (value: string, type?: ToastType, duration?: number) => void;
-    setDismiss: (action?: (() => void) | null, reverse?: (() => void) | null, duration?: number) => void;
+    setDismiss: (action?: (() => void) | null, reverse?: (() => void) | null, duration?: number, position?: number) => void;
 }>({
     toast: "",
     setToast: () => { },
@@ -29,14 +30,14 @@ export const ToastProvider = ({ children }: Props) => {
     const [left, setLeft] = useState<DimensionValue>(0);
     const [type, setType] = useState<ToastType>("default");
     const [hideValue, setHideValue] = useState<number>(-height);
-    const translateY = useSharedValue<number>(0);
+    const translateY = useSharedValue<number>(-height);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const refreshTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const textValue = useSharedValue<string>(text);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [dismissBoxLeft, setDismissLeft] = useState<DimensionValue>(0);
     const [dismissHideValue, setDismissHideValue] = useState<number>(height);
-    const dismissTranslateY = useSharedValue<number>(0);
+    const dismissTranslateY = useSharedValue<number>(height);
     const [count, setCount] = useState<number>(0);
     const dismissInterval = useRef<ReturnType<typeof setInterval>>(null);
     const refreshDismissTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -44,6 +45,8 @@ export const ToastProvider = ({ children }: Props) => {
     const { t } = useTranslation();
     const [reverseAction, setReverseAction] = useState<(() => void) | null>(null);
     const [available, setAvailable] = useState<boolean>(true);
+    const pathname = usePathname();
+    const [action, setAction] = useState<(() => void) | null>(null);
 
     const setToast = (value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
@@ -94,7 +97,6 @@ export const ToastProvider = ({ children }: Props) => {
         ]
     }));
 
-
     const handleClose = () => {
         refreshTimeout.current && clearTimeout(refreshTimeout.current);
         timeout.current && clearTimeout(timeout.current);
@@ -124,7 +126,7 @@ export const ToastProvider = ({ children }: Props) => {
         dismissTranslateY.value = dismissHideValue;
     }, [text, hideValue, dismissHideValue]);
 
-    const setDismiss = (action: (() => void) | null = null, reverse: (() => void) | null = null, duration: number = 5) => {
+    const setDismiss = (action: (() => void) | null = null, reverse: (() => void) | null = null, duration: number = 5, position: number = 0) => {
         if (duration > 10) {
             throw new Error("Duration too high the max value is 10");
         }
@@ -132,20 +134,21 @@ export const ToastProvider = ({ children }: Props) => {
         let i = duration;
 
         setCount(i);
-        setReverseAction(() => reverse);
+        action && setAction(() => action);
+        reverse && setReverseAction(() => reverse);
         setAvailable(false);
         closeDismissTimeout.current && clearTimeout(closeDismissTimeout.current);
         refreshDismissTimeout.current && clearTimeout(refreshDismissTimeout.current);
         dismissInterval.current && clearInterval(dismissInterval.current);
         refreshDismissTimeout.current = setTimeout(() => {
-            dismissTranslateY.value = 0;
+            dismissTranslateY.value = position;
         }, 200);
         dismissInterval.current = setInterval(() => {
             setCount(i == duration ? i - 1 : i);
             if (i == 0) {
                 dismissInterval.current && clearInterval(dismissInterval.current);
-                handleCloseDismiss();
                 action && action();
+                handleCloseDismiss();
                 return;
             }
             i -= i == duration ? 2 : 1;
@@ -203,12 +206,35 @@ export const ToastProvider = ({ children }: Props) => {
             dismissTranslateY.value = 0;
         });
 
+    useEffect(() => {
+        const onBackPress = () => {
+            if (count > 0) {
+                handleCloseDismiss(true);
+                return true;
+            }
+            return false;
+        }
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+        return () => remove();
+    }, [count]);
+
+    useEffect(() => {
+        if (action) {
+            action();
+            setAction(null);
+        }
+        handleCloseDismiss();
+    }, [pathname]);
+
     return (
         <Context.Provider value={{
             toast: text,
             setToast,
             setDismiss,
         }}>
+            {children}
+
             <GestureDetector gesture={pan}>
                 <Animated.View
                     onLayout={(e) => {
@@ -296,7 +322,6 @@ export const ToastProvider = ({ children }: Props) => {
                     </Pressable>
                 </Animated.View>
             </GestureDetector>
-            {children}
         </Context.Provider>
     );
 }

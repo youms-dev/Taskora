@@ -9,7 +9,7 @@ import { useFolders } from "@/hooks/database/use-folders";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -44,12 +44,13 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
 }
 const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, onPress, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
-    const loading = useSharedValue<boolean>(false);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
     const selection = useSharedValue<boolean>(false);
-    const { deleteTasks, archiveTasks } = useTasks();
+    const { deleteTasks, toggleArchiveTasks } = useTasks();
     const { t } = useTranslation();
+    const [loading, setLoading] = useState<boolean>(false);
+    const loadingShared = useSharedValue<boolean>(false);
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -60,50 +61,51 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     }));
 
     const handleDelete = useCallback(() => {
-        if (loading.value) return;
+        if (loading) return;
         onDelete?.(task);
         setDismiss(handleDeleteTask, () => onRefresh(true));
-    }, [onDelete, task, onRefresh, setDismiss]);
+    }, [onDelete, task, onRefresh, loading]);
 
     const handleDeleteTask = useCallback(async () => {
-        if (loading.value) return;
+        if (loading) return;
         try {
-            loading.value = true;
+            setLoading(true);
             await deleteTasks([task.idTask]);
-            loading.value = false;
+            setLoading(false);
             onRefresh();
         }
         catch (e) {
             onRefresh(true);
-            loading.value = false;
+            setLoading(false);
             console.log(e);
         }
-    }, [task.idTask, onRefresh]);
+    }, [task, onRefresh, loading]);
 
-    const handleArchive = useCallback(async (taskToArchive: TaskType) => {
-        if (loading.value) return;
-        onArchive?.(taskToArchive);
+    const handleArchive = useCallback(async () => {
+        if (loading) return;
+        onArchive?.(task);
         try {
-            loading.value = true;
-            await archiveTasks([task.idTask]);
-            loading.value = false;
+            setLoading(true);
+            await toggleArchiveTasks([task.idTask], true);
+            setLoading(false);
             setToast(t("tasks_archived_item"), "default", 2000);
+            onRefresh();
         }
         catch (e) {
             onRefresh(true);
-            loading.value = false;
+            setLoading(false);
             console.log(e);
         }
-    }, [onArchive, task.idTask, onRefresh, setToast]);
+    }, [onArchive, task, loading]);
 
     const handleLongPressLocal = useCallback(() => {
-        if (!loading.value) {
+        if (!loading) {
             onLongPress && onLongPress(task);
             Vibration.vibrate(100);
         }
     }, [onLongPress, task]);
 
-    const handlePressLocal = useCallback(() => {
+    const handlePress = useCallback(() => {
         onPress && onPress(task.idTask);
     }, [onPress, task.idTask]);
 
@@ -117,23 +119,24 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             .activeOffsetX([-5, 5])
             .failOffsetY([-10, 10])
             .onUpdate(({ translationX: x }) => {
-                if (x >= -100 && x <= 100 && !loading.value && !selected.value && !selection.value) translateX.value = x;
+                if (x >= -100 && x <= 100 && !loadingShared.value && !selected.value && !selection.value) translateX.value = x;
             })
             .onEnd(({ translationX: x }) => {
-                if (selected.value || selection.value || loading.value) return;
-                if (x <= -100) {
-                    runOnJS(handleArchive)(task);
+                if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) {
+                    translateX.value = withSpring(0, {
+                        stiffness: 100,
+                        mass: 2,
+                        damping: 10,
+                    });
+                }
+                else if (x <= -100) {
+                    runOnJS(handleArchive)();
                 }
                 else if (x >= 100) {
                     runOnJS(handleDelete)();
                 }
-                translateX.value = withSpring(0, {
-                    stiffness: 100,
-                    mass: 2,
-                    damping: 10,
-                });
             })
-    ), [handleLongPressLocal, handleArchive, handleDelete, task.idTask, parentLoading, index, selecting]);
+    ), [handleLongPressLocal, handleArchive, handleDelete]);
 
     const opacityAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
@@ -145,10 +148,10 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     }));
 
     useEffect(() => {
-        loading.value = !!parentLoading;
+        loadingShared.value = !!parentLoading || loading;
         if (selected.value !== (index > 0)) selected.value = index > 0;
         if (selection.value !== selecting) selection.value = selecting;
-    }, [parentLoading, index, selecting]);
+    }, [parentLoading, index, selecting, loading]);
 
     const selectAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(selected.value ? 1 : 0, {
@@ -183,7 +186,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         <GestureDetector gesture={gesturesList}>
             <Pressable
                 {...rest}
-                onPress={handlePressLocal}
+                onPress={handlePress}
                 className="w-full h-[100px] flex justify-center items-center rounded-2xl"
             >
                 <Animated.View
@@ -232,8 +235,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                         className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
                     >
                         <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
-                            <MaterialCommunityIcons
-                                name="archive-arrow-down"
+                            <MaterialIcons
+                                name="archive"
                                 size={30}
                                 color="rgba(255, 255, 255, .8)"
                             />
@@ -410,7 +413,7 @@ export default function Tasks() {
     const quietProcessing = useSharedValue<boolean>(false);
     const [processing, setProcessing] = useState<boolean>(false);
     const showFilter = useSharedValue<boolean>(true);
-    const { syncTasks, getTasks, searchTasks, deleteTasks, archiveTasks, getTasksCount } = useTasks();
+    const { syncTasks, getTasks, searchTasks, deleteTasks, toggleArchiveTasks, getTasksCount } = useTasks();
     const [tasksSearch, setTasksSearch] = useState<TaskType[]>([]);
     const searchScrollY = useSharedValue<number>(0);
     const searchScrollCheckPoint = 100;
@@ -748,7 +751,7 @@ export default function Tasks() {
             setCount(count - tab.length);
             setTasksSelected([]);
             handleGetTasks(true);
-            setToast(t(""))
+            setToast(t(""));
         }
         catch (e) {
             console.log(e);
@@ -787,6 +790,7 @@ export default function Tasks() {
     }, []);
 
     const handleArchiveTask = useCallback((task: TaskType) => {
+        setProcessing(true);
         setCount(prev => prev - 1);
         setTasks(prev => prev.filter(t => t.idTask !== task.idTask));
     }, []);
@@ -913,12 +917,11 @@ export default function Tasks() {
         setProcessing(true);
         const tab = [...tasksSelected];
         try {
-            await archiveTasks([...tab.map(t => t.idTask)]);
+            await toggleArchiveTasks([...tab.map(t => t.idTask)], true);
 
             setCount(count - tab.length);
             setTasksSelected([]);
             handleGetTasks(true);
-            setToast(t("tasks_archived"), "success");
         }
         catch (e) {
             console.log(e);
@@ -947,7 +950,7 @@ export default function Tasks() {
                 translateY: interpolate(
                     searchScrollY.value,
                     [0, searchScrollCheckPoint],
-                    [70, 0],
+                    [70, 4],
                     Extrapolation.CLAMP,
                 )
             }
@@ -1129,8 +1132,8 @@ export default function Tasks() {
 
     useEffect(() => {
         handleGetFolders();
-        // handleGetTasks();
-        // handleGetCount();
+        handleGetTasks();
+        handleGetCount();
     }, []);
 
     return (
@@ -1165,14 +1168,10 @@ export default function Tasks() {
                     className="w-full flex items-center px-3"
                 >
                     <Pressable
-                        // onPress={() => {
-                        //     setTasksSelected([]);
-                        //     setIsSearchSectionActive(true);
-                        //     event.emit(HIDE_NAVBAR);
-                        // }}
                         onPress={() => {
-                            console.log(tasksSelected.length);
-                            console.log(tasksSelected);
+                            setTasksSelected([]);
+                            setIsSearchSectionActive(true);
+                            event.emit(HIDE_NAVBAR);
                         }}
                         className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                     >
@@ -1302,7 +1301,6 @@ export default function Tasks() {
 
                                         <LinearGradient
                                             colors={theme == "dark" ? ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .2)"] : ["rgba(255, 255, 255, .8)", "rgba(255, 255, 255, .2)"]}
-                                            // colors={theme == "dark" ? ["red", "blue"] : ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .5)"]}
                                             locations={[0, .9]}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
@@ -1500,9 +1498,13 @@ export default function Tasks() {
                                                                 size={120}
                                                                 color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
                                                             />
-                                                            <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                                                            <TextAnimated
+                                                                dark="rgba(255, 255, 255, .5)"
+                                                                light="rgba(0, 0, 0, .5)"
+                                                                className="font-bold text-lg tracking-wider"
+                                                            >
                                                                 {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
-                                                            </Text>
+                                                            </TextAnimated>
                                                         </View>
                                                     );
                                                 }
@@ -1584,8 +1586,8 @@ export default function Tasks() {
                     />
 
                     <PressableAnimated onPress={() => handleArchive()}>
-                        <MaterialCommunityIcons
-                            name="archive-arrow-down"
+                        <MaterialIcons
+                            name="archive"
                             size={30}
                             color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                         />
@@ -1643,7 +1645,7 @@ export default function Tasks() {
                             }}
                             className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
                         >
-                            <View className="flex flex-row gap-3 px-3 py-2 dark:bg-white/10 bg-white rounded-full">
+                            <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full">
                                 <Entypo
                                     name="chevron-left"
                                     size={30}
@@ -1759,6 +1761,6 @@ export default function Tasks() {
                     />
                 </View>
             </Animated.View>
-        </Container >
+        </Container>
     );
 }

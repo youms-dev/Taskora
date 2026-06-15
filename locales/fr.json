@@ -32,7 +32,12 @@
     "tasks_search_tasks_empty": "Aucune tâche ou évènement trouvé",
     "tasks_selected": "Sélectionnées",
     "tasks_page_title": "Évènements",
-    "tasks_archived": "Évènements archivés",
+    "tasks_archived": "Évènement{{many}} archivé{{many}}",
     "tasks_all_folders": "Tout",
-    "tasks_archived_item": "Archivé"
+    "tasks_archived_item": "Archivé",
+    "archives_description": "Tous les évènements que vous archiverez se trouveront ici et ne vous seront pas notifiés",
+    "archives_title": "Archives",
+    "archives_no_archives": "Rien n'a été archivé pour l'instant",
+    "archives_unarchive_item": "Désarchivé",
+    "archives_unarchive_tasks": "Évènement{{many}} désarchivé{{many}}"
 }

@@ -4,6 +4,7 @@ export type TaskType = {
     title?: string;
     content: string;
     done: boolean;
+    archived: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -14,6 +15,7 @@ export type SQLiteTaskType = {
     title?: string;
     content: string;
     done: boolean;
+    archived: boolean;
     created_at: Date;
     updated_at: Date;
 }

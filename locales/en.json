@@ -32,7 +32,12 @@
     "tasks_search_tasks_empty": "No task or event found",
     "tasks_selected": "Selected",
     "tasks_page_title": "Events",
-    "tasks_archived": "Events archived successfully",
+    "tasks_archived": "Event{{many}} archived successfully",
     "tasks_all_folders": "All",
-    "tasks_archived_item": "Archived"
+    "tasks_archived_item": "Archived",
+    "archives_description": "All the events you archive will be found here and you will not be notified of them",
+    "archives_title": "Archives",
+    "archives_no_archives": "Nothing has been archived yet",
+    "archives_unarchive_item": "Unarchived",
+    "archives_unarchive_tasks": "Event{{many}} unarchived"
 }

@@ -127,7 +127,7 @@ export const PageTitle = ({ children }: Props) => {
                                 />
                             </PressableAnimated>
 
-                            <PressableAnimated>
+                            <PressableAnimated onPress={() => router.navigate("/archives")}>
                                 <Entypo
                                     name="archive"
                                     size={25}

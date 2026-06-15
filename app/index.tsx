@@ -3,6 +3,7 @@ import { Container } from '@/components/container';
 import { Eye } from '@/components/eye';
 import { Input } from '@/components/input';
 import { PressableAnimated } from '@/components/pressable-animated';
+import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_LENGTH, PASSWORD_LENGTH } from '@/constants/lengths';
@@ -16,8 +17,6 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { TextAnimated } from '@/components/text-animated';
-import { Modal } from '@/components/modal';
 
 export default function Login() {
   const initialInputsValues = {
@@ -39,7 +38,6 @@ export default function Login() {
   const { theme } = useTheme();
   const { setToast } = useToast();
   const [size, setSize] = useState<number>(0);
-  const [active, setActive] = useState<boolean>(true);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -217,8 +215,7 @@ export default function Login() {
             loaderSize={25}
             loading={loading}
             scale={.8}
-            // onPress={() => handleSubmit()}
-            onPress={() => setActive(true)}
+            onPress={() => handleSubmit()}
             className="w-[300px] h-[60px]"
           >
             <Text className='text-2xl font-extrabold'>Soumettre</Text>
@@ -278,23 +275,6 @@ export default function Login() {
           }}
         />
       </KeyboardAvoidingView>
-
-      <Modal
-        active={active}
-        onClose={() => setActive(false)}
-        height={"70%"}
-      >
-        <View className="w-full flex items-center">
-          <PressableAnimated
-            onPress={() => setActive(false)}
-            className='w-[150px] h-[50px] flex justify-center items-center bg-red-500 rounded-2xl'
-          >
-            <TextAnimated className="text-2xl font-bold tracking-widest">
-              Fermer
-            </TextAnimated>
-          </PressableAnimated>
-        </View>
-      </Modal>
     </Container>
   );
 }
