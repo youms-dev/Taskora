@@ -24,11 +24,11 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
     onRefresh: (error?: boolean) => void;
     loading: boolean;
     selectedIndex?: number;
-    onLongPress?: (task: TaskType) => void;
+    onLongPress: (task: TaskType) => void;
     selection?: boolean;
-    onDelete?: (task: TaskType) => void;
-    onUnArchive?: (task: TaskType) => void;
-    onPress?: (id: TaskType["idTask"]) => void;
+    onDelete: (task: TaskType) => void;
+    onUnArchive: (task: TaskType) => void;
+    onPress: (id: TaskType["idTask"]) => void;
 }
 const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onUnArchive, onPress, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
@@ -50,7 +50,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
 
     const handleDelete = useCallback(() => {
         if (loading) return;
-        onDelete?.(task);
+        onDelete(task);
         setDismiss(handleDeleteTask, () => onRefresh(true), 5, 60);
     }, [onDelete, task, onRefresh, loading]);
 
@@ -75,8 +75,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         try {
             setLoading(true);
             await toggleArchiveTasks([task.idTask]);
-            setLoading(false);
             setToast(t("archives_unarchive_item"), "default", 2000);
+            setLoading(false);
             onRefresh();
         }
         catch (e) {
@@ -118,9 +118,19 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                     });
                 }
                 else if (x <= -100) {
+                    translateX.value = withSpring(0, {
+                        stiffness: 100,
+                        mass: 2,
+                        damping: 10,
+                    });
                     runOnJS(handleArchive)();
                 }
                 else if (x >= 100) {
+                    translateX.value = withSpring(0, {
+                        stiffness: 100,
+                        mass: 2,
+                        damping: 10,
+                    });
                     runOnJS(handleDelete)();
                 }
             })
@@ -284,10 +294,10 @@ export default function Archives() {
         if (e) {
             setCount(prev => prev + 1);
             tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
-            tasksTmp.current = [];
         }
+        tasksTmp.current = [];
         setProcessing(false);
-    }, [tasks, processing]);
+    }, [tasks, count, processing]);
 
     const selectMap = useMemo(() => new Map(
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
@@ -298,7 +308,7 @@ export default function Archives() {
 
         if (exist) setTasksSelected(prev => [...prev.filter(t => t.idTask != task.idTask)]);
         else setTasksSelected(prev => [...prev, task]);
-    }, [tasksSelected, selectMap]);
+    }, [selectMap]);
 
     const onPressTask = useCallback(() => {
         selectMap.size == 0 && router.navigate("/");
