@@ -284,7 +284,7 @@ export default function Archives() {
     const onRefreshTask = useCallback((e: boolean = false) => {
         if (e) {
             setCount(prev => prev + 1);
-            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
         }
         tasksTmp.current = [];
         setProcessing(false);

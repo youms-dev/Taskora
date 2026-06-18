@@ -730,36 +730,6 @@ export default function Tasks() {
         themeShared.value = theme;
     }, [theme]);
 
-    const handleDelete = async (init: boolean = true) => {
-        if (tasksSelected.length == 0) return;
-        setProcessing(true);
-        const tab = [...tasksSelected];
-
-        if (init) {
-            const filter = tasks.filter(t => !tab.find(e => e.idTask == t.idTask));
-
-            setTasks(filter);
-            setDismiss(
-                () => handleDelete(false),
-                () => {
-                    handleGetTasks(true);
-                });
-            return;
-        }
-        try {
-            await deleteTasks([...tab.map(t => t.idTask)]);
-
-            setCount(count - tab.length);
-            setTasksSelected([]);
-            handleGetTasks(true);
-            setToast(t(""));
-        }
-        catch (e) {
-            console.log(e);
-            handleGetTasks(true);
-            setToast("Une erreur s'est produite", "error");
-        }
-    }
 
     const selectMap = useMemo(() => new Map(
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
@@ -768,7 +738,7 @@ export default function Tasks() {
     const handleRefresh = useCallback((e: boolean = false) => {
         if (e) {
             setCount(prev => prev + 1);
-            tasksTmp.current.length > 0 && setTasks(prev => [...prev, ...tasksTmp.current]);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
         }
         tasksTmp.current = [];
         setProcessing(false);
@@ -779,17 +749,18 @@ export default function Tasks() {
         setProcessing(true);
         tasksTmp.current = [...tasks];
         setCount(prev => prev - 1);
-        if (tasks.length)
-            setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
-    }, [processing, tasks]);
+        if ((tasks.length * 100) <= (height + 100) && tasks.length < count) handleGetTasks();
+        setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
+    }, [processing, tasks, height, count]);
 
     const handleDeleteTask = useCallback((task: TaskType) => {
         if (processing || tasksTmp.current.length > 0) return;
         setProcessing(true);
         tasksTmp.current = [...tasks];
         setCount(prev => prev - 1);
+        if ((tasks.length * 100) <= (height + 100) && tasks.length < count) handleGetTasks();
         setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
-    }, [processing]);
+    }, [processing, tasks, height, count]);
 
     const handleLongPress = useCallback((task: TaskType) => {
         setTasksSelected(prev => {
@@ -900,7 +871,6 @@ export default function Tasks() {
         borderRadius: scrollY.value >= scrollCheckPoint * .5 ? 20 : 0,
     }));
 
-
     const filterAnimation = useAnimatedStyle(() => ({
         transform: [
             {
@@ -917,18 +887,59 @@ export default function Tasks() {
     }));
 
     const handleArchive = async () => {
+        if (tasksSelected.length == 0 || processing || loading) return;
         setProcessing(true);
         const tab = [...tasksSelected];
+
+        tasksTmp.current = tasks;
+        setTasks(prev => [...prev.filter(t => !tab.find(e => e.idTask == t.idTask))]);
+        setTasksSelected([]);
+        setCount(prev => prev - tab.length);
+
         try {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], true);
-
-            setCount(count - tab.length);
-            setTasksSelected([]);
-            handleGetTasks(true);
+            setProcessing(false);
         }
         catch (e) {
             console.log(e);
-            handleGetTasks(true);
+            setProcessing(false);
+            setCount(prev => prev + tab.length);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current = [];
+            setToast("Une erreur s'est produite", "error");
+        }
+    }
+
+    const handleDelete = async (init: boolean = true) => {
+        if (tasksSelected.length == 0 || processing || loading) return;
+        setProcessing(true);
+        const tab = [...tasksSelected];
+
+        if (init) {
+            tasksTmp.current = tasks;
+            setTasks(prev => [...prev.filter(t => !tab.find(e => e.idTask == t.idTask))]);
+            setTasksSelected([]);
+            setCount(prev => prev - tab.length);
+            setDismiss(
+                () => handleDelete(false),
+                () => {
+                    setCount(prev => prev + tab.length);
+                    tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    tasksTmp.current = [];
+                    setProcessing(false);
+                });
+            return;
+        }
+        try {
+            await deleteTasks([...tab.map(t => t.idTask)]);
+            setProcessing(false);
+        }
+        catch (e) {
+            console.log(e);
+            setProcessing(false);
+            setCount(prev => prev + tab.length);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current = [];
             setToast("Une erreur s'est produite", "error");
         }
     }
@@ -1133,7 +1144,7 @@ export default function Tasks() {
 
     useEffect(() => {
         handleGetFolders();
-        handleGetCount();
+        // handleGetCount();
         // handleGetTasks();
     }, []);
 
