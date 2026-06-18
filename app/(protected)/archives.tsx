@@ -84,7 +84,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setLoading(false);
             console.log(e);
         }
-    }, [onUnArchive, task.idTask, loading, onRefresh]);
+    }, [onUnArchive, task, loading, onRefresh]);
 
     const handleLongPressLocal = useCallback(() => {
         if (!loading) {
@@ -95,7 +95,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
 
     const handlePress = useCallback(() => {
         onPress && onPress(task.idTask);
-    }, [onPress, task.idTask]);
+    }, [onPress, task]);
 
     const gesturesList = useMemo(() => Gesture.Race(
         Gesture.LongPress()
@@ -110,27 +110,18 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (x >= -100 && x <= 100 && !loadingShared.value && !selected.value && !selection.value) translateX.value = x;
             })
             .onEnd(({ translationX: x }) => {
-                if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) {
-                    translateX.value = withSpring(0, {
-                        stiffness: 100,
-                        mass: 2,
-                        damping: 10,
-                    });
-                }
-                else if (x <= -100) {
-                    translateX.value = withSpring(0, {
-                        stiffness: 100,
-                        mass: 2,
-                        damping: 10,
-                    });
+                translateX.value = withSpring(0, {
+                    stiffness: 100,
+                    mass: 2,
+                    damping: 10,
+                });
+
+                if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
+
+                if (x <= -100) {
                     runOnJS(handleArchive)();
                 }
                 else if (x >= 100) {
-                    translateX.value = withSpring(0, {
-                        stiffness: 100,
-                        mass: 2,
-                        damping: 10,
-                    });
                     runOnJS(handleDelete)();
                 }
             })
@@ -297,7 +288,7 @@ export default function Archives() {
         }
         tasksTmp.current = [];
         setProcessing(false);
-    }, [tasks, count, processing]);
+    }, []);
 
     const selectMap = useMemo(() => new Map(
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
@@ -311,8 +302,8 @@ export default function Archives() {
     }, [selectMap]);
 
     const onPressTask = useCallback(() => {
-        selectMap.size == 0 && router.navigate("/");
-    }, [selectMap]);
+        selectMap.size == 0 && !processing && router.navigate("/");
+    }, [selectMap, processing]);
 
     const taskLoading = useMemo(() => loading || processing, [loading, processing]);
 
@@ -320,7 +311,7 @@ export default function Archives() {
         if (processing || tasksTmp.current.length > 0) return;
         setProcessing(true);
         setCount(prev => prev - 1);
-        tasksTmp.current = tasks;
+        tasksTmp.current = [...tasks];
         setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
     }, [tasks, processing]);
 
@@ -328,7 +319,7 @@ export default function Archives() {
         if (processing || tasksTmp.current.length > 0) return;
         setProcessing(true);
         setCount(prev => prev - 1);
-        tasksTmp.current = tasks;
+        tasksTmp.current = [...tasks];
         setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
     }, [tasks, processing]);
 

@@ -88,7 +88,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setLoading(true);
             await toggleArchiveTasks([task.idTask], true);
             setLoading(false);
-            setToast(t("tasks_archived_item"), "default", 2000);
+            setToast(t("tasks_archived_item"), "default");
             onRefresh();
         }
         catch (e) {
@@ -107,7 +107,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
 
     const handlePress = useCallback(() => {
         onPress && onPress(task.idTask);
-    }, [onPress, task.idTask]);
+    }, [onPress, task]);
 
     const gesturesList = useMemo(() => Gesture.Race(
         Gesture.LongPress()
@@ -122,14 +122,15 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (x >= -100 && x <= 100 && !loadingShared.value && !selected.value && !selection.value) translateX.value = x;
             })
             .onEnd(({ translationX: x }) => {
-                if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) {
-                    translateX.value = withSpring(0, {
-                        stiffness: 100,
-                        mass: 2,
-                        damping: 10,
-                    });
-                }
-                else if (x <= -100) {
+                translateX.value = withSpring(0, {
+                    stiffness: 100,
+                    mass: 2,
+                    damping: 10,
+                });
+
+                if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
+
+                if (x <= -100) {
                     runOnJS(handleArchive)();
                 }
                 else if (x >= 100) {
@@ -383,7 +384,7 @@ export default function Tasks() {
     const router = useRouter();
     const { theme } = useTheme();
     const [tasks, setTasks] = useState<TaskType[]>([]);
-    const [tasksTmp, setTasksTmp] = useState<TaskType[]>([]);
+    const tasksTmp = useRef<TaskType[]>([]);
     const limit = 10;
     const [count, setCount] = useState<number>(0);
     const [countTmp, setCountTmp] = useState<number>(0);
@@ -460,7 +461,7 @@ export default function Tasks() {
         getTaskTimeout.current = setTimeout(async () => {
             setTasksSelected([]);
             setCountTmp(0);
-            setTasksTmp([]);
+            tasksTmp.current = [];
             setValue("");
 
             try {
@@ -516,22 +517,22 @@ export default function Tasks() {
     const handleFilter = useCallback((entry: null | boolean) => {
         if (filterLoading) return;
         setFilterLoading(true);
-        tasksTmp.length == 0 && setTasksTmp(tasks);
+        if (tasksTmp.current.length == 0) tasksTmp.current = tasks;
         countTmp == 0 && setCountTmp(count);
         if (entry == null) {
-            tasksTmp.length > 0 && setTasks(tasksTmp);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
             countTmp > 0 && setCount(countTmp);
-            setTasksTmp([]);
+            tasksTmp.current = [];
             setCountTmp(0);
             setFilterLoading(false);
             return;
         }
-        const result = (tasksTmp.length == 0 ? tasks : tasksTmp).filter((task) => task.done == entry);
+        const result = (tasksTmp.current.length == 0 ? tasks : tasksTmp.current).filter((task) => task.done == entry);
 
         setTasks(result);
         setCount(result.length);
         setFilterLoading(false);
-    }, [tasksTmp, countTmp, tasks]);
+    }, [countTmp, tasks]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
@@ -764,6 +765,32 @@ export default function Tasks() {
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
     ), [tasksSelected]);
 
+    const handleRefresh = useCallback((e: boolean = false) => {
+        if (e) {
+            setCount(prev => prev + 1);
+            tasksTmp.current.length > 0 && setTasks(prev => [...prev, ...tasksTmp.current]);
+        }
+        tasksTmp.current = [];
+        setProcessing(false);
+    }, []);
+
+    const handleArchiveTask = useCallback((task: TaskType) => {
+        if (processing || tasksTmp.current.length > 0) return;
+        setProcessing(true);
+        tasksTmp.current = [...tasks];
+        setCount(prev => prev - 1);
+        if (tasks.length)
+            setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
+    }, [processing, tasks]);
+
+    const handleDeleteTask = useCallback((task: TaskType) => {
+        if (processing || tasksTmp.current.length > 0) return;
+        setProcessing(true);
+        tasksTmp.current = [...tasks];
+        setCount(prev => prev - 1);
+        setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
+    }, [processing]);
+
     const handleLongPress = useCallback((task: TaskType) => {
         setTasksSelected(prev => {
             const pos = prev.findIndex(t => t.idTask == task.idTask);
@@ -773,34 +800,10 @@ export default function Tasks() {
         });
     }, []);
 
-    const handleDeleteTask = useCallback((task: TaskType) => {
-        setProcessing(true);
-        setCount(prev => prev - 1);
-        setTasks((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
-    }, []);
-
-    const handleRefresh = useCallback((e: boolean = false) => {
-        if (e) {
-            setCount(prev => prev + 1);
-            handleGetTasks(true);
-        }
-        else {
-            setProcessing(false);
-        }
-    }, []);
-
-    const handleArchiveTask = useCallback((task: TaskType) => {
-        setProcessing(true);
-        setCount(prev => prev - 1);
-        setTasks(prev => prev.filter(t => t.idTask !== task.idTask));
-    }, []);
-
     const handleTaskPress = useCallback((id: TaskType["idTask"]) => {
-        if (processing) return;
-        if (selectMap.size == 0) {
-            console.log("Pressed", id);
-        }
-    }, [selectMap.size, processing]);
+        if (processing || selectMap.size > 0) return;
+        console.log("Pressed", id);
+    }, [selectMap, processing]);
 
     const isBlocked = useMemo(() => {
         return (loading || processing || tasksSearch.length > 0 || isSearchSectionActive);
@@ -999,11 +1002,11 @@ export default function Tasks() {
                 event.emit(SHOW_NAVBAR);
                 return true;
             }
-            else if ((tasksTmp.length > 0 && countTmp > 0) || tasksSelected.length > 0) {
-                tasksTmp.length > 0 && setTasks(tasksTmp);
+            else if ((tasksTmp.current.length > 0 && countTmp > 0) || tasksSelected.length > 0) {
+                tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
                 countTmp > 0 && setCount(countTmp);
                 setTasksSelected([]);
-                setTasksTmp([]);
+                tasksTmp.current = [];
                 setCountTmp(0);
                 return true;
             }
@@ -1021,7 +1024,7 @@ export default function Tasks() {
         }
 
         return () => remove();
-    }, [tasksSelected, value, tasksTmp, countTmp, isSearchSectionActive]);
+    }, [tasksSelected, value, countTmp, isSearchSectionActive]);
 
     const foldersSnapOffset = useMemo(() => {
         const tab: number[] = [];
@@ -1087,11 +1090,9 @@ export default function Tasks() {
     }, [loading, processing]);
 
     const handleEndReached = useCallback(() => {
-        if (loading || currentFolder) return;
-        if (tasksSelected.length == 0 && !processing && tasks.length < count) {
-            handleGetTasks();
-        }
-    }, [loading, tasks, count, tasksSelected]);
+        if (loading || currentFolder || tasks.length >= count || selectMap.size != 0 || processing) return;
+        handleGetTasks();
+    }, [loading, tasks, count, selectMap]);
 
     const currentIndex = useMemo(() => {
         if (!currentFolder) return 0;
@@ -1132,8 +1133,8 @@ export default function Tasks() {
 
     useEffect(() => {
         handleGetFolders();
-        handleGetTasks();
         handleGetCount();
+        // handleGetTasks();
     }, []);
 
     return (
@@ -1169,9 +1170,10 @@ export default function Tasks() {
                 >
                     <Pressable
                         onPress={() => {
-                            setTasksSelected([]);
-                            setIsSearchSectionActive(true);
-                            event.emit(HIDE_NAVBAR);
+                            // setTasksSelected([]);
+                            // setIsSearchSectionActive(true);
+                            // event.emit(HIDE_NAVBAR);
+                            console.log(count);
                         }}
                         className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                     >
@@ -1611,7 +1613,7 @@ export default function Tasks() {
                     onPress={() => {
                         if (tasks.length > 0) {
                             setTasks([]);
-                            setTasksTmp([]);
+                            tasksTmp.current = [];
                             setCount(0);
                             setCountTmp(0);
                         }
@@ -1685,14 +1687,6 @@ export default function Tasks() {
                                         color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
                                     />
                                 </PressableAnimated>
-
-                                {
-                                    tasksTmp.length > 0 && (
-                                        <Text className="absolute left-3 -top-6 text-lg text-emerald-500 font-extrabold tracking-widest">
-                                            {count}
-                                        </Text>
-                                    )
-                                }
                             </KeyboardAvoidingView>
                         </Animated.View>
                     </Animated.View>
