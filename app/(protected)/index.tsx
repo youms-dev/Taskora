@@ -306,7 +306,7 @@ interface FolderFlatListProps {
     onMomentumScrollBegin?: () => void;
     onMomentumScrollEnd: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
     onEndReached: () => void;
-    getItemLayout: () => {
+    getItemLayout: (data?: TaskType, index?: number) => {
         length: number;
         offset: number;
         index: number;
@@ -407,7 +407,7 @@ export default function Tasks() {
     const showAddTaskButton = useSharedValue<boolean>(true);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const selectLimit = 50;
-    const flatListScrollViewRef = useRef<ScrollView>(null);
+    const flatListScrollViewRef = useRef<FlatList>(null);
     const itemHeight = 100;
     const getTaskTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -435,6 +435,7 @@ export default function Tasks() {
     const [filterLoading, setFilterLoading] = useState<boolean>(false);
     const loadingRef = useRef<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+    const mountedCount = useRef<number>(0);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -590,7 +591,7 @@ export default function Tasks() {
         return () => remove();
     }, []);
 
-    const panRefresh = Gesture.Pan()
+    const panRefresh = useMemo(() => Gesture.Pan()
         .simultaneousWithExternalGesture(otherElement)
         .activeOffsetY(50)
         .failOffsetX([-10, 10])
@@ -607,7 +608,7 @@ export default function Tasks() {
                 translateY.value = 180;
                 runOnJS(handleGetTasks)(true);
             }
-        })
+        }), []);
 
     const refreshPanAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -1181,10 +1182,9 @@ export default function Tasks() {
                 >
                     <Pressable
                         onPress={() => {
-                            // setTasksSelected([]);
-                            // setIsSearchSectionActive(true);
-                            // event.emit(HIDE_NAVBAR);
-                            console.log(count);
+                            setTasksSelected([]);
+                            setIsSearchSectionActive(true);
+                            event.emit(HIDE_NAVBAR);
                         }}
                         className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                     >
@@ -1235,8 +1235,8 @@ export default function Tasks() {
                                                 active={!currentFolder}
                                                 onPress={() => {
                                                     setCurrentFolder(null);
-                                                    flatListScrollViewRef.current?.scrollTo({
-                                                        x: 0,
+                                                    flatListScrollViewRef.current?.scrollToOffset({
+                                                        offset: 0,
                                                         animated: true,
                                                     });
                                                     folderFlatListScrollViewRef.current?.scrollTo({
@@ -1255,8 +1255,8 @@ export default function Tasks() {
                                                         active={currentFolder == folder.idFolder}
                                                         onPress={() => {
                                                             setCurrentFolder(folder.idFolder);
-                                                            flatListScrollViewRef.current?.scrollTo({
-                                                                x: (i + 1) * width,
+                                                            flatListScrollViewRef.current?.scrollToOffset({
+                                                                offset: (i + 1) * width,
                                                                 animated: true,
                                                             });
                                                             folderFlatListScrollViewRef.current?.scrollTo({
@@ -1298,7 +1298,7 @@ export default function Tasks() {
                         }
 
                         {
-                            !loading && (
+                            (!loading || tasks.length > 0) && (
                                 <>
                                     <View className="absolute h-full flex flex-row items-center shrink-0 dark:bg-black bg-white z-[1]">
                                         <View className="h-full flex flex-row items-center gap-2 px-3 dark:bg-black bg-[rgba(0,0,0,.06)]">
@@ -1352,7 +1352,7 @@ export default function Tasks() {
                         }
 
                         {
-                            !loading && (
+                            (!loading || tasks.length > 0) && (
                                 <ScrollView
                                     ref={filterflatListScrollViewRef}
                                     horizontal
@@ -1443,108 +1443,107 @@ export default function Tasks() {
                 )
             }
 
-            <ScrollView
-                ref={flatListScrollViewRef}
-                horizontal
-                scrollEnabled={false}
-                showsHorizontalScrollIndicator={false}
-                pagingEnabled
-                decelerationRate="fast"
-                className="w-full mt-3"
-                contentContainerClassName="flex flex-row"
-            >
-                <GestureDetector gesture={panRefresh}>
-                    <View className="w-full flex flex-row">
+            <GestureDetector gesture={panRefresh}>
+                <FlatList
+                    ref={flatListScrollViewRef}
+                    horizontal
+                    scrollEnabled={false}
+                    showsHorizontalScrollIndicator={false}
+                    nestedScrollEnabled
+                    pagingEnabled
+                    decelerationRate="fast"
+                    initialNumToRender={2}
+                    maxToRenderPerBatch={1}
+                    removeClippedSubviews
+                    data={[
                         {
-                            [
-                                {
-                                    idFolder: "folder_all",
-                                    title: "all",
-                                    createdAt: new Date(),
-                                    updatedAt: new Date(),
-                                },
-                                ...folders,
-                            ]
-                                .map((folder, i) => {
-                                    const isActive = currentFolder === null
-                                        ? i === 0
-                                        : currentFolder === folder.idFolder;
+                            idFolder: "all_folder",
+                            title: "all",
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        } as FolderType,
+                        ...folders,
+                    ]}
+                    keyExtractor={(item) => item.idFolder}
+                    renderItem={({ item, index }) => {
+                        const data = index == 0 ? [...tasks] : [...tasks.filter(f => f.idFolder == item.idFolder)];
 
-                                    if (!isActive) return (
-                                        <View key={folder.idFolder} className="w-screen shrink-0" />
-                                    );
+                        return (
+                            <FolderFlatList
+                                key={item.idFolder}
+                                handleRef={(ref) => {
+                                    if (ref) {
+                                        flatListsRef.current[index] = {
+                                            id: item.idFolder,
+                                            value: ref as FlatList,
+                                        }
+                                    }
+                                }}
+                                loading={loading || processing}
+                                withGesture={otherElement}
+                                currentFolder={(currentFolder == item.idFolder)}
+                                data={data}
+                                renderItem={renderItem}
+                                onScroll={handleScroll}
+                                onMomentumScrollEnd={(e) => {
+                                    const y = e.nativeEvent.contentOffset.y;
 
-                                    return (
-                                        <FolderFlatList
-                                            key={folder.idFolder}
-                                            handleRef={(ref) => {
-                                                if (ref) {
-                                                    flatListsRef.current[i] = {
-                                                        id: folder.idFolder,
-                                                        value: ref as FlatList,
-                                                    }
-                                                }
-                                            }}
-                                            loading={loading || processing}
-                                            withGesture={otherElement}
-                                            currentFolder={(currentFolder == folder.idFolder)}
-                                            data={i == 0 ? tasks : [...tasks.filter(t => t.idFolder == folder.idFolder)]}
-                                            renderItem={renderItem}
-                                            onScroll={handleScroll}
-                                            onMomentumScrollEnd={(e) => {
-                                                const y = e.nativeEvent.contentOffset.y;
-
-                                                checkScroll(i, folder.idFolder, y);
-                                            }}
-                                            onEndReached={handleEndReached}
-                                            getItemLayout={() => ({
-                                                length: itemHeight,
-                                                offset: i * itemHeight,
-                                                index: i,
-                                            })}
-                                            ListEmptyComponent={() => {
-                                                if (!loading) {
-                                                    return (
-                                                        <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                                            <MaterialIcons
-                                                                name="playlist-remove"
-                                                                size={120}
-                                                                color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                                            />
-                                                            <TextAnimated
-                                                                dark="rgba(255, 255, 255, .5)"
-                                                                light="rgba(0, 0, 0, .5)"
-                                                                className="font-bold text-lg tracking-wider"
-                                                            >
-                                                                {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
-                                                            </TextAnimated>
-                                                        </View>
-                                                    );
-                                                }
-                                            }}
-                                            ListFooterComponent={() => {
-                                                if (loading && !currentFolder) return (
-                                                    <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                                                        {
-                                                            Array(3).fill(0).map((_, i) => (
-                                                                <View
-                                                                    key={i}
-                                                                    className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                                                >
-                                                                    <Skeleton />
-                                                                </View>
-                                                            ))
-                                                        }
+                                    checkScroll(index, item.idFolder, y);
+                                }}
+                                onEndReached={() => index == 0 && handleEndReached()}
+                                getItemLayout={(data: TaskType | undefined, index: number | undefined) => ({
+                                    length: itemHeight,
+                                    offset: (index ?? 0) * itemHeight,
+                                    index: (index ?? 0),
+                                })}
+                                ListEmptyComponent={() => {
+                                    if (!loading) {
+                                        return (
+                                            <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                                <MaterialIcons
+                                                    name="playlist-remove"
+                                                    size={120}
+                                                    color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                                />
+                                                <TextAnimated
+                                                    dark="rgba(255, 255, 255, .5)"
+                                                    light="rgba(0, 0, 0, .5)"
+                                                    className="font-bold text-lg tracking-wider"
+                                                >
+                                                    {value.trim().length > 0 ? t("tasks_search_tasks_empty") : t("tasks_no_tasks")}
+                                                </TextAnimated>
+                                            </View>
+                                        );
+                                    }
+                                }}
+                                ListFooterComponent={() => {
+                                    if (loading) return (
+                                        <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                            {
+                                                Array(3).fill(0).map((_, i) => (
+                                                    <View
+                                                        key={i}
+                                                        className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                                    >
+                                                        <Skeleton />
                                                     </View>
-                                                );
-                                            }}
-                                        />
+                                                ))
+                                            }
+                                        </View>
                                     );
-                                })
-                        }
-                    </View>
-                </GestureDetector>
-            </ScrollView>
+                                }}
+                            />
+                        )
+                    }}
+                    getItemLayout={(_, index) => ({
+                        length: width,
+                        offset: index * width,
+                        index,
+                    })}
+                    className="w-full border-2 border-red-500"
+                    contentContainerClassName="flex flex-row"
+                />
+            </GestureDetector>
 
             <PressableToScrollAnimated
                 onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
