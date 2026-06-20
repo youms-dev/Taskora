@@ -100,13 +100,15 @@ export default function Layout() {
 
                                 {
                                     !loading && (
-                                        <Stack screenOptions={{
-                                            headerShown: false,
-                                            animation: "fade",
-                                            contentStyle: {
-                                                backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .01)"
-                                            }
-                                        }}>
+                                        <Stack
+                                            screenOptions={{
+                                                headerShown: false,
+                                                animation: "fade",
+                                                contentStyle: {
+                                                    backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .01)"
+                                                }
+                                            }}
+                                        >
                                             <Stack.Protected guard={user ? false : true}>
                                                 {/* <Stack.Protected guard={true}> */}
                                                 <Stack.Screen name="index" />

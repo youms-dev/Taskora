@@ -39,5 +39,9 @@
     "archives_title": "Archives",
     "archives_no_archives": "Rien n'a été archivé pour l'instant",
     "archives_unarchive_item": "Désarchivé",
-    "archives_unarchive_tasks": "Évènement{{many}} désarchivé{{many}}"
+    "archives_unarchive_tasks": "Évènement{{many}} désarchivé{{many}}",
+    "not-found_title": "Oups vous semblez être sur une page qui n'existe pas",
+    "not-found_go_back_home": "Accueil",
+    "native-intent_title": "Oups vous semblez être sur une page qui n'existe pas",
+    "native-intent_go_back_home": "Accueil"
 }

@@ -129,7 +129,7 @@ export const PageTitle = ({ children }: Props) => {
                                     />
                                 </PressableAnimated>
 
-                                <PressableAnimated onPress={() => router.navigate("/archives")}>
+                                <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
                                     <Entypo
                                         name="archive"
                                         size={25}
@@ -142,7 +142,7 @@ export const PageTitle = ({ children }: Props) => {
 
                     <PressableAnimated
                         className="size-[50px] rounded-full p-1"
-                        onPress={() => router.navigate("/profile")}
+                        onPress={() => router.navigate("/(protected)/(user)/profile")}
                     >
                         {
                             user && !user.user_metadata.photoUrl && (

@@ -479,6 +479,7 @@ export default function Archives() {
         try {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], false);
             setProcessing(false);
+            handleGetTasks(true);
         }
         catch (e) {
             console.log(e);
@@ -516,6 +517,7 @@ export default function Archives() {
         try {
             await deleteTasks([...tab.map(t => t.idTask)]);
             setProcessing(false);
+            handleGetTasks(true);
         }
         catch (e) {
             console.log(e);
@@ -528,9 +530,11 @@ export default function Archives() {
     }
 
     useEffect(() => {
-        handleGetTasksCount();
-        handleGetTasks();
-    }, []);
+        if(pathname == "/archives") {
+            handleGetTasksCount();
+            handleGetTasks(tasks.length > 0);
+        }
+    }, [pathname]);
 
     return (
         <Container centerX>

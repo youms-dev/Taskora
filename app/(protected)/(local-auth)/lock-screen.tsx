@@ -235,7 +235,7 @@ export default function LockScreen() {
                 <View className="w-full h-[10%] flex flex-row justify-center items-center gap-3 p-3">
                     <View className="size-[70px] p-1 rounded-full">
                         <Image
-                            source={require("../../assets/images/logo.png")}
+                            source={require("../../../assets/images/logo.png")}
                             style={{
                                 width: "100%",
                                 height: "100%",

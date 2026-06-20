@@ -897,6 +897,7 @@ export default function Tasks() {
         try {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], true);
             setProcessing(false);
+            handleGetTasks(true);
         }
         catch (e) {
             console.log(e);
@@ -931,6 +932,7 @@ export default function Tasks() {
         try {
             await deleteTasks([...tab.map(t => t.idTask)]);
             setProcessing(false);
+            handleGetTasks(true);
         }
         catch (e) {
             console.log(e);
@@ -1065,7 +1067,7 @@ export default function Tasks() {
         }
     }, [pathname]);
 
-    const checkScroll = useCallback((index: number = 0, id: string, y: number) => {
+    const checkScroll = useCallback((index: number = 0, y: number) => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
         scrollTimeout.current = setTimeout(() => {
             if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint + 50) flatListsRef.current[index]?.value.scrollToOffset({
@@ -1201,7 +1203,7 @@ export default function Tasks() {
                 onMomentumScrollEnd={(e) => {
                     const y = e.nativeEvent.contentOffset.y;
 
-                    checkScroll(index, folder.idFolder, y);
+                    checkScroll(index, y);
                 }}
                 onEndReached={() => index == 0 && handleEndReached()}
                 onContentSizeChange={(_, y) => contentsSize.current[index] = y}
@@ -1255,10 +1257,12 @@ export default function Tasks() {
     }, [selectMap]);
 
     useEffect(() => {
-        handleGetFolders();
-        handleGetCount();
-        handleGetTasks();
-    }, []);
+        if (pathname == "/") {
+            handleGetFolders();
+            handleGetCount();
+            handleGetTasks(tasks.length > 0);
+        }
+    }, [pathname]);
 
     return (
         <Container centerX>

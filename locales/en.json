@@ -39,5 +39,9 @@
     "archives_title": "Archives",
     "archives_no_archives": "Nothing has been archived yet",
     "archives_unarchive_item": "Unarchived",
-    "archives_unarchive_tasks": "Event{{many}} unarchived"
+    "archives_unarchive_tasks": "Event{{many}} unarchived",
+    "not-found_title": "Oh it seems you're on an inexisting page",
+    "not-found_go_back_home": "Home",
+    "native-intent_title": "Oh it seems you're on an inexisting page",
+    "native-intent_go_back_home": "Home"
 }

@@ -1,14 +1,15 @@
 import clsx from 'clsx';
-import { ActivityIndicator, PressableProps } from 'react-native';
+import { memo, useState } from 'react';
+import { ActivityIndicator, DimensionValue, PressableProps, View } from 'react-native';
 import { PressableAnimated } from './pressable-animated';
 
 interface Props extends PressableProps {
   children: React.ReactNode;
   loaderSize?: number;
   loading?: boolean;
-  className?: PressableProps["className"];
+  width?: DimensionValue;
+  height?: DimensionValue;
   scale?: number;
-  background?: string;
 }
 
 /**
@@ -20,34 +21,49 @@ interface Props extends PressableProps {
  * @param loading Whether the button is loading
  * @default false
  * 
- * @param className Button className
- * @default ""
+ * @param Width Button width
+ * @default 250
+ * 
+ * @param Height Button height
  * 
  * @param scale Button scale
  * @default 1
  * 
- * @param background Button background
- * @default "bg-emerald-500"
- * 
  * @returns Button component
  */
 
-export const Button = ({ children, loaderSize = 20, loading = false, className = "", scale = 1, background = "bg-emerald-500", ...rest }: Props) => {
+export const Button = memo(({ children, loaderSize = 20, loading = false, width = 250, height = 50, scale = 1, ...rest }: Props) => {
+  const [layout, setLayout] = useState<{
+    width: DimensionValue;
+    height: DimensionValue;
+  }>();
+
   return (
     <PressableAnimated
       {...rest}
       scale={scale}
       disabled={loading}
+      style={{
+        width: layout?.width,
+        height: layout?.height,
+      }}
       className={clsx(
-        'flex flex-row items-center justify-center gap-3 rounded-xl p-2',
+        'flex justify-center items-center rounded-xl p-2 bg-emerald-500',
         loading && "opacity-70 pointer-events-none",
-        background,
-        className,
       )}
     >
       {
         !loading && (
-          children
+          <View
+            style={{
+              width,
+              height,
+            }}
+            onLayout={(e) => setLayout(e.nativeEvent.layout)}
+            className="absolute flex flex-row justify-center items-center gap-3"
+          >
+            {children}
+          </View>
         )
       }
 
@@ -61,4 +77,4 @@ export const Button = ({ children, loaderSize = 20, loading = false, className =
       }
     </PressableAnimated>
   );
-};
+});

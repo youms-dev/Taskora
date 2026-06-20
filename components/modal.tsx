@@ -1,4 +1,3 @@
-import { tabPaths } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
 import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { usePathname } from "expo-router";
@@ -192,7 +191,7 @@ export const Modal = ({
         }
         else {
             handleClose();
-            if (tabPaths.includes(pathname)) event.emit(SHOW_NAVBAR);
+            event.emit(SHOW_NAVBAR);
         }
 
         return () => remove();

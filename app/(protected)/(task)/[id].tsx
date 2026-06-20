@@ -6,21 +6,21 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { Task } from "@/types/task";
+import { api } from "@/lib/axios";
+import { TaskType } from "@/types/task";
 import { checkLength } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, View } from "react-native";
-import { api } from "../../lib/axios";
 
 export default function Update() {
     const params = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
     const { setToast } = useToast();
-    const [task, setTask] = useState<Task | null>(null);
+    const [task, setTask] = useState<TaskType | null>(null);
     const [updateLoading, setUpdateLoading] = useState<boolean>(false);
     const { theme } = useTheme();
 
@@ -105,7 +105,6 @@ export default function Update() {
                         </View>
                         <Input
                             placeholder="Description"
-                            big
                             value={task.content}
                             onChangeText={(e) => setTask({
                                 ...task,
