@@ -15,6 +15,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
@@ -38,6 +39,7 @@ export default function Login() {
   const { theme } = useTheme();
   const { setToast } = useToast();
   const [size, setSize] = useState<number>(0);
+  const { t } = useTranslation();
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -104,7 +106,7 @@ export default function Login() {
               colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
               className="text-5xl font-bold"
             >
-              Connexion
+              {t("login_title")}
             </TextGradient>
 
             <LinearGradient
@@ -132,10 +134,10 @@ export default function Login() {
         </View>
 
         <Input
-          label='Email'
+          label={t("login_form_email")}
           placeholder="example@email.com"
-          keyboardType='email-address'
-          autoCapitalize='none'
+          keyboardType="email-address"
+          autoCapitalize="none"
           paddingRight={35}
           icon={(
             <View
@@ -166,7 +168,7 @@ export default function Login() {
         />
 
         <Input
-          label='Mot de passe'
+          label={t("login_form_password")}
           placeholder="Mot de passe"
           secureTextEntry={!inputsValues.password.visible}
           paddingRight={50}
@@ -218,7 +220,9 @@ export default function Login() {
             onPress={() => handleSubmit()}
             className="w-[300px] h-[60px]"
           >
-            <Text className='text-2xl font-extrabold'>Soumettre</Text>
+            <Text className='text-2xl font-extrabold'>
+              {t("login_form_submit")}
+            </Text>
           </Button>
         </View>
 
@@ -248,15 +252,16 @@ export default function Login() {
           </PressableAnimated>
         </View>
 
-        <View className="w-full flex flex-row justify-center items-center">
+        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-2 px-3">
           <TextAnimated className='text-lg dark:text-white text-black'>
-            Pas encore de compte ?
+            {t("login_no_account_question")}
           </TextAnimated>
+
           <Link
             href={"/register"}
             className='text-lg text-emerald-500 font-bold'
           >
-            Inscrivez-vous
+            {t("login_sign_up_link")}
           </Link>
         </View>
 

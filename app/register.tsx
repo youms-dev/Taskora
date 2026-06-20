@@ -16,6 +16,7 @@ import clsx from 'clsx';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dimensions, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { api } from '../lib/axios';
 import { supabase } from '../lib/supabase';
@@ -49,6 +50,7 @@ export default function Register() {
   });
   const [size, setSize] = useState<number>(0);
   const [eyeClosed, setEyeClosed] = useState<boolean>(false);
+  const { t } = useTranslation();
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -125,7 +127,7 @@ export default function Register() {
               colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
               className="text-5xl font-bold"
             >
-              Inscription
+              {t("register_title")}
             </TextGradient>
 
             <LinearGradient
@@ -154,7 +156,7 @@ export default function Register() {
 
         <View className='w-full flex items-center'>
           <Input
-            label="Email"
+            label={t("register_form_email")}
             placeholder="example@email.com"
             keyboardType='email-address'
             autoCapitalize='none'
@@ -189,7 +191,7 @@ export default function Register() {
 
         <View className='w-full flex items-center mt-6'>
           <Input
-            label="Mot de passe"
+            label={t("register_form_password")}
             placeholder="Mot de passe"
             secureTextEntry={!inputsValues.password.visible}
             icon={(
@@ -250,7 +252,9 @@ export default function Register() {
         </View>
 
         <View className="w-full flex flex-row items-center gap-3">
-          <Text className='text-lg dark:text-white text-black'>Compteur :</Text>
+          <Text className='text-lg dark:text-white text-black'>
+            {t("register_form_counter")}
+          </Text>
           <Text className={clsx(
             'text-lg font-extrabold',
             count.valid ? "text-emerald-500" : "text-amber-500"
@@ -267,7 +271,9 @@ export default function Register() {
             onPress={() => handleSubmit()}
             className='w-[300px] h-[60px]'
           >
-            <Text className='text-2xl font-extrabold'>Soumettre</Text>
+            <Text className='text-2xl font-extrabold'>
+              {t("register_form_submit")}
+            </Text>
           </Button>
         </View>
 
@@ -297,13 +303,18 @@ export default function Register() {
           </PressableAnimated>
         </View>
 
-        <View className="w-full flex flex-row justify-center items-center mt-2">
-          <Text className='text-lg dark:text-white text-black'>Vous avez déjà un compte ? </Text>
+        <View className="w-full flex flex-row flex-wrap justify-center items-center mt-2 gap-3">
+          <Text className='text-lg dark:text-white text-black'>
+            {t("register_no_account_question")}
+          </Text>
+
           <Link
             href={"/"}
             replace
             className='text-lg text-emerald-500 font-bold'
-          >Connectez-vous</Link>
+          >
+            {t("register_sign_in_link")}
+          </Link>
         </View>
 
         <LinearGradient

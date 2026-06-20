@@ -43,5 +43,18 @@
     "not-found_title": "Oh it seems you're on an inexisting page",
     "not-found_go_back_home": "Home",
     "native-intent_title": "Oh it seems you're on an inexisting page",
-    "native-intent_go_back_home": "Home"
+    "native-intent_go_back_home": "Home",
+    "login_title":"Sign In",
+    "login_form_email":"Email",
+    "login_form_password":"Password",
+    "login_form_submit": "Submit",
+    "login_no_account_question": "No account yet ?",
+    "login_sign_up_link": "Sign up",
+    "register_title":"Sign up",
+    "register_form_email":"Email",
+    "register_form_password":"Password",
+    "register_form_submit": "Submit",
+    "register_no_account_question": "Do you have already an account ?",
+    "register_sign_in_link": "Sign in",
+    "register_form_counter": "Counter"
 }

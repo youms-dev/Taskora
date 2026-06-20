@@ -43,5 +43,18 @@
     "not-found_title": "Oups vous semblez être sur une page qui n'existe pas",
     "not-found_go_back_home": "Accueil",
     "native-intent_title": "Oups vous semblez être sur une page qui n'existe pas",
-    "native-intent_go_back_home": "Accueil"
+    "native-intent_go_back_home": "Accueil",
+    "login_title": "Connexion",
+    "login_form_email": "Email",
+    "login_form_password": "Mot de passe",
+    "login_form_submit": "Soumettre",
+    "login_no_account_question": "Pas encore de compte ?",
+    "login_sign_up_link": "Inscrivez-vous",
+    "register_title": "Inscription",
+    "register_form_email": "Email",
+    "register_form_password": "Mot de passe",
+    "register_form_submit": "Soumettre",
+    "register_no_account_question": "Vous avez déjà un compte ?",
+    "register_sign_in_link": "Connectez-vous",
+    "login_form_counter": "Compteur"
 }

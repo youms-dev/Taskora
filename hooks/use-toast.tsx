@@ -2,11 +2,11 @@ import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import clsx from "clsx";
 import { usePathname } from "expo-router";
-import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BackHandler, DimensionValue, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 type ToastType = "success" | "error" | "warning" | "default";
 
@@ -32,7 +32,7 @@ export const ToastProvider = ({ children }: Props) => {
     const [hideValue, setHideValue] = useState<number>(-height);
     const translateY = useSharedValue<number>(-height);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const refreshTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const loadTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const textValue = useSharedValue<string>(text);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [dismissBoxLeft, setDismissLeft] = useState<DimensionValue>(0);
@@ -50,19 +50,28 @@ export const ToastProvider = ({ children }: Props) => {
 
     const setToast = (value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
-        refreshTimeout.current && clearTimeout(refreshTimeout.current);
+        loadTimeout.current && clearTimeout(loadTimeout.current);
         timeout.current && clearTimeout(timeout.current);
         setText(value);
         setType(type);
         if (text.trim().length > 0) {
-            translateY.value = hideValue;
-            refreshTimeout.current = setTimeout(() => {
-                translateY.value = 0;
+            translateY.value = withTiming(-200, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            });
+            loadTimeout.current = setTimeout(() => {
+                translateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
             }, 200);
         }
         else {
-            refreshTimeout.current = setTimeout(() => {
-                translateY.value = 0;
+            loadTimeout.current = setTimeout(() => {
+                translateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
             }, 200);
         }
         timeout.current = setTimeout(() => {
@@ -70,38 +79,27 @@ export const ToastProvider = ({ children }: Props) => {
         }, duration);
     }
 
-    const animation = useAnimatedStyle(() => ({
+    const toastAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                scale: withRepeat(
-                    withSequence(
-                        withTiming(0, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(1, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                    ),
-                    1,
-                    true,
-                )
-            },
-            {
-                translateY: withTiming(translateY.value, {
-                    duration: 200,
-                    easing: Easing.inOut(Easing.quad),
-                }),
+                translateY: interpolate(
+                    translateY.value,
+                    [0, -100],
+                    [0, -100],
+                    Extrapolation.CLAMP,
+                ),
             }
         ]
     }));
 
     const handleClose = () => {
-        refreshTimeout.current && clearTimeout(refreshTimeout.current);
+        loadTimeout.current && clearTimeout(loadTimeout.current);
         timeout.current && clearTimeout(timeout.current);
         closeTimeout.current && clearTimeout(closeTimeout.current);
-        translateY.value = hideValue;
+        translateY.value = withTiming(hideValue, {
+            duration: 200,
+            easing: Easing.inOut(Easing.quad),
+        });
         closeTimeout.current = setTimeout(() => {
             setText("");
             setType("default");
@@ -141,7 +139,10 @@ export const ToastProvider = ({ children }: Props) => {
         refreshDismissTimeout.current && clearTimeout(refreshDismissTimeout.current);
         dismissInterval.current && clearInterval(dismissInterval.current);
         refreshDismissTimeout.current = setTimeout(() => {
-            dismissTranslateY.value = position;
+            dismissTranslateY.value = withTiming(position, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            });
         }, 200);
         dismissInterval.current = setInterval(() => {
             setCount(i == duration ? i - 1 : i);
@@ -149,35 +150,22 @@ export const ToastProvider = ({ children }: Props) => {
                 dismissInterval.current && clearInterval(dismissInterval.current);
                 action && action();
                 handleCloseDismiss();
+                console.log("Mince")
                 return;
             }
             i -= i == duration ? 2 : 1;
-        }, 1000);
+        }, 800);
     }
 
     const dismissAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                scale: withRepeat(
-                    withSequence(
-                        withTiming(0, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(1, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                    ),
-                    1,
-                    true,
-                )
-            },
-            {
-                translateY: withTiming(dismissTranslateY.value, {
-                    duration: 200,
-                    easing: Easing.inOut(Easing.quad),
-                }),
+                translateY: interpolate(
+                    dismissTranslateY.value,
+                    [0, height],
+                    [0, height],
+                    Extrapolation.CLAMP,
+                ),
             }
         ]
     }));
@@ -186,7 +174,10 @@ export const ToastProvider = ({ children }: Props) => {
         refreshDismissTimeout.current && clearTimeout(refreshDismissTimeout.current);
         dismissInterval.current && clearTimeout(dismissInterval.current);
         closeDismissTimeout.current && clearTimeout(closeDismissTimeout.current);
-        dismissTranslateY.value = dismissHideValue;
+        dismissTranslateY.value = withTiming(dismissHideValue, {
+            duration: 200,
+            easing: Easing.inOut(Easing.quad),
+        });
         closeDismissTimeout.current = setTimeout(() => {
             setCount(0);
             reverse && reverseAction && reverseAction();
@@ -219,13 +210,15 @@ export const ToastProvider = ({ children }: Props) => {
         return () => remove();
     }, [count]);
 
-    useEffect(() => {
-        if (action) {
-            action();
-            setAction(null);
-        }
-        handleCloseDismiss();
-    }, [pathname]);
+    // useEffect(() => {
+    //     if (action) {
+    //         action();
+    //         setAction(null);
+    //     }
+    //     handleCloseDismiss();
+    // }, [pathname]);
+
+    const kids = useMemo(() => children, [children]);
 
     return (
         <Context.Provider value={{
@@ -233,7 +226,7 @@ export const ToastProvider = ({ children }: Props) => {
             setToast,
             setDismiss,
         }}>
-            {children}
+            {kids}
 
             <GestureDetector gesture={pan}>
                 <Animated.View
@@ -246,7 +239,7 @@ export const ToastProvider = ({ children }: Props) => {
                             left,
                             zIndex: 500,
                         },
-                        animation,
+                        toastAnimation,
                     ]}
                     className={clsx(
                         "absolute top-10 w-11/12 sm:w-[500px] overflow-hidden rounded-2xl",
@@ -297,7 +290,7 @@ export const ToastProvider = ({ children }: Props) => {
                         },
                         dismissAnimation,
                     ]}
-                    className="absolute bottom-[100px] w-11/12 sm:w-[400px] h-[50px] overflow-hidden rounded-2xl dark:bg-white bg-black"
+                    className="absolute bottom-[100px] w-11/12 sm:w-[300px] h-[50px] overflow-hidden rounded-2xl dark:bg-white bg-black"
                 >
                     <Pressable
                         onPress={() => handleCloseDismiss(true)}
