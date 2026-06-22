@@ -14,12 +14,11 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { usePathname, useRouter } from "expo-router";
 import { ReactNode, useState } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View, ViewProps } from "react-native";
 import { Avatar } from "./avatar";
 import { PressableAnimated } from "./pressable-animated";
-import { LinearGradient } from "expo-linear-gradient";
 
-interface Props {
+interface Props extends Pick<ViewProps, "onLayout"> {
     children: ReactNode;
 }
 
@@ -29,7 +28,7 @@ interface Props {
  * @returns Page title component
  */
 
-export const PageTitle = ({ children }: Props) => {
+export const PageTitle = ({ children, ...rest }: Props) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [image, setImage] = useState<string | null>(null);
     const { setToast } = useToast();
@@ -38,6 +37,7 @@ export const PageTitle = ({ children }: Props) => {
     const router = useRouter();
     const { theme } = useTheme();
     const pathname = usePathname();
+    const { width } = useWindowDimensions();
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -111,62 +111,67 @@ export const PageTitle = ({ children }: Props) => {
     }
 
     return (
-        <View className="w-full h-[50px] flex flex-row justify-between items-center px-4">
-            <View className="w-[50%] h-full flex flex-row items-center gap-3 overflow-hidden">
-                {children}
-            </View>
+        <View
+            {...rest}
+            className="w-full h-[50px] flex flex-row justify-between items-center px-4"
+        >
+            {
+                width > 200 && (
+                    <View className="w-[50%] h-full flex flex-row items-center gap-3 overflow-hidden">
+                        {children}
+                    </View>
+                )
+            }
 
-            <View className="absolute right-0 h-full z-[1] dark:bg-white bg-black">
-                <View className="w-full h-full flex flex-row justify-end items-center gap-6 px-3 dark:bg-black bg-[rgba(255,255,255,.94)]">
+            <View className="absolute right-0 h-full flex flex-row justify-end items-center gap-6 px-3 z-[1]">
+                {
+                    !["/settings"].includes(pathname) && (
+                        <>
+                            <PressableAnimated>
+                                <FontAwesome6
+                                    name="plus"
+                                    size={25}
+                                    color={COLORS.emerald[500]}
+                                />
+                            </PressableAnimated>
+
+                            <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
+                                <Entypo
+                                    name="archive"
+                                    size={25}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                />
+                            </PressableAnimated>
+                        </>
+                    )
+                }
+
+                <PressableAnimated
+                    className="size-[50px] rounded-full p-1"
+                    onPress={() => router.navigate("/(protected)/(user)/profile")}
+                >
                     {
-                        !["/settings"].includes(pathname) && (
-                            <>
-                                <PressableAnimated>
-                                    <FontAwesome6
-                                        name="plus"
-                                        size={25}
-                                        color={COLORS.emerald[500]}
-                                    />
-                                </PressableAnimated>
-
-                                <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
-                                    <Entypo
-                                        name="archive"
-                                        size={25}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                    />
-                                </PressableAnimated>
-                            </>
+                        user && !user.user_metadata.photoUrl && (
+                            <Avatar
+                                name={user.user_metadata.name}
+                                size={50}
+                            />
                         )
                     }
-
-                    <PressableAnimated
-                        className="size-[50px] rounded-full p-1"
-                        onPress={() => router.navigate("/(protected)/(user)/profile")}
-                    >
-                        {
-                            user && !user.user_metadata.photoUrl && (
-                                <Avatar
-                                    name={user.user_metadata.name}
-                                    size={50}
-                                />
-                            )
-                        }
-                        {
-                            user && user.user_metadata.photoUrl && (
-                                <Image
-                                    source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
-                                    style={{
-                                        width: "100%",
-                                        height: "100%",
-                                        borderRadius: 9999,
-                                    }}
-                                    contentFit="cover"
-                                />
-                            )
-                        }
-                    </PressableAnimated>
-                </View>
+                    {
+                        user && user.user_metadata.photoUrl && (
+                            <Image
+                                source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: 9999,
+                                }}
+                                contentFit="cover"
+                            />
+                        )
+                    }
+                </PressableAnimated>
             </View>
         </View>
     );

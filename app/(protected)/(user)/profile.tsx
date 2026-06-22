@@ -9,12 +9,14 @@ import { AUTH_STORAGE } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
@@ -24,6 +26,7 @@ export default function Profile() {
     const { theme } = useTheme();
     const [modalActive, setModalActive] = useState<boolean>(false);
     const [cameraModalActive, setCameraModalActive] = useState<boolean>(false);
+    const router = useRouter();
 
     const handleSignOut = async () => {
         const { getItem, setItem } = useAsyncStorage(AUTH_STORAGE);
@@ -39,20 +42,39 @@ export default function Profile() {
 
     return (
         <Container centerX>
-            <View className="w-full flex flex-row items-center gap-3 px-3 py-2  mb-5">
-                <AntDesign
-                    name="user"
-                    size={25}
-                    color={COLORS.emerald[500]}
-                />
+            <View className="w-full h-[50px] flex flex-row items-center mb-5 px-3">
+                <View className="w-[190px] dark:bg-white bg-black rounded-[50px]">
+                    <View className="flex flex-row items-center gap-6 dark:bg-black/85 bg-white/90 rounded-[50px]">
+                        <PressableAnimated
+                            onPress={() => router.back()}
+                            className="size-[50px] dark:bg-black bg-black rounded-full"
+                        >
+                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border dark:border-white/20 border-white">
+                                <Entypo
+                                    name="chevron-left"
+                                    size={25}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
+                                />
+                            </View>
+                        </PressableAnimated>
 
-                <TextAnimated
-                    dark={COLORS.emerald[500]}
-                    light={COLORS.emerald[500]}
-                    className="text-2xl font-bold"
-                >
-                    {t("profile")}
-                </TextAnimated>
+                        <View className="h-full flex flex-row items-center gap-3">
+                            <TextAnimated
+                                dark={COLORS.emerald[500]}
+                                light={COLORS.emerald[500]}
+                                className="text-2xl font-bold"
+                            >
+                                {t("profile")}
+                            </TextAnimated>
+
+                            <AntDesign
+                                name="user"
+                                size={25}
+                                color={COLORS.emerald[500]}
+                            />
+                        </View>
+                    </View>
+                </View>
             </View>
 
             <ScrollView

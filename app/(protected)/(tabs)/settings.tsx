@@ -21,7 +21,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, interpolateColor, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -57,17 +57,20 @@ export default function Settings() {
         }),
     });
 
-    const headerAnimation = useAnimatedStyle(() => ({
+    const headerContainerAnimation = useAnimatedStyle(() => ({
         height: interpolate(
             scrollY.value,
             [0, headerHeight - minHeaderHeight],
             [headerHeight, minHeaderHeight],
             Extrapolation.CLAMP,
         ),
-        backgroundColor: scrollY.value >= headerHeight - minHeaderHeight ?
-            appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)"
+    }));
+
+    const headerAnimation = useAnimatedStyle(() => ({
+        backgroundColor: scrollY.value >= (headerHeight - minHeaderHeight) ?
+            appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, .95)"
             :
-            appTheme.value == "dark" ? "rgba(255, 255,255, .1)" : "rgba(0, 0, 0, .8)",
+            appTheme.value == "dark" ? "rgba(0, 0, 0, .9)" : "rgba(255, 255, 255, .2)",
     }));
 
     const avatarAnimation = useAnimatedStyle(() => ({
@@ -83,7 +86,7 @@ export default function Settings() {
             {
                 scale: interpolate(
                     scrollY.value,
-                    [0, 100],
+                    [0, 80],
                     [1, 0.2],
                     Extrapolation.CLAMP
                 ),
@@ -103,7 +106,7 @@ export default function Settings() {
                 translateY: interpolate(
                     scrollY.value,
                     [0, 100],
-                    [0, -50],
+                    [-5, -50],
                     Extrapolation.CLAMP
                 ),
             },
@@ -187,44 +190,49 @@ export default function Settings() {
 
             <View className="flex-1 dark:bg-black bg-white/10">
                 <Animated.View
-                    style={headerAnimation}
-                    className="absolute top-0 left-0 w-full flex justify-center items-center gap-12 z-[100] overflow-hidden"
+                    style={headerContainerAnimation}
+                    className="absolute top-0 left-0 w-full z-[100] overflow-hidden dark:bg-white bg-black"
                 >
-                    <Animated.View style={avatarAnimation}>
-                        <Avatar
-                            size={130}
-                            name="Youmbi Le-duc"
-                        />
-                    </Animated.View>
-
-                    <Animated.View style={usernameAnimation}>
-                        <View className="w-full flex items-center">
-                            <TextAnimated
-                                dark="rgba(255, 255, 255, .8)"
-                                light="rgba(255, 255, 255, .8)"
-                                className="text-lg font-bold tracking-widest"
-                            >
-                                Youmbi Le-duc
-                            </TextAnimated>
-                        </View>
-                    </Animated.View>
-
                     <Animated.View
-                        style={titleAnimation}
-                        className="absolute left-0 top-0 w-full h-full flex flex-row items-center pt-10 border-b dark:border-b-white/20 border-b-black/20"
+                        style={headerAnimation}
+                        className="w-full h-full flex justify-center items-center gap-12 overflow-hidden"
                     >
-                        <PageTitle>
-                            <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                                <FontAwesome6
-                                    name="gears"
-                                    size={25}
-                                    color={COLORS.emerald[500]}
-                                />
-                                <Text className="text-xl text-emerald-500 font-bold">
-                                    {t("settings")}
-                                </Text>
+                        <Animated.View style={avatarAnimation}>
+                            <Avatar
+                                size={130}
+                                name="Youmbi Le-duc"
+                            />
+                        </Animated.View>
+
+                        <Animated.View style={usernameAnimation}>
+                            <View className="w-full flex items-center">
+                                <TextAnimated
+                                    dark="rgba(255, 255, 255, .8)"
+                                    light="rgba(255, 255, 255, .8)"
+                                    className="text-lg font-bold tracking-widest"
+                                >
+                                    Youmbi Le-duc
+                                </TextAnimated>
                             </View>
-                        </PageTitle>
+                        </Animated.View>
+
+                        <Animated.View
+                            style={titleAnimation}
+                            className="absolute left-0 top-0 w-full h-full flex justify-center items-center border-b dark:border-b-white/20 border-b-black/20 pt-8"
+                        >
+                            <PageTitle>
+                                <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                                    <FontAwesome6
+                                        name="gears"
+                                        size={25}
+                                        color={COLORS.emerald[500]}
+                                    />
+                                    <Text className="text-xl text-emerald-500 font-bold">
+                                        {t("settings")}
+                                    </Text>
+                                </View>
+                            </PageTitle>
+                        </Animated.View>
                     </Animated.View>
                 </Animated.View>
 
