@@ -56,5 +56,6 @@
     "register_form_submit": "Soumettre",
     "register_no_account_question": "Vous avez déjà un compte ?",
     "register_sign_in_link": "Connectez-vous",
-    "login_form_counter": "Compteur"
+    "login_form_counter": "Compteur",
+    "agenda_page_title": "Agenda"
 }

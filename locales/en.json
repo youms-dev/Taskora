@@ -56,5 +56,6 @@
     "register_form_submit": "Submit",
     "register_no_account_question": "Do you have already an account ?",
     "register_sign_in_link": "Sign in",
-    "register_form_counter": "Counter"
+    "register_form_counter": "Counter",
+    "agenda_page_title": "Agenda"
 }

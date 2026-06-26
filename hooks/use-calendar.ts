@@ -3,20 +3,14 @@ import { useMemo, useState } from "react";
 
 export const INITIAL_RANGE = 50;
 
-export const CALENDAR_HORIZONTAL_PADDING = 24;
-
 export const useHorizontalCalendar = () => {
-    const today = useMemo(
-        () => startOfMonth(new Date()),
-        []
-    );
+    const today = useMemo(() => startOfMonth(new Date()), []);
 
-    const [months, setMonths] = useState<Date[]>(() =>
-        Array.from(
-            { length: INITIAL_RANGE * 2 + 1 },
-            (_, i) => addMonths(today, i - INITIAL_RANGE)
-        )
-    );
+    const [months, setMonths] = useState<Date[]>(() => Array.from({
+        length: INITIAL_RANGE * 2 + 1
+    },
+        (_, i) => startOfMonth(addMonths(today, i - INITIAL_RANGE))
+    ));
 
     const appendFutureMonths = () => {
         setMonths((prev) => {
@@ -24,7 +18,7 @@ export const useHorizontalCalendar = () => {
 
             const nextMonths = Array.from(
                 { length: 20 },
-                (_, i) => addMonths(lastMonth, i + 1)
+                (_, i) => startOfMonth(addMonths(lastMonth, i + 1))
             );
 
             return [...prev, ...nextMonths];
@@ -37,7 +31,7 @@ export const useHorizontalCalendar = () => {
 
             const previousMonths = Array.from(
                 { length: 20 },
-                (_, i) => addMonths(firstMonth, -(i + 1))
+                (_, i) => startOfMonth(addMonths(firstMonth, -(i + 1)))
             ).reverse();
 
             return [...previousMonths, ...prev];
