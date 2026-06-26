@@ -83,8 +83,8 @@ export class TaskService {
         if (!user) throw new NotFoundException("User not found");
 
         return await this.repo.find({
-            skip: skip ? +skip : 0,
-            take: take ? +take : 1,
+            skip: skip ? +skip : undefined,
+            take: take ? +take : undefined,
             order: {
                 updatedAt: "desc",
             },
