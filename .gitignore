@@ -32,7 +32,11 @@ yarn-error.*
 
 # local env files
 .env*
+<<<<<<< HEAD
 !.env.exemple*
+=======
+!.env.example
+>>>>>>> 4724e99 (Update: Global changes)
 
 # typescript
 *.tsbuildinfo

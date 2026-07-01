@@ -5,6 +5,7 @@ import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { LANGUAGE_STORAGE } from "@/constants/names";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
+import { CalendarProvider } from "@/hooks/use-calendar";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -79,70 +80,72 @@ export default function Layout() {
     return (
         <SafeAreaProvider>
             <DatabaseProvider db={db}>
-                <GestureHandlerRootView style={{
-                    flex: 1,
-                    backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .1)",
-                }}>
-                    <ThemeProvider>
-                        <ToastProvider>
-                            <AuthProvider>
-                                {
-                                    loading && (
-                                        <Container centerX>
-                                            <View className="w-full h-full flex justify-center items-center">
-                                                <View className="size-[100px]">
-                                                    <Loader />
+                <CalendarProvider>
+                    <GestureHandlerRootView style={{
+                        flex: 1,
+                        backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .1)",
+                    }}>
+                        <ThemeProvider>
+                            <ToastProvider>
+                                <AuthProvider>
+                                    {
+                                        loading && (
+                                            <Container centerX>
+                                                <View className="w-full h-full flex justify-center items-center">
+                                                    <View className="size-[100px]">
+                                                        <Loader />
+                                                    </View>
                                                 </View>
-                                            </View>
-                                        </Container>
-                                    )
-                                }
+                                            </Container>
+                                        )
+                                    }
 
-                                {
-                                    !loading && (
-                                        <Stack
-                                            screenOptions={{
-                                                headerShown: false,
-                                                animation: "fade",
-                                                contentStyle: {
-                                                    backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .01)"
-                                                }
-                                            }}
-                                        >
-                                            <Stack.Protected guard={user ? false : true}>
-                                                {/* <Stack.Protected guard={true}> */}
-                                                <Stack.Screen name="index" />
-                                            </Stack.Protected>
+                                    {
+                                        !loading && (
+                                            <Stack
+                                                screenOptions={{
+                                                    headerShown: false,
+                                                    animation: "fade",
+                                                    contentStyle: {
+                                                        backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .01)"
+                                                    }
+                                                }}
+                                            >
+                                                <Stack.Protected guard={user ? false : true}>
+                                                    {/* <Stack.Protected guard={true}> */}
+                                                    <Stack.Screen name="index" />
+                                                </Stack.Protected>
 
-                                            <Stack.Protected guard={user ? false : true}>
-                                                {/* <Stack.Protected guard={true}> */}
-                                                <Stack.Screen
-                                                    name="register"
-                                                    options={{
-                                                        animation: "fade_from_bottom"
-                                                    }}
-                                                />
-                                            </Stack.Protected>
+                                                <Stack.Protected guard={user ? false : true}>
+                                                    {/* <Stack.Protected guard={true}> */}
+                                                    <Stack.Screen
+                                                        name="register"
+                                                        options={{
+                                                            animation: "fade_from_bottom"
+                                                        }}
+                                                    />
+                                                </Stack.Protected>
 
-                                            <Stack.Protected guard={user ? true : false}>
-                                                <Stack.Screen
-                                                    name="(protected)"
-                                                    options={{
-                                                        animation: "fade",
-                                                    }}
-                                                />
-                                            </Stack.Protected>
+                                                <Stack.Protected guard={user ? true : false}>
+                                                    <Stack.Screen
+                                                        name="(protected)"
+                                                        options={{
+                                                            animation: "fade",
+                                                        }}
+                                                    />
+                                                </Stack.Protected>
 
-                                            <Stack.Protected guard={false}>
-                                                <Stack.Screen name="onboarding" />
-                                            </Stack.Protected>
-                                        </Stack>
-                                    )
-                                }
-                            </AuthProvider>
-                        </ToastProvider>
-                    </ThemeProvider>
-                </GestureHandlerRootView>
+                                                <Stack.Protected guard={false}>
+                                                    <Stack.Screen name="onboarding" />
+                                                </Stack.Protected>
+                                            </Stack>
+                                        )
+                                    }
+                                </AuthProvider>
+                            </ToastProvider>
+                        </ThemeProvider>
+                    </GestureHandlerRootView>
+                </CalendarProvider>
             </DatabaseProvider>
         </SafeAreaProvider>
     )

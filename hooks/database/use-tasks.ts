@@ -1,6 +1,7 @@
 import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
 import { SQLiteTaskType, TaskType } from "@/types/task";
+import { endOfDay, startOfDay } from "date-fns";
 
 export const useTasks = () => {
     const { db } = useDatabase();
@@ -31,12 +32,40 @@ export const useTasks = () => {
         try {
             const result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [archived ? 1 : 0, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, id_folder, created_at, updated_at, ...rest } = item;
+                const { id_task, planned_date, id_folder, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
+                    plannedDate: planned_date,
+                    createdAt: created_at,
+                    updatedAt: updated_at,
+                });
+            }) : [];
+
+            return dataParsed;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
+    async function getTasksByDate(date: Date, limit: number = 10, offset: number = 0): Promise<TaskType[] | unknown> {
+        if (!db) return;
+        const start = startOfDay(date).getTime();
+        const end = endOfDay(date).getTime();
+
+        try {
+            const result = await db.getAllAsync("SELECT * FROM task WHERE planned_date >= ? AND planned_date <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [start, end, limit, offset]) as SQLiteTaskType[];
+            const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
+                const { id_task, planned_date, id_folder, created_at, updated_at, ...rest } = item;
+
+                return ({
+                    ...rest,
+                    idTask: id_task,
+                    idFolder: id_folder,
+                    plannedDate: planned_date,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -74,11 +103,12 @@ export const useTasks = () => {
             const { count } = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ?", [like, like, archived ? 1 : 0]) as { count: number };
 
             const dataParsed = data.length > 0 ? data.map(item => {
-                const { id_task, created_at, updated_at, ...rest } = item;
+                const { id_task, planned_date, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
+                    plannedDate: planned_date,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 } as TaskType);
@@ -125,6 +155,7 @@ export const useTasks = () => {
     return {
         syncTasks,
         getTasks,
+        getTasksByDate,
         getTasksCount,
         searchTasks,
         deleteTasks,

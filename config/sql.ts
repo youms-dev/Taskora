@@ -32,6 +32,7 @@ function genData(): {
             title: nb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
             content: faker.lorem.text(),
             done: nb > 0.8,
+            planned_date: Date.now(),
         });
     }
 
@@ -53,14 +54,14 @@ const { folders, tasks } = genData();
 const init = `
     INSERT INTO folder(id_folder, title) VALUES
     ${folders.map((folder, i) =>
-        `("${folder.id_folder}", "${escapeSql(folder.title)}")${i < folders.length - 1 ? "," : ""}`
-    ).join("")}
+    `("${folder.id_folder}", "${escapeSql(folder.title)}")${i < folders.length - 1 ? "," : ""}`
+).join("")}
     ;
 
-    INSERT INTO task(id_task, id_folder, title, content, done) VALUES
+    INSERT INTO task(id_task, id_folder, title, content, done, planned_date) VALUES
     ${tasks.map((task, i) =>
-        `("${task.id_task}", ${task.id_folder ? `"${task.id_folder}"` : "NULL"}, ${task.title ? `"${escapeSql(task.title)}"` : "NULL"}, "${escapeSql(task.content)}", ${task.done ? 1 : 0})${i < tasks.length - 1 ? "," : ""}`
-    ).join("")}
+    `("${task.id_task}", ${task.id_folder ? `"${task.id_folder}"` : "NULL"}, ${task.title ? `"${escapeSql(task.title)}"` : "NULL"}, "${escapeSql(task.content)}", ${task.done ? 1 : 0}, ${task.planned_date})${i < tasks.length - 1 ? "," : ""}`
+).join("")}
     ON CONFLICT (id_task)
     DO NOTHING;
 `;
@@ -85,14 +86,17 @@ export const INIT_DATABASE = `
         content TEXT NOT NULL,
         done BOOLEAN DEFAULT 0,
         archived BOOLEAN DEFAULT 0,
+        planned_date INTEGER DEFAULT NULL,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+
         FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL
     );
         
     CREATE INDEX IF NOT EXISTS task_id_folder_index ON task(id_folder);
     CREATE INDEX IF NOT EXISTS task_title_index ON task(title);
     CREATE INDEX IF NOT EXISTS task_created_at_id_task_index ON task(created_at, id_task);
+    CREATE INDEX IF NOT EXISTS task_planned_date_index ON task(planned_date);
         
     ${init} 
     `;
