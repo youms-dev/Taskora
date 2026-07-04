@@ -4,12 +4,14 @@ import { INITIAL_RANGE, useCalendar } from "@/hooks/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { format } from "date-fns";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Text, useWindowDimensions, View } from "react-native";
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
 import { CalendarDay } from "./calendar-day";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 
 export const Calendar = () => {
     const flatListRef = useRef<FlatList<Date>>(null);
@@ -17,8 +19,13 @@ export const Calendar = () => {
     const { width: screenWidth } = useWindowDimensions();
     const { i18n } = useTranslation();
     const [currentMonth, setCurrentMonth] = useState<Date>(months[INITIAL_RANGE]);
-    const { getTasks, getTasksByDate } = useTasks();
+    const { getTasksByDate } = useTasks();
     const { theme } = useTheme();
+    const showMonthsList = useSharedValue<boolean>(false);
+    const monthsFlatListRef = useRef<FlatList>(null);
+    const [years, setYears] = useState<number[]>([]);
+    const showYearsList = useSharedValue<boolean>(true);
+    const yearsFlatListRef = useRef<FlatList>(null);
 
     const renderItem = useCallback(({ item }: { item: Date }) => (
         <CalendarDay
@@ -69,6 +76,188 @@ export const Calendar = () => {
         }
     };
 
+    const listContainerAnimation = useAnimatedStyle(() => ({
+        opacity: (showMonthsList.value || showYearsList.value) ? 1 : 0,
+        pointerEvents: (showMonthsList.value || showYearsList.value) ? "auto" : "none",
+    }));
+
+    const monthsListAnimation = useAnimatedStyle(() => ({
+        opacity: showMonthsList.value ?
+            withTiming(1, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            })
+            :
+            0,
+        height: showMonthsList.value ?
+            withDelay(
+                0,
+                withTiming(200, {
+                    duration: 400,
+                    easing: Easing.inOut(Easing.quad),
+                })
+            )
+            :
+            0,
+        transform: [
+            {
+                translateY: 120,
+            }
+        ]
+    }));
+
+    const yearsListAnimation = useAnimatedStyle(() => ({
+        opacity: showYearsList.value ?
+            withTiming(1, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            })
+            :
+            0,
+        height: showYearsList.value ?
+            withDelay(
+                0,
+                withTiming(200, {
+                    duration: 400,
+                    easing: Easing.inOut(Easing.quad),
+                })
+            )
+            :
+            0,
+        transform: [
+            {
+                translateX: 50,
+            },
+            {
+                translateY: 120,
+            }
+        ]
+    }));
+
+    const nockMonthsAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: 58,
+            },
+            {
+                translateY: 112,
+            },
+            {
+                rotate: "45deg",
+            },
+        ],
+        opacity: showMonthsList.value ?
+            withTiming(1, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            })
+            :
+            0,
+    }));
+
+    const nockYearsAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: 80,
+            },
+            {
+                translateY: 112,
+            },
+            {
+                rotate: "45deg",
+            },
+        ],
+        opacity: showYearsList.value ?
+            withTiming(1, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            })
+            :
+            0,
+    }));
+
+    const renderMonthsListItem = useCallback(({ item: month, index }: { item: string, index: number }) => {
+        const year = currentMonth.getFullYear();
+        const currentDate = new Date(year, index, 1);
+        const monthIndex = months.findIndex(month => format(month, "MMMM yyyy") == format(currentDate, "MMMM yyyy"));
+
+        return (
+            <Pressable
+                onPress={() => {
+                    showMonthsList.value = false;
+                    flatListRef.current?.scrollToIndex({
+                        index: monthIndex > 0 ? monthIndex : INITIAL_RANGE,
+                        animated: true,
+                    });
+                }}
+                className="w-full flex flex-row justify-between items-center gap-3"
+            >
+                <TextAnimated className="text-xl tracking-widest">
+                    {month}
+                </TextAnimated>
+
+                {
+                    currentMonth.getMonth() == index && (
+                        <View className="opacity-80">
+                            <AntDesign
+                                name="check"
+                                size={20}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                            />
+                        </View>
+                    )
+                }
+            </Pressable>
+        );
+    }, [currentMonth]);
+
+    const currentLanguage = useMemo(() => i18n.language == "fr" ? "fr" : "en", [i18n]);
+
+    const renderYearsListItem = useCallback(({ item: year }: { item: number, index: number }) => {
+        const currentDate = new Date(year, 0, 1);
+        const yearIndex = months.findIndex(month => +format(month, "yyyy") == +format(currentDate, "yyyy"));
+
+        return (
+            <Pressable
+                onPress={() => {
+                    showYearsList.value = false;
+                    flatListRef.current?.scrollToIndex({
+                        index: yearIndex > 0 ? yearIndex : INITIAL_RANGE,
+                        animated: true,
+                    });
+                }}
+                className="w-full flex flex-row justify-between items-center gap-3"
+            >
+                <TextAnimated className="text-xl tracking-widest">
+                    {year}
+                </TextAnimated>
+
+                {
+                    currentMonth.getFullYear() == year && (
+                        <View className="opacity-80">
+                            <AntDesign
+                                name="check"
+                                size={20}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                            />
+                        </View>
+                    )
+                }
+            </Pressable>
+        );
+    }, [currentMonth]);
+
+    useEffect(() => {
+        if (months.length > 0) {
+            const years: number[] = months.map(month => +format(month, "yyyy"));
+            const yearsFiltered = years.filter((year, i) => {
+                return i == 0 || year != years[i - 1];
+            });
+
+            setYears(yearsFiltered);
+        }
+    }, [months]);
+
     return (
         <View className="w-screen flex items-center">
             {/* <PressableAnimated
@@ -87,7 +276,7 @@ export const Calendar = () => {
                     const index = months.findIndex(month => format(month, "MMMM yyyy") == format(today, "MMMM yyyy"));
 
                     flatListRef.current?.scrollToIndex({
-                        index: index > 0 ? INITIAL_RANGE : index,
+                        index: index > 0 ? index : INITIAL_RANGE,
                         animated: true,
                     });
                 }}
@@ -121,16 +310,30 @@ export const Calendar = () => {
             </PressableAnimated>
 
             <View className="w-full flex flex-row justify-center gap-3 px-3 mb-8 mt-5">
-                <View className="">
+                <Pressable onPress={() => {
+                    showMonthsList.value = true;
+                    monthsFlatListRef.current?.scrollToIndex({
+                        index: currentMonth.getMonth(),
+                        animated: true,
+                    });
+                }}>
+                    <TextAnimated className="text-xl font-bold tracking-widest">
+                        {monthsTranslation[i18n.language == "fr" ? "fr" : "en"][currentMonth.getMonth()]}
+                    </TextAnimated>
+                </Pressable>
 
-                </View>
-                <TextAnimated className="text-xl font-bold tracking-widest">
-                    {monthsTranslation[i18n.language == "fr" ? "fr" : "en"][currentMonth.getMonth()]}
-                </TextAnimated>
+                <Pressable onPress={() => {
+                    showYearsList.value = true;
+                    // monthsFlatListRef.current?.scrollToIndex({
+                    //     index: currentMonth.getMonth(),
+                    //     animated: true,
+                    // });
 
-                <TextAnimated className="text-xl font-bold tracking-widest">
-                    {currentMonth.getFullYear()}
-                </TextAnimated>
+                }}>
+                    <TextAnimated className="text-xl font-bold tracking-widest">
+                        {currentMonth.getFullYear()}
+                    </TextAnimated>
+                </Pressable>
             </View>
 
             <View className="w-full flex flex-row justify-between px-[32px]">
@@ -149,6 +352,83 @@ export const Calendar = () => {
                     ))
                 }
             </View>
+
+            <Animated.View
+                style={listContainerAnimation}
+                className="absolute left-0 top-0 w-screen h-screen flex items-center z-[10]"
+            >
+                <Pressable
+                    onPress={() => {
+                        showMonthsList.value = false;
+                        showYearsList.value = false;
+                    }}
+                    className="w-full h-full dark:bg-black/50"
+                />
+
+                <View className="absolute w-[200px] flex">
+                    <Animated.View
+                        style={nockMonthsAnimation}
+                        className="absolute left-0 top-0 size-[30px] dark:bg-black bg-white"
+                    >
+                        <View className="size-full dark:bg-white/10 bg-white border dark:border-white/10 border-black/10" />
+                    </Animated.View>
+
+                    <Animated.View
+                        style={monthsListAnimation}
+                        className="dark:bg-black bg-black rounded-xl z-[1px]"
+                    >
+                        <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
+                            <FlatList
+                                ref={monthsFlatListRef}
+                                showsVerticalScrollIndicator={false}
+                                initialScrollIndex={currentMonth.getMonth()}
+                                data={monthsTranslation[currentLanguage]}
+                                keyExtractor={(month) => month}
+                                renderItem={renderMonthsListItem}
+                                getItemLayout={(_, index) => ({
+                                    length: 30,
+                                    offset: 30 * index,
+                                    index,
+                                })}
+                                className="absolute w-full h-[200px]"
+                                contentContainerClassName="flex gap-3 py-2"
+                            />
+                        </View>
+                    </Animated.View>
+                </View>
+
+                <View className="absolute w-[150px] flex">
+                    <Animated.View
+                        style={nockYearsAnimation}
+                        className="absolute left-0 top-0 size-[30px] dark:bg-black bg-white"
+                    >
+                        <View className="size-full dark:bg-white/10 bg-white border dark:border-white/10 border-black/10" />
+                    </Animated.View>
+
+                    <Animated.View
+                        style={yearsListAnimation}
+                        className="dark:bg-black bg-black rounded-xl z-[1px]"
+                    >
+                        <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
+                            <FlatList
+                                ref={yearsFlatListRef}
+                                showsVerticalScrollIndicator={false}
+                                initialScrollIndex={currentMonth.getMonth()}
+                                data={years}
+                                keyExtractor={(year) => String(year)}
+                                renderItem={renderYearsListItem}
+                                getItemLayout={(_, index) => ({
+                                    length: 30,
+                                    offset: 30 * index,
+                                    index,
+                                })}
+                                className="absolute w-full h-[200px]"
+                                contentContainerClassName="flex gap-3 py-2"
+                            />
+                        </View>
+                    </Animated.View>
+                </View>
+            </Animated.View>
 
             <FlatList
                 ref={flatListRef}
