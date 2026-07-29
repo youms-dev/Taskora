@@ -40,8 +40,9 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
     onDelete?: (task: TaskType) => void;
     onArchive?: (task: TaskType) => void;
     onPress?: (id: TaskType["idTask"]) => void;
+    height?: number;
 }
-const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, onPress, ...rest }: TaskCardProps) => {
+const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, onPress, height, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
@@ -187,7 +188,10 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             <Pressable
                 {...rest}
                 onPress={handlePress}
-                className="w-full h-[100px] flex justify-center items-center rounded-2xl"
+                style={{
+                    height,
+                }}
+                className="w-full flex justify-center items-center rounded-2xl"
             >
                 <Animated.View
                     style={swipeAnimation}
@@ -315,6 +319,7 @@ interface FolderFlatListProps {
     handleRef: (ref: Component<AnimatedProps<FlatListProps<unknown>>, any, any> | null) => void;
     loading: boolean;
     onContentSizeChange: (contentWidth: number, contentHeight: number) => void;
+    gap?: number;
 }
 
 const TaskFlatList = memo(({
@@ -331,6 +336,7 @@ const TaskFlatList = memo(({
     handleRef,
     loading,
     onContentSizeChange,
+    gap,
 }: FolderFlatListProps) => {
     const handleMomentumScrollBegin = useCallback(() => onMomentumScrollBegin?.(), []);
 
@@ -372,7 +378,10 @@ const TaskFlatList = memo(({
                     ListEmptyComponent={handleListEmptyComponent}
                     ListFooterComponent={handleListFooterComponent}
                     className="w-full"
-                    contentContainerClassName="w-full flex flex-col items-center gap-5 pt-[220px] pb-[100px] px-3"
+                    contentContainerStyle={{
+                        gap,
+                    }}
+                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[100px] px-3"
                 />
             </GestureDetector>
         </View>
@@ -410,7 +419,8 @@ export default function Tasks() {
     const [folders, setFolders] = useState<FolderType[]>([]);
     const selectLimit = 50;
     const tasksFlatListRef = useRef<FlatList>(null);
-    const itemHeight = 100;
+    const taskHeight = 100;
+    const tasksGap = 20;
     const getTaskTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const quietProcessing = useSharedValue<boolean>(false);
@@ -780,6 +790,7 @@ export default function Tasks() {
 
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
+            height={taskHeight}
             loading={isBlocked}
             task={task}
             selection={selectMap.size > 0}
@@ -1208,8 +1219,8 @@ export default function Tasks() {
                 onEndReached={() => index == 0 && handleEndReached()}
                 onContentSizeChange={(_, y) => contentsSize.current[index] = y}
                 getItemLayout={(data: TaskType | undefined, index: number | undefined) => ({
-                    length: itemHeight,
-                    offset: (index ?? 0) * itemHeight,
+                    length: (taskHeight + tasksGap),
+                    offset: (index ?? 0) * (taskHeight + tasksGap),
                     index: (index ?? 0),
                 })}
                 ListEmptyComponent={() => {
@@ -1248,6 +1259,7 @@ export default function Tasks() {
                         </View>
                     );
                 }}
+                gap={tasksGap}
             />
         );
     }, [tasks, selectMap, loading, processing, checkScroll, folderDataMap]);
@@ -1726,8 +1738,8 @@ export default function Tasks() {
                         initialNumToRender={10}
                         maxToRenderPerBatch={10}
                         getItemLayout={(_, index) => ({
-                            length: 100,
-                            offset: index * 100,
+                            length: (taskHeight + tasksGap),
+                            offset: index * (taskHeight + tasksGap),
                             index,
                         })}
                         data={tasksSearch}
@@ -1778,7 +1790,10 @@ export default function Tasks() {
                             </View>
                         ) : null}
                         className="w-full"
-                        contentContainerClassName="w-full flex items-center gap-5 pt-[150px] pb-[120px] px-3"
+                        contentContainerStyle={{
+                            gap: tasksGap,
+                        }}
+                        contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
                     />
                 </View>
             </Animated.View>

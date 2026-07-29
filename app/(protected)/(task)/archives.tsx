@@ -29,8 +29,9 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
     onDelete: (task: TaskType) => void;
     onUnArchive: (task: TaskType) => void;
     onPress: (id: TaskType["idTask"]) => void;
+    height: number;
 }
-const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onUnArchive, onPress, ...rest }: TaskCardProps) => {
+const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onUnArchive, onPress, height, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
@@ -176,7 +177,10 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             <Pressable
                 {...rest}
                 onPress={handlePress}
-                className="w-full h-[100px] flex justify-center items-center rounded-2xl"
+                style={{
+                    height,
+                }}
+                className="w-full flex justify-center items-center rounded-2xl"
             >
                 <Animated.View
                     style={swipeAnimation}
@@ -280,6 +284,7 @@ export default function Archives() {
     const { setToast, setDismiss } = useToast();
     const dismissTranslateY = 60;
     const tasksTmp = useRef<TaskType[]>([]);
+    const taskHeight = 100;
 
     const onRefreshTask = useCallback((e: boolean = false) => {
         if (e) {
@@ -326,6 +331,7 @@ export default function Archives() {
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
             task={task}
+            height={taskHeight}
             loading={taskLoading}
             selection={selectMap.size > 0}
             selectedIndex={selectMap.get(task.idTask)}
@@ -530,7 +536,7 @@ export default function Archives() {
     }
 
     useEffect(() => {
-        if(pathname == "/archives") {
+        if (pathname == "/archives") {
             handleGetTasksCount();
             handleGetTasks(tasks.length > 0);
         }
