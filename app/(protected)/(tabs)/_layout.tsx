@@ -237,7 +237,12 @@ export default function Layout() {
         >
             <Tabs.Screen name="index" />
 
-            <Tabs.Screen name="agenda" />
+            <Tabs.Screen
+                name="agenda"
+                options={{
+                    lazy: false,
+                }}
+            />
 
             <Tabs.Screen name="notifications" />
 

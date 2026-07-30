@@ -19,7 +19,7 @@ const Context = createContext<{
     generateMonths: () => { },
 });
 
-export const INITIAL_RANGE = 5;
+export const INITIAL_RANGE = 6;
 export const NUM_TO_ADD = 12;
 
 interface Props {
@@ -33,82 +33,46 @@ export const CalendarProvider = ({ children }: Props) => {
     const loadingRef = useRef<boolean>(false);
     const [years, setYears] = useState<number[]>([]);
 
-    // const appendFutureMonths = async () => {
-    //     if (loadingRef.current || months[months.length - 1].getFullYear() >= years[years.length - 1]) return;
-    //     setLoading(true);
-
-    //     setMonths((prev) => {
-    //         const lastMonth = prev[prev.length - 1];
-
-    //         const nextMonths = Array.from(
-    //             { length: NUM_TO_ADD },
-    //             (_, i) => startOfMonth(addMonths(lastMonth, i + 1))
-    //         );
-
-    //         return [...prev, ...nextMonths];
-    //     });
-
-    //     console.log("Append done");
-
-    //     setLoading(false);
-    // };
-
-    const appendFutureMonths = async () => {
-        if (loadingRef.current || months[months.length - 1].getFullYear() >= years[years.length - 1]) return;
-        setLoading(true);
-        const lastMonth = months[months.length - 1];
-        const nextMonths: Date[] = [];
-
-        for (let i = 0; i < NUM_TO_ADD; i++) {
-            const m = startOfMonth(addMonths(lastMonth, i + 1));
-
-            if (m.getFullYear() <= years[years.length - 1]) {
-                nextMonths.push(m);
-            }
-        }
-        setMonths((prev) => [...prev, ...nextMonths]);
-
-        console.log("Append done");
-
-        setLoading(false);
-    };
-
-    //    const prependPastMonths = async () => {
-    //     if (loadingRef.current || months[0].getFullYear() <= years[0]) return;
-    //     setLoading(true);
-
-    //     setMonths((prev) => {
-    //         const firstMonth = prev[0];
-
-    //         const previousMonths = Array.from(
-    //             { length: NUM_TO_ADD },
-    //             (_, i) => startOfMonth(addMonths(firstMonth, -(i + 1)))
-    //         ).reverse();
-
-    //         return [...previousMonths, ...prev];
-    //     });
-
-    //     console.log("Prepend done");
-    //     setLoading(false);
-    // };
-
     const prependPastMonths = async () => {
-        if (loadingRef.current || months[0].getFullYear() <= years[0]) return;
         setLoading(true);
+        if (loadingRef.current || months[0].getFullYear() <= years[0]) {
+            setLoading(false);
+            return;
+        }
         const firstMonth = months[0];
         const previousMonths: Date[] = [];
 
         for (let i = 0; i < NUM_TO_ADD; i++) {
             const m = startOfMonth(addMonths(firstMonth, -(i + 1)));
 
-            if (m.getFullYear() >= years[0]) {
-                previousMonths.push(m);
-            }
+            previousMonths.push(m);
         }
 
-        setMonths((prev) => [...previousMonths, ...prev]);
+        setMonths((prev) => [...previousMonths.reverse(), ...prev]);
 
         console.log("Prepend done");
+        setLoading(false);
+    };
+
+    const appendFutureMonths = async () => {
+        setLoading(true);
+        if (loadingRef.current || months[months.length - 1].getFullYear() >= years[years.length - 1]) {
+            setLoading(false);
+
+            return;
+        }
+        const lastMonth = months[months.length - 1];
+        const nextMonths: Date[] = [];
+
+        for (let i = 0; i < NUM_TO_ADD; i++) {
+            const m = startOfMonth(addMonths(lastMonth, i + 1));
+
+            nextMonths.push(m);
+        }
+        setMonths((prev) => [...prev, ...nextMonths]);
+
+        console.log("Append done");
+
         setLoading(false);
     };
 
@@ -141,13 +105,18 @@ export const CalendarProvider = ({ children }: Props) => {
     }, [loading]);
 
     const generateMonths = (target: "month" | "year", entry: number, currentDate: Date = new Date()) => {
+        setLoading(true);
+        if (loadingRef.current) {
+            setLoading(false);
+            return;
+        }
+
         if (target == "year" && !years.includes(entry)) {
             throw new Error("The given entry doesn't exists in the current years range");
         }
 
         if (target == "month") {
-            const date = new Date();
-            const targetDate = new Date(date.getFullYear(), entry, 1);
+            const targetDate = new Date(currentDate.getFullYear(), entry, 1);
 
             const months = Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
@@ -164,6 +133,7 @@ export const CalendarProvider = ({ children }: Props) => {
 
             setMonths(months);
         }
+        setLoading(false);
     }
 
     return (

@@ -1,5 +1,4 @@
 import { monthsTranslation } from "@/constants/calendar";
-import { useTasks } from "@/hooks/database/use-tasks";
 import { INITIAL_RANGE, NUM_TO_ADD, useCalendar } from "@/hooks/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -20,7 +19,6 @@ export const Calendar = () => {
     const { width: screenWidth } = useWindowDimensions();
     const { i18n } = useTranslation();
     const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-    const { getTasksByDate } = useTasks();
     const { theme } = useTheme();
     const showMonthsList = useSharedValue<boolean>(false);
     const monthsFlatListRef = useRef<FlatList>(null);
@@ -34,6 +32,8 @@ export const Calendar = () => {
     const yearHeight = 30;
     const yearsGap = 12;
     const [listActive, setListActive] = useState<boolean>(false);
+    const generating = useRef<boolean>(false);
+    const targetMonth = useRef<Date>(null);
 
     const renderItem = useCallback(({ item }: { item: Date }) => (
         <CalendarDay
@@ -49,17 +49,6 @@ export const Calendar = () => {
     ), [i18n.language]);
 
     const dayWidth = useMemo(() => ((screenWidth - 24) / 7), [screenWidth]);
-
-    const handleGetTasks = async (month: Date) => {
-        try {
-            const data = await getTasksByDate(month, 10, 0);
-
-            console.log(data);
-        }
-        catch (e) {
-            console.log(e);
-        }
-    };
 
     const listContainerAnimation = useAnimatedStyle(() => ({
         opacity: (showMonthsList.value || showYearsList.value) ? 1 : 0,
@@ -173,13 +162,11 @@ export const Calendar = () => {
                     setListActive(false);
 
                     if (monthIndex == -1) {
+                        generating.current = true;
                         generateMonths("month", index, currentMonth);
-                        flatListRef.current?.scrollToIndex({
-                            index: INITIAL_RANGE,
-                            animated: false,
-                        });
                     }
                     else {
+                        targetMonth.current = new Date(currentMonth.getFullYear(), index, currentMonth.getDate());
                         flatListRef.current?.scrollToIndex({
                             index: monthIndex,
                         });
@@ -221,6 +208,7 @@ export const Calendar = () => {
                     setListActive(false);
 
                     if (yearIndex == -1) {
+                        generating.current = true;
                         generateMonths("year", year, currentMonth);
                     }
                     else {
@@ -253,46 +241,26 @@ export const Calendar = () => {
         );
     }, [currentMonth]);
 
-    useEffect(() => {
-        // setTimeout(() => {
-        //     prependPastMonths();
-        //     appendFutureMonths();
-        // }, 500);
-    }, []);
-
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetX = event.nativeEvent.contentOffset.x;
         const index = Math.round(offsetX / screenWidth);
 
-        requestAnimationFrame(() => {
-            setCurrentMonth(months[index]);
-        });
-
-        if (loadingRef.current) return;
-
-        indexRef.current = index;
-
-        if (
-            months[0].getFullYear() <= years[0]
-            ||
-            months[months.length - 1].getFullYear() >= years[years.length - 1]
-        ) {
-            console.log("Nope");
-            return;
-        }
+        index < months.length && index >= 0 && setCurrentMonth(months[index]);
         
-        console.log("Yep");
+        indexRef.current = index;
+        if (loadingRef.current || generating.current) return;
 
-        if (index < 12) {
+
+        if (index < INITIAL_RANGE && months[0].getFullYear() > years[0]) {
+            console.log("prepend");
             loadingRef.current = true;
             prepend.current = true;
-            console.log("prepend");
             prependPastMonths();
         }
 
-        if (index >= months.length - 12) {
-            loadingRef.current = true;
+        if (index >= (months.length - INITIAL_RANGE) && months[months.length - 1].getFullYear() < years[years.length - 1]) {
             console.log("append");
+            loadingRef.current = true;
             appendFutureMonths();
         }
     }
@@ -303,17 +271,44 @@ export const Calendar = () => {
                 if (!loading && loadingRef.current && prepend.current) {
                     const targetIndex = indexRef.current + NUM_TO_ADD;
 
-                    flatListRef.current?.scrollToIndex({
-                        index: targetIndex,
-                        animated: false,
-                    });
+                    if (targetMonth.current) {
+                        const index = months.findIndex(m => format(m, "MMMM yyyy") == format(targetMonth.current!, "MMMM yyyy"));
+
+                        if (index == -1) {
+                            flatListRef.current?.scrollToIndex({
+                                index: targetIndex,
+                                animated: false,
+                            });
+                        }
+                        else {
+                            flatListRef.current?.scrollToIndex({
+                                index,
+                                animated: false,
+                            });
+                        }
+                    }
+                    else {
+                        flatListRef.current?.scrollToIndex({
+                            index: targetIndex,
+                            animated: false,
+                        });
+                    }
+                    targetMonth.current = null;
                     loadingRef.current = false;
                     prepend.current = false;
                 }
-                else {
-                    setCurrentMonth(months[INITIAL_RANGE]);
-                    prepend.current = false;
+                else if (!loading && loadingRef.current && !prepend.current) {
+                    targetMonth.current = null;
                     loadingRef.current = false;
+                }
+                else if (generating.current) {
+                    setCurrentMonth(months[INITIAL_RANGE]);
+                    generating.current = false;
+                    loadingRef.current = false;
+                    flatListRef.current?.scrollToIndex({
+                        index: INITIAL_RANGE,
+                        animated: false,
+                    });
                 }
             });
         });
@@ -357,8 +352,11 @@ export const Calendar = () => {
                 <PressableAnimated
                     scale={.95}
                     onPress={() => {
+                        console.log("target month :", targetMonth.current);
+                        console.log("Generating ref :", generating.current);
+                        console.log("loading ref :", loadingRef.current);
                         console.log("current index :", indexRef.current);
-                        console.log("last months length :", prepend.current);
+                        console.log("Prepend :", prepend.current);
                         console.log("Months :", months.map(month => month.toString()));
                         console.log("Years :", years);
                     }}
@@ -373,12 +371,10 @@ export const Calendar = () => {
                     scale={.95}
                     onPress={() => {
                         reset();
+                        generating.current = true;
                         prepend.current = false;
                         loadingRef.current = false;
-                        flatListRef.current?.scrollToIndex({
-                            index: INITIAL_RANGE,
-                            animated: false,
-                        });
+                        targetMonth.current = null;
                     }}
                     className="w-[100px] h-[40px] flex justify-center items-center border dark:border-white/10 border-black/10 rounded-xl dark:bg-white/10 bg-white"
                 >
@@ -400,19 +396,18 @@ export const Calendar = () => {
                     // }}
                     onPress={() => {
                         const date = new Date();
+
+                        if (format(currentMonth, "MMMM yyyy") == format(date, "MMMM yyyy")) return;
+
                         const monthIndex = months.findIndex(m => format(m, "MMMM yyyy") == format(date, "MMMM yyyy"))
 
-                        if (monthIndex != -1) {
-                            flatListRef.current?.scrollToIndex({
-                                index: monthIndex,
-                                animated: true,
-                            });
+                        if (monthIndex == -1) {
+                            generating.current = true;
+                            generateMonths("year", date.getFullYear(), currentMonth);
                         }
                         else {
-                            reset();
                             flatListRef.current?.scrollToIndex({
-                                index: INITIAL_RANGE,
-                                animated: false,
+                                index: monthIndex,
                             });
                         }
                     }}

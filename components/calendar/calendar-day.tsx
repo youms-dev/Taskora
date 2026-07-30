@@ -2,7 +2,7 @@ import { COLORS } from "@/constants/colors";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
-import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, isToday, startOfMonth, startOfWeek } from "date-fns";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, useWindowDimensions, View } from "react-native";
@@ -35,27 +35,27 @@ export const CalendarDay = memo(({ active, month }: Props) => {
 
     const renderItem = useCallback(({ item: day, index }: { item: Date; index: number }) => {
         const today = isToday(day);
-        const date = day.getDate();
-        const isNotPartOfThisMonth = (String(date).length == 2 && index <= 5) || (String(date).length == 1 && index > days.length / 2);
+        const monthDay = day.getDate();
+        const isNotPartOfThisMonth = (String(monthDay).length == 2 && index <= 5) || (String(monthDay).length == 1 && index > days.length / 2);
 
         if (index >= 35) return (<></>);
-        const data = tasks.find(item => item[date]) || {
-            [date]: [],
+        const data = tasks.find(item => item[monthDay]) || {
+            [monthDay]: [],
         };
 
-        const dayTasks = data[date] || [];
+        const dayTasks = data[monthDay] || [];
 
         return (
             <Pressable
                 onPress={() => {
-                    // if (date == 1) {
+                    // if (monthDay == 1) {
                     //     // console.log(tasks);
                     //     console.log(data);
                     // }
-                    // else if (date == 2) {
+                    // else if (monthDay == 2) {
                     //     handleGetTasks();
                     // }
-                    // else if (date == 3) {
+                    // else if (monthDay == 3) {
                     //     setTasks([]);
                     // }
                     handleGetTasks();
@@ -77,7 +77,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                         isNotPartOfThisMonth && "opacity-50",
                     )}
                 >
-                    {date}
+                    {monthDay}
                 </TextAnimated>
 
                 {
@@ -112,15 +112,15 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                 const tasks: Record<number, TaskType[]>[] = [];
 
                 await Promise.all(days.map(async (day, index) => {
-                    const date = day.getDate();
-                    const isNotPartOfThisMonth = (String(date).length == 2 && index <= 5) || (String(date).length == 1 && index > days.length / 2);
+                    const monthDay = day.getDate();
+                    const isNotPartOfThisMonth = (String(monthDay).length == 2 && index <= 5) || (String(monthDay).length == 1 && index > days.length / 2);
 
                     if (isNotPartOfThisMonth) return;
                     const data = await getTasksByDate(day, 2, 0) as TaskType[];
 
                     tasks.push(
                         {
-                            [date]: data,
+                            [monthDay]: data,
                         }
                     );
                 }));
