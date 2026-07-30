@@ -132,7 +132,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                 loading.current = false;
                 console.log(e);
             }
-        }, 200);
+        }, 100);
     }, [month, tasks]);
 
     useEffect(() => {

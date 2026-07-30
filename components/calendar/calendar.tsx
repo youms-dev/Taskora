@@ -246,10 +246,9 @@ export const Calendar = () => {
         const index = Math.round(offsetX / screenWidth);
 
         index < months.length && index >= 0 && setCurrentMonth(months[index]);
-        
+
         indexRef.current = index;
         if (loadingRef.current || generating.current) return;
-
 
         if (index < INITIAL_RANGE && months[0].getFullYear() > years[0]) {
             console.log("prepend");
@@ -266,52 +265,48 @@ export const Calendar = () => {
     }
 
     useEffect(() => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (!loading && loadingRef.current && prepend.current) {
-                    const targetIndex = indexRef.current + NUM_TO_ADD;
+        if (!loading && loadingRef.current && prepend.current) {
+            const targetIndex = indexRef.current + NUM_TO_ADD;
 
-                    if (targetMonth.current) {
-                        const index = months.findIndex(m => format(m, "MMMM yyyy") == format(targetMonth.current!, "MMMM yyyy"));
+            if (targetMonth.current) {
+                const index = months.findIndex(m => format(m, "MMMM yyyy") == format(targetMonth.current!, "MMMM yyyy"));
 
-                        if (index == -1) {
-                            flatListRef.current?.scrollToIndex({
-                                index: targetIndex,
-                                animated: false,
-                            });
-                        }
-                        else {
-                            flatListRef.current?.scrollToIndex({
-                                index,
-                                animated: false,
-                            });
-                        }
-                    }
-                    else {
-                        flatListRef.current?.scrollToIndex({
-                            index: targetIndex,
-                            animated: false,
-                        });
-                    }
-                    targetMonth.current = null;
-                    loadingRef.current = false;
-                    prepend.current = false;
-                }
-                else if (!loading && loadingRef.current && !prepend.current) {
-                    targetMonth.current = null;
-                    loadingRef.current = false;
-                }
-                else if (generating.current) {
-                    setCurrentMonth(months[INITIAL_RANGE]);
-                    generating.current = false;
-                    loadingRef.current = false;
+                if (index == -1) {
                     flatListRef.current?.scrollToIndex({
-                        index: INITIAL_RANGE,
+                        index: targetIndex,
                         animated: false,
                     });
                 }
+                else {
+                    flatListRef.current?.scrollToIndex({
+                        index,
+                        animated: false,
+                    });
+                }
+            }
+            else {
+                flatListRef.current?.scrollToIndex({
+                    index: targetIndex,
+                    animated: false,
+                });
+            }
+            targetMonth.current = null;
+            loadingRef.current = false;
+            prepend.current = false;
+        }
+        else if (!loading && loadingRef.current && !prepend.current) {
+            targetMonth.current = null;
+            loadingRef.current = false;
+        }
+        else if (generating.current) {
+            setCurrentMonth(months[INITIAL_RANGE]);
+            generating.current = false;
+            loadingRef.current = false;
+            flatListRef.current?.scrollToIndex({
+                index: INITIAL_RANGE,
+                animated: false,
             });
-        });
+        }
     }, [months, loading]);
 
     const currentYearIndex = useMemo(() => {
@@ -587,8 +582,8 @@ export const Calendar = () => {
                 horizontal
                 pagingEnabled
                 scrollEventThrottle={16}
-                windowSize={INITIAL_RANGE * 2}
-                maxToRenderPerBatch={INITIAL_RANGE * 2}
+                windowSize={INITIAL_RANGE * 3}
+                maxToRenderPerBatch={INITIAL_RANGE * 3}
                 removeClippedSubviews={false}
                 initialScrollIndex={INITIAL_RANGE}
                 initialNumToRender={INITIAL_RANGE}

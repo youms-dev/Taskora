@@ -20,7 +20,7 @@ const Context = createContext<{
 });
 
 export const INITIAL_RANGE = 6;
-export const NUM_TO_ADD = 12;
+export const NUM_TO_ADD = 3;
 
 interface Props {
     children: ReactNode;
