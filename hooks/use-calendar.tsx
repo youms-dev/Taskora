@@ -35,7 +35,7 @@ export const CalendarProvider = ({ children }: Props) => {
 
     const prependPastMonths = async () => {
         setLoading(true);
-        if (loadingRef.current || months[0].getFullYear() <= years[0]) {
+        if (loadingRef.current || months[0].getFullYear() < years[0]) {
             setLoading(false);
             return;
         }
@@ -45,7 +45,9 @@ export const CalendarProvider = ({ children }: Props) => {
         for (let i = 0; i < NUM_TO_ADD; i++) {
             const m = startOfMonth(addMonths(firstMonth, -(i + 1)));
 
-            previousMonths.push(m);
+            if (m.getFullYear() >= years[0]) {
+                previousMonths.push(m);
+            }
         }
 
         setMonths((prev) => [...previousMonths.reverse(), ...prev]);
@@ -56,9 +58,8 @@ export const CalendarProvider = ({ children }: Props) => {
 
     const appendFutureMonths = async () => {
         setLoading(true);
-        if (loadingRef.current || months[months.length - 1].getFullYear() >= years[years.length - 1]) {
+        if (loadingRef.current || months[months.length - 1].getFullYear() > years[years.length - 1]) {
             setLoading(false);
-
             return;
         }
         const lastMonth = months[months.length - 1];
@@ -67,7 +68,9 @@ export const CalendarProvider = ({ children }: Props) => {
         for (let i = 0; i < NUM_TO_ADD; i++) {
             const m = startOfMonth(addMonths(lastMonth, i + 1));
 
-            nextMonths.push(m);
+            if (m.getFullYear() <= years[years.length - 1]) {
+                nextMonths.push(m);
+            }
         }
         setMonths((prev) => [...prev, ...nextMonths]);
 
@@ -118,7 +121,7 @@ export const CalendarProvider = ({ children }: Props) => {
         if (target == "month") {
             const targetDate = new Date(currentDate.getFullYear(), entry, 1);
 
-            const months = Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
+            const months = Array(INITIAL_RANGE + 2).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 
@@ -127,7 +130,7 @@ export const CalendarProvider = ({ children }: Props) => {
         else {
             const targetDate = new Date(entry, currentDate.getMonth(), 1);
 
-            const months = Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
+            const months = Array(INITIAL_RANGE + 2).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 

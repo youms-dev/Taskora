@@ -34,6 +34,8 @@ export const Calendar = () => {
     const [listActive, setListActive] = useState<boolean>(false);
     const generating = useRef<boolean>(false);
     const targetMonth = useRef<Date>(null);
+    const addable = useRef<boolean>(true);
+    const addableTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const renderItem = useCallback(({ item }: { item: Date }) => (
         <CalendarDay
@@ -161,8 +163,11 @@ export const Calendar = () => {
                     showMonthsList.value = false;
                     setListActive(false);
 
+                    if (currentMonth.getMonth() == index) return;
+
                     if (monthIndex == -1) {
                         generating.current = true;
+                        addable.current = false;
                         generateMonths("month", index, currentMonth);
                     }
                     else {
@@ -207,8 +212,11 @@ export const Calendar = () => {
                     showYearsList.value = false;
                     setListActive(false);
 
+                    if (currentMonth.getFullYear() == year) return;
+
                     if (yearIndex == -1) {
                         generating.current = true;
+                        addable.current = false;
                         generateMonths("year", year, currentMonth);
                     }
                     else {
@@ -248,16 +256,41 @@ export const Calendar = () => {
         index < months.length && index >= 0 && setCurrentMonth(months[index]);
 
         indexRef.current = index;
-        if (loadingRef.current || generating.current) return;
 
-        if (index < INITIAL_RANGE && months[0].getFullYear() > years[0]) {
+        if (loadingRef.current || generating.current || !addable.current) return;
+
+        if (
+            index < INITIAL_RANGE
+            &&
+            (
+                (
+                    months[0].getMonth() > 0
+                    &&
+                    months[0].getFullYear() == years[0]
+                )
+                ||
+                months[0].getFullYear() > years[0]
+            )
+        ) {
             console.log("prepend");
             loadingRef.current = true;
             prepend.current = true;
             prependPastMonths();
         }
 
-        if (index >= (months.length - INITIAL_RANGE) && months[months.length - 1].getFullYear() < years[years.length - 1]) {
+        if (
+            index >= (months.length - INITIAL_RANGE)
+            &&
+            (
+                (
+                    months[months.length - 1].getMonth() < 11
+                    &&
+                    months[months.length - 1].getFullYear() == years[years.length - 1]
+                )
+                ||
+                months[months.length - 1].getFullYear() < years[years.length - 1]
+            )
+        ) {
             console.log("append");
             loadingRef.current = true;
             appendFutureMonths();
@@ -265,6 +298,7 @@ export const Calendar = () => {
     }
 
     useEffect(() => {
+        addableTimeout.current && clearTimeout(addableTimeout.current);
         if (!loading && loadingRef.current && prepend.current) {
             const targetIndex = indexRef.current + NUM_TO_ADD;
 
@@ -306,13 +340,16 @@ export const Calendar = () => {
                 index: INITIAL_RANGE,
                 animated: false,
             });
+            addableTimeout.current = setTimeout(() => {
+                addable.current = true;
+            }, 500);
         }
     }, [months, loading]);
 
     const currentYearIndex = useMemo(() => {
         const index = years.findIndex(year => year == currentMonth.getFullYear());
 
-        return index;
+        return index != -1 ? index : 0;
     }, [currentMonth]);
 
     useEffect(() => {
@@ -347,6 +384,7 @@ export const Calendar = () => {
                 <PressableAnimated
                     scale={.95}
                     onPress={() => {
+                        console.log("addable :", addable.current);
                         console.log("target month :", targetMonth.current);
                         console.log("Generating ref :", generating.current);
                         console.log("loading ref :", loadingRef.current);
@@ -370,6 +408,7 @@ export const Calendar = () => {
                         prepend.current = false;
                         loadingRef.current = false;
                         targetMonth.current = null;
+                        addable.current = true;
                     }}
                     className="w-[100px] h-[40px] flex justify-center items-center border dark:border-white/10 border-black/10 rounded-xl dark:bg-white/10 bg-white"
                 >
@@ -398,6 +437,7 @@ export const Calendar = () => {
 
                         if (monthIndex == -1) {
                             generating.current = true;
+                            addable.current = false;
                             generateMonths("year", date.getFullYear(), currentMonth);
                         }
                         else {
@@ -558,9 +598,10 @@ export const Calendar = () => {
                                 keyExtractor={(year) => String(year)}
                                 renderItem={renderYearsListItem}
                                 initialScrollIndex={currentYearIndex}
-                                initialNumToRender={100}
+                                scrollEventThrottle={16}
+                                initialNumToRender={years.length / 2}
                                 removeClippedSubviews={false}
-                                maxToRenderPerBatch={100}
+                                maxToRenderPerBatch={years.length / 2}
                                 className="absolute w-full h-[200px]"
                                 getItemLayout={(_, index) => ({
                                     length: (yearHeight + yearsGap),
