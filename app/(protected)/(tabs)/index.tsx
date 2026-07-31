@@ -403,7 +403,7 @@ export default function Tasks() {
     const pathname = usePathname();
     const textInputRef = useRef<TextInput>(null);
     const otherElement = Gesture.Native();
-    const scrollY = useSharedValue<number>(0);
+    const scrollYShared = useSharedValue<number>(0);
     const translateY = useSharedValue<number>(0);
     const [left, setLeft] = useState<number>(0);
     const syncLoading = useRef<boolean>(false);
@@ -448,6 +448,7 @@ export default function Tasks() {
     const loadingRef = useRef<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const contentsSize = useRef<number[]>([]);
+    const [scrollY, setScrollY] = useState<number>(0);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -608,12 +609,12 @@ export default function Tasks() {
         .activeOffsetY(50)
         .failOffsetX([-10, 10])
         .onUpdate(({ translationY: y }) => {
-            if (scrollY.value == 0 && !quietProcessing.value) {
+            if (scrollYShared.value == 0 && !quietProcessing.value) {
                 translateY.value = y;
             }
         })
         .onEnd(() => {
-            if (scrollY.value > 0 || quietProcessing.value || translateY.value < 90) {
+            if (scrollYShared.value > 0 || quietProcessing.value || translateY.value < 90) {
                 translateY.value = 0;
             }
             else if (translateY.value >= 90) {
@@ -675,24 +676,27 @@ export default function Tasks() {
         }, 500);
     }
 
+    const setScrollYValue = (value: number) => setScrollY(value);
+
     const handleScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
             const y = e.contentOffset.y;
 
-            if (y >= 0 && y <= scrollY.value) {
+            if (y >= 0 && y <= scrollYShared.value) {
                 showAddTaskButton.value = true;
             }
             else {
                 showAddTaskButton.value = false;
             }
 
-            if (y > 0 && y < scrollY.value) {
+            if (y > 0 && y < scrollYShared.value) {
                 runOnJS(toggleShowScrollButton)();
             }
             else {
                 showScrollButton.value = false;
             }
-            scrollY.value = y;
+            scrollYShared.value = y;
+            runOnJS(setScrollYValue)(y);
         }
     });
 
@@ -807,7 +811,7 @@ export default function Tasks() {
         transform: [
             {
                 translateY: interpolate(
-                    scrollY.value,
+                    scrollYShared.value,
                     [0, scrollCheckPoint],
                     [0, -120],
                     Extrapolation.CLAMP,
@@ -820,7 +824,7 @@ export default function Tasks() {
         transform: [
             {
                 translateY: interpolate(
-                    scrollY.value,
+                    scrollYShared.value,
                     [0, scrollCheckPoint],
                     [0, 150],
                     Extrapolation.CLAMP,
@@ -828,19 +832,19 @@ export default function Tasks() {
             }
         ],
         opacity: interpolate(
-            scrollY.value,
+            scrollYShared.value,
             [0, scrollCheckPoint],
             [1, 0],
             Extrapolation.CLAMP,
         ),
-        zIndex: scrollY.value >= scrollCheckPoint * .1 ? -10 : 0,
+        zIndex: scrollYShared.value >= scrollCheckPoint * .1 ? -10 : 0,
     }));
 
     const fakeInputAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 translateY: interpolate(
-                    scrollY.value,
+                    scrollYShared.value,
                     [0, scrollCheckPoint],
                     [0, -100],
                     Extrapolation.CLAMP,
@@ -848,51 +852,52 @@ export default function Tasks() {
             }
         ],
         opacity: interpolate(
-            scrollY.value,
+            scrollYShared.value,
             [0, scrollCheckPoint],
             [1, 0],
             Extrapolation.CLAMP,
         ),
-        zIndex: scrollY.value >= scrollCheckPoint * .1 ? -10 : 0,
+        zIndex: scrollYShared.value >= scrollCheckPoint * .1 ? -10 : 0,
     }));
 
     const stickyAnimation = useAnimatedStyle(() => ({
-        width: withSpring(scrollY.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
+        width: withSpring(scrollYShared.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
             stiffness: 500,
             mass: 1,
             damping: 10,
         }),
         backgroundColor: themeShared.value == "dark" ? "black" : "white",
+        borderRadius: scrollYShared.value >= scrollCheckPoint * .5 ? 20 : 0,
     }));
 
     const folderAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollY.value >= scrollCheckPoint * .5 ?
+        backgroundColor: scrollYShared.value >= scrollCheckPoint * .5 ?
             (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .15)")
             :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .05)")
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .06)")
         ,
         borderWidth: 1,
-        borderColor: scrollY.value >= scrollCheckPoint * .5 ?
+        borderColor: scrollYShared.value >= scrollCheckPoint * .5 ?
             (themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)")
             :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .05)")
+            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .03)")
         ,
-        borderRadius: scrollY.value >= scrollCheckPoint * .5 ? 20 : 0,
+        borderRadius: scrollYShared.value >= scrollCheckPoint * .5 ? 20 : 0,
     }));
 
     const filterAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 translateX: interpolate(
-                    scrollY.value,
+                    scrollYShared.value,
                     [0, scrollCheckPoint],
                     [0, width],
                     Extrapolation.CLAMP,
                 )
             }
         ],
-        opacity: (scrollY.value == 0 && showFilter.value) ? 1 : .3,
-        pointerEvents: (scrollY.value == 0 && showFilter.value) ? "auto" : "none",
+        opacity: (scrollYShared.value == 0 && showFilter.value) ? 1 : .3,
+        pointerEvents: (scrollYShared.value == 0 && showFilter.value) ? "auto" : "none",
     }));
 
     const handleArchive = async () => {
@@ -1335,7 +1340,7 @@ export default function Tasks() {
                     >
                         <Animated.View
                             style={folderAnimation}
-                            className="w-full flex flex-row items-center gap-5 px-3 py-1"
+                            className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
                         >
                             {
                                 loading && !processing && tasks.length == 0 && (
@@ -1367,16 +1372,62 @@ export default function Tasks() {
                                             keyExtractor={(folder) => folder.idFolder}
                                             renderItem={({ item, index }) => foldersRenderItem(item, index)}
                                             className="w-[90%]"
-                                            contentContainerClassName="flex flex-row items-center gap-[10px]"
+                                            contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
                                         />
 
-                                        <PressableAnimated>
-                                            <FontAwesome5
-                                                name="folder-plus"
-                                                size={25}
-                                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                            />
-                                        </PressableAnimated>
+                                        <LinearGradient
+                                            colors={
+                                                scrollY >= scrollCheckPoint * .5 ?
+                                                    (
+                                                        theme == "dark" ?
+                                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                            :
+                                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                    )
+                                                    :
+                                                    (
+                                                        theme == "dark" ?
+                                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                            :
+                                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                    )
+                                            }
+                                            start={{ x: 1, y: 0 }}
+                                            end={{ x: 0, y: 0 }}
+                                            locations={[.5, .6, 1]}
+                                            className="absolute right-0 top-0 z-[10]"
+                                        >
+                                            <LinearGradient
+                                                colors={
+                                                    scrollY >= scrollCheckPoint * .5 ?
+                                                        (
+                                                            theme == "dark" ?
+                                                                ["rgba(255, 255, 255, .2)", "rgba(255, 255, 255, .2)", "rgba(255, 255, 255, 0)"]
+                                                                :
+                                                                ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(255, 255, 255, .2)"]
+                                                        )
+                                                        :
+                                                        (
+                                                            theme == "dark" ?
+                                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                                :
+                                                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .0)"]
+                                                        )
+                                                }
+                                                start={{ x: 1, y: 0 }}
+                                                end={{ x: 0, y: 0 }}
+                                                locations={[.5, .6, 1]}
+                                                className="w-full h-full flex justify-center items-center pl-10 pr-3 py-1"
+                                            >
+                                                <PressableAnimated>
+                                                    <FontAwesome5
+                                                        name="folder-plus"
+                                                        size={25}
+                                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                    />
+                                                </PressableAnimated>
+                                            </LinearGradient>
+                                        </LinearGradient>
                                     </>
                                 )
                             }
@@ -1397,55 +1448,39 @@ export default function Tasks() {
 
                         {
                             (!loading || tasks.length > 0) && (
-                                <>
-                                    <View className="absolute h-full flex flex-row items-center shrink-0 dark:bg-black bg-white z-[1]">
-                                        <View className="h-full flex flex-row items-center gap-2 px-3 dark:bg-black bg-[rgba(0,0,0,.06)]">
-                                            <TextAnimated className="text-lg">
-                                                {t("tasks_filter")}
-                                            </TextAnimated>
-                                            <FontAwesome5
-                                                name="filter"
-                                                size={15}
-                                                color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                            />
-                                        </View>
+                                <LinearGradient
+                                    colors={theme == "dark" ?
+                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                        :
+                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                    }
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
+                                    className="absolute left-0 top-0 z-[1]"
+                                >
+                                    <LinearGradient
+                                        colors={theme == "dark" ?
+                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                            :
+                                            ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                                        }
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
+                                        className="w-[100px] h-full flex flex-row items-center gap-2 px-3 py-1"
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("tasks_filter")}
+                                        </TextAnimated>
 
-                                        <LinearGradient
-                                            colors={theme == "dark" ? ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .2)"] : ["rgba(255, 255, 255, .8)", "rgba(255, 255, 255, .2)"]}
-                                            locations={[0, .9]}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={{
-                                                transform: [
-                                                    {
-                                                        translateX: 20,
-                                                    }
-                                                ],
-                                            }}
-                                            className="absolute right-0 w-[20px] h-full"
-                                        >
-                                            <View className="w-full h-full dark:bg-transparent bg-[rgba(0,0,0,.06)]" />
-                                        </LinearGradient>
-                                    </View>
-
-                                    <View className="absolute right-0 w-[30px] h-full z-[1] dark:bg-black/20 bg-white/20">
-                                        <LinearGradient
-                                            colors={theme == "dark" ? ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 1)"] : ["rgba(255, 255, 255, .5)", "rgba(255, 255, 255, 1)"]}
-                                            locations={[0, .3]}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            className="w-full h-full"
-                                        >
-                                            <LinearGradient
-                                                colors={theme == "dark" ? ["rgba(0, 0, 0, .05)", "rgba(0, 0, 0, 1)"] : ["rgba(255, 255, 255, .2)", "rgba(0, 0, 0, .06)"]}
-                                                locations={[0, .2]}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 0 }}
-                                                className="w-full h-full"
-                                            />
-                                        </LinearGradient>
-                                    </View>
-                                </>
+                                        <FontAwesome5
+                                            name="filter"
+                                            size={15}
+                                            color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                    </LinearGradient>
+                                </LinearGradient>
                             )
                         }
 
@@ -1457,7 +1492,7 @@ export default function Tasks() {
                                     showsHorizontalScrollIndicator={false}
                                     nestedScrollEnabled
                                     className="w-full"
-                                    contentContainerClassName="flex flex-row items-center gap-[10px] pl-[80px] pr-[20px]"
+                                    contentContainerClassName="flex flex-row items-center gap-[10px] pl-[85px] pr-[30px]"
                                 >
                                     {
                                         [
@@ -1500,6 +1535,30 @@ export default function Tasks() {
                                 </ScrollView>
                             )
                         }
+
+                        <LinearGradient
+                            colors={theme == "dark" ?
+                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                                :
+                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
+                            }
+                            start={{ x: 1, y: 0 }}
+                            end={{ x: 0, y: 0 }}
+                            locations={[.5, .6, 1]}
+                            className="absolute right-0 h-full z-[1]"
+                        >
+                            <LinearGradient
+                                colors={theme == "dark" ?
+                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                                    :
+                                    ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
+                                }
+                                start={{ x: 1, y: 0 }}
+                                end={{ x: 0, y: 0 }}
+                                locations={[.5, .6, 1]}
+                                className="w-[50px] h-full"
+                            />
+                        </LinearGradient>
                     </Animated.View>
                 </View>
 
@@ -1528,7 +1587,7 @@ export default function Tasks() {
                         <View className="size-full dark:bg-black/90 bg-white/80" />
                     </Animated.View>
                 </Animated.View>
-            </Animated.View>
+            </Animated.View >
 
             {
                 filterLoading && (
@@ -1668,71 +1727,92 @@ export default function Tasks() {
                 </Pressable>
             </Animated.View>
 
-            {/*Search section*/}
+            {/* Search section */}
 
             <Animated.View
                 style={searchSectionAnimation}
                 className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white"
             >
                 <View className="w-full h-full flex items-center dark:bg-black bg-[rgba(0,0,0,.05)]">
-                    <Animated.View
-                        style={searchHeaderAnimation}
-                        className="absolute left-0 top-0 w-full flex flex-row justify-between px-3 py-2 z-[10]"
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        locations={[.5, .6, 1]}
+                        className="absolute left-0 top-0 w-full z-[10]"
                     >
-                        <PressableAnimated
-                            onPress={() => {
-                                setIsSearchSectionActive(false);
-                                event.emit(SHOW_NAVBAR);
-                            }}
-                            className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
+                        <LinearGradient
+                            colors={theme == "dark" ?
+                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                :
+                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                            locations={[.5, .6, 1]}
+                            className="w-full flex flex-row justify-between px-3 pt-2 pb-8"
                         >
-                            <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full">
-                                <Entypo
-                                    name="chevron-left"
-                                    size={30}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </View>
-                        </PressableAnimated>
-
-                        <Animated.View
-                            style={textInputAnimation}
-                            className="absolute right-0 top-0 w-[80%] flex items-center overflow-hidden"
-                        >
-                            <KeyboardAvoidingView
-                                behavior={Platform.OS === "android" ? "height" : "padding"}
-                                className="w-full flex items-center px-2 dark:bg-black bg-white"
+                            <PressableAnimated
+                                onPress={() => {
+                                    setIsSearchSectionActive(false);
+                                    event.emit(SHOW_NAVBAR);
+                                }}
+                                className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
                             >
-                                <TextInput
-                                    ref={textInputRef}
-                                    placeholder={t("tasks_search")}
-                                    cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                                    placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                                    value={value}
-                                    onChangeText={(e) => {
-                                        setValue(e);
-                                        handleSearch(e);
-                                    }}
-                                    onSubmitEditing={() => handleSearch(value)}
-                                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
-                                />
-                                <PressableAnimated
-                                    onPress={() => value.trim().length == 0 ? textInputRef.current?.focus() : handleSearch(value)}
-                                    className="absolute top-4 right-5 z-[1]"
-                                >
-                                    <FontAwesome5
-                                        name="search"
-                                        size={24}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                                <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full">
+                                    <Entypo
+                                        name="chevron-left"
+                                        size={30}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                     />
-                                </PressableAnimated>
-                            </KeyboardAvoidingView>
-                        </Animated.View>
-                    </Animated.View>
+                                </View>
+                            </PressableAnimated>
+
+                            <Animated.View
+                                style={textInputAnimation}
+                                className="absolute right-0 top-0 w-[80%] flex items-center overflow-hidden"
+                            >
+                                <KeyboardAvoidingView
+                                    behavior={Platform.OS === "android" ? "height" : "padding"}
+                                    className="w-full flex items-center px-2 dark:bg-black bg-white"
+                                >
+                                    <TextInput
+                                        ref={textInputRef}
+                                        placeholder={t("tasks_search")}
+                                        cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
+                                        placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                        value={value}
+                                        onChangeText={(e) => {
+                                            setValue(e);
+                                            handleSearch(e);
+                                        }}
+                                        onSubmitEditing={() => handleSearch(value)}
+                                        className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
+                                    />
+
+                                    <PressableAnimated
+                                        onPress={() => value.trim().length == 0 ? textInputRef.current?.focus() : handleSearch(value)}
+                                        className="absolute top-4 right-5 z-[1]"
+                                    >
+                                        <FontAwesome5
+                                            name="search"
+                                            size={24}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                                        />
+                                    </PressableAnimated>
+                                </KeyboardAvoidingView>
+                            </Animated.View>
+                        </LinearGradient>
+                    </LinearGradient>
 
                     <FlatListAnimated
                         ref={searchFlatListRef}
                         horizontal={false}
+                        showsVerticalScrollIndicator={false}
                         windowSize={5}
                         removeClippedSubviews
                         initialNumToRender={10}
@@ -1795,8 +1875,39 @@ export default function Tasks() {
                         }}
                         contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
                     />
+
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        locations={[.5, .6, 1]}
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 0, y: 0 }}
+                        style={{
+                            transform: [
+                                {
+                                    translateY: -10,
+                                }
+                            ]
+                        }}
+                        className="absolute left-0 bottom-0 w-full z-[10]"
+                    >
+                        <LinearGradient
+                            colors={theme == "dark" ?
+                                ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                :
+                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
+                            }
+                            locations={[.5, .6, 1]}
+                            start={{ x: 0, y: 1 }}
+                            end={{ x: 0, y: 0 }}
+                            className="w-full h-[100px]"
+                        />
+                    </LinearGradient>
                 </View>
             </Animated.View>
-        </Container>
+        </Container >
     );
 }

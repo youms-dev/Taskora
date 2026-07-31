@@ -544,6 +544,28 @@ export default function Archives() {
 
     return (
         <Container centerX>
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                className="absolute left-0 top-0 w-full z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    className="w-full h-[20px]"
+                />
+            </LinearGradient>
+
             <View
                 style={{
                     transform: [
@@ -611,10 +633,10 @@ export default function Archives() {
                 scrollEventThrottle={16}
                 onScroll={onScroll}
                 onEndReachedThreshold={.1}
-                onEndReached={() => {
-                    if (loading || tasks.length >= count || selectMap.size > 0) return;
-                    handleGetTasks();
-                }}
+                // onEndReached={() => {
+                //     if (loading || tasks.length >= count || selectMap.size > 0) return;
+                //     handleGetTasks();
+                // }}
                 ListFooterComponent={() => {
                     if (loading) return (
                         <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
@@ -695,6 +717,28 @@ export default function Archives() {
                     </PressableAnimated>
                 </View>
             </Animated.View>
+
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 1 }}
+                end={{ x: 0, y: 0 }}
+                className="absolute left-0 bottom-0 w-full z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
+                    }
+                    start={{ x: 0, y: 1 }}
+                    end={{ x: 0, y: 0 }}
+                    className="w-full h-[30px]"
+                />
+            </LinearGradient>
         </Container>
     );
 }
