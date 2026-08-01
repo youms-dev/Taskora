@@ -633,10 +633,10 @@ export default function Archives() {
                 scrollEventThrottle={16}
                 onScroll={onScroll}
                 onEndReachedThreshold={.1}
-                // onEndReached={() => {
-                //     if (loading || tasks.length >= count || selectMap.size > 0) return;
-                //     handleGetTasks();
-                // }}
+                onEndReached={() => {
+                    if (loading || tasks.length >= count || selectMap.size > 0) return;
+                    handleGetTasks();
+                }}
                 ListFooterComponent={() => {
                     if (loading) return (
                         <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">

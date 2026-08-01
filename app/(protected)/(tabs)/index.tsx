@@ -837,7 +837,6 @@ export default function Tasks() {
             [1, 0],
             Extrapolation.CLAMP,
         ),
-        zIndex: scrollYShared.value >= scrollCheckPoint * .1 ? -10 : 0,
     }));
 
     const fakeInputAnimation = useAnimatedStyle(() => ({
@@ -857,7 +856,6 @@ export default function Tasks() {
             [1, 0],
             Extrapolation.CLAMP,
         ),
-        zIndex: scrollYShared.value >= scrollCheckPoint * .1 ? -10 : 0,
     }));
 
     const stickyAnimation = useAnimatedStyle(() => ({
@@ -977,6 +975,14 @@ export default function Tasks() {
         ),
         transform: [
             {
+                translateX: interpolate(
+                    searchScrollY.value,
+                    [0, searchScrollCheckPoint],
+                    [0, -5],
+                    Extrapolation.CLAMP,
+                )
+            },
+            {
                 translateY: interpolate(
                     searchScrollY.value,
                     [0, searchScrollCheckPoint],
@@ -991,14 +997,6 @@ export default function Tasks() {
             :
             (searchScrollY.value >= searchScrollCheckPoint ? "rgba(0, 0, 0, .1)" : "rgba(0, 0, 0, 0)"),
         borderRadius: 30,
-    }));
-
-    const searchHeaderAnimation = useAnimatedStyle(() => ({
-        backgroundColor: themeShared.value == "dark"
-            ?
-            "rgba(0, 0, 0, .5)"
-            :
-            (searchScrollY.value >= searchScrollCheckPoint ? "rgba(255, 255, 255, .6)" : "rgba(255, 255, 255, 0)")
     }));
 
     const searchSectionAnimation = useAnimatedStyle(() => ({
@@ -1287,307 +1285,331 @@ export default function Tasks() {
                 style={headerContainerAnimation}
                 className="absolute w-full h-[210px] z-[50]"
             >
-                <Animated.View
-                    style={headerAnimation}
-                    className="w-full flex items-center"
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    locations={[0, .8, 1]}
+                    className="w-full h-full"
                 >
-                    <PageTitle>
-                        <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                            <FontAwesome6
-                                name="list-check"
-                                size={20}
-                                color={COLORS.emerald[500]}
-                            />
-                            <Text
-                                numberOfLines={1}
-                                className="text-2xl text-emerald-500 font-bold"
-                            >
-                                {t("tasks_page_title")}
-                            </Text>
-                        </View>
-                    </PageTitle>
-                </Animated.View>
-
-                <Animated.View
-                    style={fakeInputAnimation}
-                    className="w-full flex items-center px-3"
-                >
-                    <Pressable
-                        onPress={() => {
-                            setTasksSelected([]);
-                            setIsSearchSectionActive(true);
-                            event.emit(HIDE_NAVBAR);
-                        }}
-                        className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
-                    >
-                        <TextAnimated className="opacity-40 text-lg">
-                            {t("tasks_search")}
-                        </TextAnimated>
-                        <View className="absolute top-4 right-5 -z-[1] pointer-events-none">
-                            <FontAwesome5
-                                name="search"
-                                size={24}
-                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
-                            />
-                        </View>
-                    </Pressable>
-                </Animated.View>
-
-                <View className="w-full flex items-center gap-1">
-                    <Animated.View
-                        style={stickyAnimation}
-                        className="flex items-center"
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        locations={[0, .8, 1]}
+                        className="w-full h-full"
                     >
                         <Animated.View
-                            style={folderAnimation}
-                            className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
+                            style={headerAnimation}
+                            className="w-full flex items-center"
                         >
-                            {
-                                loading && !processing && tasks.length == 0 && (
-                                    <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                        <Skeleton />
-                                    </View>
-                                )
-                            }
+                            <PageTitle>
+                                <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                                    <FontAwesome6
+                                        name="list-check"
+                                        size={20}
+                                        color={COLORS.emerald[500]}
+                                    />
+                                    <Text
+                                        numberOfLines={1}
+                                        className="text-2xl text-emerald-500 font-bold"
+                                    >
+                                        {t("tasks_page_title")}
+                                    </Text>
+                                </View>
+                            </PageTitle>
+                        </Animated.View>
 
-                            {
-                                (!loading || tasks.length > 0) && (
-                                    <>
-                                        <FlatList
-                                            ref={foldersFlatListRef}
+                        <Animated.View
+                            style={fakeInputAnimation}
+                            className="w-full flex items-center px-3"
+                        >
+                            <Pressable
+                                onPress={() => {
+                                    setTasksSelected([]);
+                                    setIsSearchSectionActive(true);
+                                    event.emit(HIDE_NAVBAR);
+                                }}
+                                className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
+                            >
+                                <TextAnimated className="opacity-40 text-lg">
+                                    {t("tasks_search")}
+                                </TextAnimated>
+                                <View className="absolute top-4 right-5 -z-[1] pointer-events-none">
+                                    <FontAwesome5
+                                        name="search"
+                                        size={24}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
+                                    />
+                                </View>
+                            </Pressable>
+                        </Animated.View>
+
+                        <View className="w-full flex items-center gap-1">
+                            <Animated.View
+                                style={stickyAnimation}
+                                className="flex items-center"
+                            >
+                                <Animated.View
+                                    style={folderAnimation}
+                                    className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
+                                >
+                                    {
+                                        loading && !processing && tasks.length == 0 && (
+                                            <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                                <Skeleton />
+                                            </View>
+                                        )
+                                    }
+
+                                    {
+                                        (!loading || tasks.length > 0) && (
+                                            <>
+                                                <FlatList
+                                                    ref={foldersFlatListRef}
+                                                    horizontal
+                                                    showsHorizontalScrollIndicator={false}
+                                                    nestedScrollEnabled
+                                                    snapToOffsets={foldersSnapOffset}
+                                                    decelerationRate="fast"
+                                                    data={[
+                                                        {
+                                                            idFolder: "all_folders",
+                                                            title: "all",
+                                                            createdAt: new Date(),
+                                                            updatedAt: new Date(),
+                                                        } as FolderType,
+                                                        ...folders,
+                                                    ]}
+                                                    keyExtractor={(folder) => folder.idFolder}
+                                                    renderItem={({ item, index }) => foldersRenderItem(item, index)}
+                                                    className="w-[90%]"
+                                                    contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
+                                                />
+
+                                                <LinearGradient
+                                                    colors={
+                                                        scrollY >= scrollCheckPoint * .5 ?
+                                                            (
+                                                                theme == "dark" ?
+                                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                                    :
+                                                                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                            )
+                                                            :
+                                                            (
+                                                                theme == "dark" ?
+                                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                                    :
+                                                                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                            )
+                                                    }
+                                                    start={{ x: 1, y: 0 }}
+                                                    end={{ x: 0, y: 0 }}
+                                                    locations={[.5, .6, 1]}
+                                                    className="absolute right-0 top-0 z-[10]"
+                                                >
+                                                    <LinearGradient
+                                                        colors={
+                                                            scrollY >= scrollCheckPoint * .5 ?
+                                                                (
+                                                                    theme == "dark" ?
+                                                                        ["rgba(255, 255, 255, .2)", "rgba(255, 255, 255, .2)", "rgba(255, 255, 255, 0)"]
+                                                                        :
+                                                                        ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(255, 255, 255, .2)"]
+                                                                )
+                                                                :
+                                                                (
+                                                                    theme == "dark" ?
+                                                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                                                                        :
+                                                                        ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .0)"]
+                                                                )
+                                                        }
+                                                        start={{ x: 1, y: 0 }}
+                                                        end={{ x: 0, y: 0 }}
+                                                        locations={[.5, .6, 1]}
+                                                        className="w-full h-full flex justify-center items-center pl-10 pr-3 py-1"
+                                                    >
+                                                        <PressableAnimated>
+                                                            <FontAwesome5
+                                                                name="folder-plus"
+                                                                size={25}
+                                                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                            />
+                                                        </PressableAnimated>
+                                                    </LinearGradient>
+                                                </LinearGradient>
+                                            </>
+                                        )
+                                    }
+                                </Animated.View>
+                            </Animated.View>
+
+                            <Animated.View
+                                style={filterAnimation}
+                                className="w-full flex flex-row items-center gap-3 px-3 py-1"
+                            >
+                                {
+                                    loading && !processing && tasks.length == 0 && (
+                                        <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                            <Skeleton />
+                                        </View>
+                                    )
+                                }
+
+                                {
+                                    (!loading || tasks.length > 0) && (
+                                        <LinearGradient
+                                            colors={theme == "dark" ?
+                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                :
+                                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
+                                            className="absolute left-0 top-0 z-[1]"
+                                        >
+                                            <LinearGradient
+                                                colors={theme == "dark" ?
+                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                    :
+                                                    ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                                                }
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
+                                                className="w-[100px] h-full flex flex-row items-center gap-2 px-3 py-1"
+                                            >
+                                                <TextAnimated className="text-lg">
+                                                    {t("tasks_filter")}
+                                                </TextAnimated>
+
+                                                <FontAwesome5
+                                                    name="filter"
+                                                    size={15}
+                                                    color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                                />
+                                            </LinearGradient>
+                                        </LinearGradient>
+                                    )
+                                }
+
+                                {
+                                    (!loading || tasks.length > 0) && (
+                                        <ScrollView
+                                            ref={filterScrollViewRef}
                                             horizontal
                                             showsHorizontalScrollIndicator={false}
                                             nestedScrollEnabled
-                                            snapToOffsets={foldersSnapOffset}
-                                            decelerationRate="fast"
-                                            data={[
-                                                {
-                                                    idFolder: "all_folders",
-                                                    title: "all",
-                                                    createdAt: new Date(),
-                                                    updatedAt: new Date(),
-                                                } as FolderType,
-                                                ...folders,
-                                            ]}
-                                            keyExtractor={(folder) => folder.idFolder}
-                                            renderItem={({ item, index }) => foldersRenderItem(item, index)}
-                                            className="w-[90%]"
-                                            contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
-                                        />
-
-                                        <LinearGradient
-                                            colors={
-                                                scrollY >= scrollCheckPoint * .5 ?
-                                                    (
-                                                        theme == "dark" ?
-                                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                            :
-                                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                                    )
-                                                    :
-                                                    (
-                                                        theme == "dark" ?
-                                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                            :
-                                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                                    )
-                                            }
-                                            start={{ x: 1, y: 0 }}
-                                            end={{ x: 0, y: 0 }}
-                                            locations={[.5, .6, 1]}
-                                            className="absolute right-0 top-0 z-[10]"
+                                            className="w-full"
+                                            contentContainerClassName="flex flex-row items-center gap-[10px] pl-[85px] pr-[30px]"
                                         >
-                                            <LinearGradient
-                                                colors={
-                                                    scrollY >= scrollCheckPoint * .5 ?
-                                                        (
-                                                            theme == "dark" ?
-                                                                ["rgba(255, 255, 255, .2)", "rgba(255, 255, 255, .2)", "rgba(255, 255, 255, 0)"]
+                                            {
+                                                [
+                                                    t("tasks_filter_all"),
+                                                    t("tasks_filter_done"),
+                                                    t("tasks_filter_not_done"),
+                                                ].map((item, i) => (
+                                                    <PressableAnimated
+                                                        key={i}
+                                                        scale={.95}
+                                                        onPress={() => {
+                                                            setCurrentFilter(i + 1);
+                                                            handleFilter(i == 0 ? null : (i == 1 ? true : false));
+                                                            filterScrollViewRef.current?.scrollTo({
+                                                                x: i * 100,
+                                                                animated: true,
+                                                            });
+                                                        }}
+                                                        style={{
+                                                            backgroundColor: currentFilter == (i + 1) ?
+                                                                (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
                                                                 :
-                                                                ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(255, 255, 255, .2)"]
-                                                        )
-                                                        :
-                                                        (
-                                                            theme == "dark" ?
-                                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                                :
-                                                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .0)"]
-                                                        )
-                                                }
-                                                start={{ x: 1, y: 0 }}
-                                                end={{ x: 0, y: 0 }}
-                                                locations={[.5, .6, 1]}
-                                                className="w-full h-full flex justify-center items-center pl-10 pr-3 py-1"
-                                            >
-                                                <PressableAnimated>
-                                                    <FontAwesome5
-                                                        name="folder-plus"
-                                                        size={25}
-                                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                                    />
-                                                </PressableAnimated>
-                                            </LinearGradient>
-                                        </LinearGradient>
-                                    </>
-                                )
-                            }
-                        </Animated.View>
-                    </Animated.View>
+                                                                (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
+                                                        }}
+                                                        className="w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                                    >
+                                                        <TextAnimated
+                                                            dark={currentFilter == (i + 1) ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
+                                                            light={currentFilter == (i + 1) ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                            className={clsx(
+                                                                "text-lg",
+                                                                currentFilter == i + 1 && "font-bold",
+                                                            )}
+                                                        >
+                                                            {item}
+                                                        </TextAnimated>
+                                                    </PressableAnimated>
+                                                ))
+                                            }
+                                        </ScrollView>
+                                    )
+                                }
 
-                    <Animated.View
-                        style={filterAnimation}
-                        className="w-full flex flex-row items-center gap-3 px-3 py-1"
-                    >
-                        {
-                            loading && !processing && tasks.length == 0 && (
-                                <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                    <Skeleton />
-                                </View>
-                            )
-                        }
-
-                        {
-                            (!loading || tasks.length > 0) && (
                                 <LinearGradient
                                     colors={theme == "dark" ?
-                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
                                         :
-                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
                                     }
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
-                                    className="absolute left-0 top-0 z-[1]"
+                                    start={{ x: 1, y: 0 }}
+                                    end={{ x: 0, y: 0 }}
+                                    locations={[.5, .6, 1]}
+                                    className="absolute right-0 h-full z-[1]"
                                 >
                                     <LinearGradient
                                         colors={theme == "dark" ?
-                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
                                             :
-                                            ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                                            ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
                                         }
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        locations={theme == "dark" ? [.5, .7, 1] : [.5, .8, 1]}
-                                        className="w-[100px] h-full flex flex-row items-center gap-2 px-3 py-1"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("tasks_filter")}
-                                        </TextAnimated>
-
-                                        <FontAwesome5
-                                            name="filter"
-                                            size={15}
-                                            color={theme === "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                        />
-                                    </LinearGradient>
+                                        start={{ x: 1, y: 0 }}
+                                        end={{ x: 0, y: 0 }}
+                                        locations={[.5, .6, 1]}
+                                        className="w-[50px] h-full"
+                                    />
                                 </LinearGradient>
-                            )
-                        }
+                            </Animated.View>
+                        </View>
 
-                        {
-                            (!loading || tasks.length > 0) && (
-                                <ScrollView
-                                    ref={filterScrollViewRef}
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    nestedScrollEnabled
-                                    className="w-full"
-                                    contentContainerClassName="flex flex-row items-center gap-[10px] pl-[85px] pr-[30px]"
-                                >
-                                    {
-                                        [
-                                            t("tasks_filter_all"),
-                                            t("tasks_filter_done"),
-                                            t("tasks_filter_not_done"),
-                                        ].map((item, i) => (
-                                            <PressableAnimated
-                                                key={i}
-                                                scale={.95}
-                                                onPress={() => {
-                                                    setCurrentFilter(i + 1);
-                                                    handleFilter(i == 0 ? null : (i == 1 ? true : false));
-                                                    filterScrollViewRef.current?.scrollTo({
-                                                        x: i * 100,
-                                                        animated: true,
-                                                    });
-                                                }}
-                                                style={{
-                                                    backgroundColor: currentFilter == (i + 1) ?
-                                                        (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
-                                                        :
-                                                        (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
-                                                }}
-                                                className="w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/20 border-black/20"
-                                            >
-                                                <TextAnimated
-                                                    dark={currentFilter == (i + 1) ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
-                                                    light={currentFilter == (i + 1) ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                                    className={clsx(
-                                                        "text-lg",
-                                                        currentFilter == i + 1 && "font-bold",
-                                                    )}
-                                                >
-                                                    {item}
-                                                </TextAnimated>
-                                            </PressableAnimated>
-                                        ))
-                                    }
-                                </ScrollView>
-                            )
-                        }
-
-                        <LinearGradient
-                            colors={theme == "dark" ?
-                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
-                                :
-                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
-                            }
-                            start={{ x: 1, y: 0 }}
-                            end={{ x: 0, y: 0 }}
-                            locations={[.5, .6, 1]}
-                            className="absolute right-0 h-full z-[1]"
-                        >
-                            <LinearGradient
-                                colors={theme == "dark" ?
-                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
-                                    :
-                                    ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
+                        <Animated.View
+                            onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
+                            style={[
+                                refreshPanAnimation,
+                                {
+                                    left,
                                 }
-                                start={{ x: 1, y: 0 }}
-                                end={{ x: 0, y: 0 }}
-                                locations={[.5, .6, 1]}
-                                className="w-[50px] h-full"
-                            />
-                        </LinearGradient>
-                    </Animated.View>
-                </View>
+                            ]}
+                            className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
+                        >
+                            <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
+                                <Octicons
+                                    name="tasklist"
+                                    size={25}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                />
+                            </View>
 
-                <Animated.View
-                    onLayout={(e) => setLeft((width / 2) - (e.nativeEvent.layout.width / 2))}
-                    style={[
-                        refreshPanAnimation,
-                        {
-                            left,
-                        }
-                    ]}
-                    className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
-                >
-                    <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
-                        <Octicons
-                            name="tasklist"
-                            size={25}
-                            color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                        />
-                    </View>
-
-                    <Animated.View
-                        style={showRefreshAnimation}
-                        className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
-                    >
-                        <View className="size-full dark:bg-black/90 bg-white/80" />
-                    </Animated.View>
-                </Animated.View>
-            </Animated.View >
+                            <Animated.View
+                                style={showRefreshAnimation}
+                                className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
+                            >
+                                <View className="size-full dark:bg-black/90 bg-white/80" />
+                            </Animated.View>
+                        </Animated.View>
+                    </LinearGradient>
+                </LinearGradient>
+            </Animated.View>
 
             {
                 filterLoading && (
@@ -1953,6 +1975,6 @@ export default function Tasks() {
                     </LinearGradient>
                 </View>
             </Animated.View>
-        </Container >
+        </Container>
     );
 }
