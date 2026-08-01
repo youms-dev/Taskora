@@ -58,6 +58,7 @@ export default function Layout() {
     const minimizeShared = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [minimize, setMinimize] = useState<boolean>(false);
+    const navHeight = useSharedValue<number>(0);
 
     useEffect(() => {
         const onOpen = () => {
@@ -89,18 +90,28 @@ export default function Layout() {
         }
     }, []);
 
-    const navAnimation = useAnimatedStyle(() => ({
+    const navContainerAnimation = useAnimatedStyle(() => ({
         right: minimizeShared.value ?
             withTiming(10, {
+                duration: 500,
                 easing: Easing.inOut(Easing.quad),
-                duration: 200,
             })
             :
-            ((sharedScreenWidth.value / 2) - (navWidth.value / 2)),
+            ((sharedScreenWidth.value / 2) - (navWidth.value / 2))
+        ,
         width: withTiming(minimizeShared.value ?
             45
             :
             (sharedScreenWidth.value <= 500 ? (sharedScreenWidth.value * .92) : 380),
+            {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            }
+        ),
+        height: withTiming(minimizeShared.value ?
+            45
+            :
+            navHeight.value,
             {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad),
@@ -139,6 +150,20 @@ export default function Layout() {
         }
     }, [minimize, pathname]);
 
+    const navAnimation = useAnimatedStyle(() => ({
+        opacity: minimizeShared.value ? 0 : withTiming(1, {
+            duration: 600,
+            easing: Easing.inOut(Easing.quad),
+        }),
+    }));
+
+    const navShadowAnimation = useAnimatedStyle(() => ({
+        opacity: minimizeShared.value ? 0 : withTiming(1, {
+            duration: 600,
+            easing: Easing.inOut(Easing.quad),
+        }),
+    }));
+
     return (
         <Tabs
             screenOptions={{
@@ -147,101 +172,110 @@ export default function Layout() {
             }}
             tabBar={() => (
                 <Animated.View
-                    onLayout={(e) => navWidth.value = e.nativeEvent.layout.width}
                     style={[
-                        navAnimation,
+                        navContainerAnimation,
                     ]}
-                    className="absolute bottom-0 border dark:border-white/20 border-black/20 z-[9999]"
+                    className="absolute bottom-0 z-[9999]"
                 >
-                    {
-                        minimize && (
-                            <PressableAnimated
-                                onPress={() => setMinimize(false)}
-                                className="dark:bg-black bg-white rounded-full"
-                            >
-                                <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full p-3">
-                                    <Feather
-                                        name="maximize-2"
-                                        size={20}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .8)"}
-                                    />
-                                </View>
-                            </PressableAnimated>
-                        )
-                    }
+                    <PressableAnimated
+                        onPress={() => setMinimize(false)}
+                        style={{
+                            zIndex: minimize ? 1 : -1,
+                            opacity: minimize ? 1 : 0,
+                        }}
+                        className="absolute dark:bg-black bg-white rounded-full"
+                    >
+                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full p-3">
+                            <Feather
+                                name="maximize-2"
+                                size={20}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .8)"}
+                            />
+                        </View>
+                    </PressableAnimated>
 
-                    {
-                        !minimize && (
-                            <View className="w-full dark:bg-black bg-white rounded-[50px]">
-                                <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px]">
-                                    <View
-                                        style={{
-                                            transform: [
-                                                {
-                                                    translateY: 10,
-                                                }
-                                            ],
-                                            filter: "blur(5px)"
-                                        }}
-                                        className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
-                                    />
+                    <Animated.View
+                        onLayout={(e) => {
+                            navWidth.value = e.nativeEvent.layout.width;
+                            navHeight.value = e.nativeEvent.layout.height;
+                        }}
+                        style={[
+                            {
+                                zIndex: minimize ? -1 : 1,
+                            },
+                            navAnimation,
+                        ]}
+                        className="absolute dark:bg-black bg-white rounded-[50px] shrink-0"
+                    >
+                        <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px] border dark:border-white/20 border-black/20">
+                            <Animated.View
+                                style={[
+                                    {
+                                        transform: [
+                                            {
+                                                translateY: 10,
+                                            }
+                                        ],
+                                        filter: "blur(5px)"
+                                    },
+                                    navShadowAnimation,
+                                ]}
+                                className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
+                            />
 
-                                    <NavButton
-                                        name={t("nav_tasks")}
-                                        focused={pathname == "/"}
-                                        icon={(
-                                            <FontAwesome6
-                                                name="list-check"
-                                                size={25}
-                                                color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                            />
-                                        )}
-                                        onPress={() => router.navigate("/")}
+                            <NavButton
+                                name={t("nav_tasks")}
+                                focused={pathname == "/"}
+                                icon={(
+                                    <FontAwesome6
+                                        name="list-check"
+                                        size={25}
+                                        color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                     />
+                                )}
+                                onPress={() => router.navigate("/")}
+                            />
 
-                                    <NavButton
-                                        name={t("agenda")}
-                                        focused={pathname == "/agenda"}
-                                        icon={(
-                                            <Fontisto
-                                                name="calendar"
-                                                size={25}
-                                                color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                            />
-                                        )}
-                                        onPress={() => router.navigate("/agenda")}
+                            <NavButton
+                                name={t("agenda")}
+                                focused={pathname == "/agenda"}
+                                icon={(
+                                    <Fontisto
+                                        name="calendar"
+                                        size={25}
+                                        color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                     />
+                                )}
+                                onPress={() => router.navigate("/agenda")}
+                            />
 
-                                    <NavButton
-                                        name={t("notifications")}
-                                        focused={pathname == "/notifications"}
-                                        icon={(
-                                            <Entypo
-                                                name="bell"
-                                                size={25}
-                                                color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                            />
-                                        )}
-                                        onPress={() => router.navigate("/notifications")}
+                            <NavButton
+                                name={t("notifications")}
+                                focused={pathname == "/notifications"}
+                                icon={(
+                                    <Entypo
+                                        name="bell"
+                                        size={25}
+                                        color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                     />
+                                )}
+                                onPress={() => router.navigate("/notifications")}
+                            />
 
-                                    <NavButton
-                                        name={t("settings")}
-                                        focused={pathname == "/settings"}
-                                        icon={(
-                                            <FontAwesome6
-                                                name="gears"
-                                                size={25}
-                                                color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                            />
-                                        )}
-                                        onPress={() => router.navigate("/settings")}
+                            <NavButton
+                                name={t("settings")}
+                                focused={pathname == "/settings"}
+                                icon={(
+                                    <FontAwesome6
+                                        name="gears"
+                                        size={25}
+                                        color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                     />
-                                </View>
-                            </View>
-                        )
-                    }
-
+                                )}
+                                onPress={() => router.navigate("/settings")}
+                            />
+                        </View>
+                    </Animated.View>
                 </Animated.View>
             )}
         >

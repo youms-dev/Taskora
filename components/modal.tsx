@@ -1,6 +1,5 @@
 import { useTheme } from "@/hooks/use-theme";
 import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
-import { usePathname } from "expo-router";
 import { CSSProperties, ReactNode, RefObject, useEffect, useRef } from "react";
 import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, ScrollView, ScrollViewProps, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -24,6 +23,7 @@ interface Props extends Omit<ScrollViewProps, "ref"> {
     zIndex?: number;
     background?: CSSProperties["backgroundColor"];
     children?: ReactNode;
+    draggingDragHandlerColor?: CSSProperties["backgroundColor"];
 }
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -73,6 +73,8 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
  * 
  * @param children The children of the modal
  * 
+ * @param draggingDragHandlerColor
+ * 
  * @returns Modal component 
  */
 
@@ -93,6 +95,7 @@ export const Modal = ({
     zIndex: modalZIndex = 1000,
     background: modalBackground = "transparent",
     children,
+    draggingDragHandlerColor,
     ...rest
 }: Props) => {
     const { width: dW, height: dH } = useWindowDimensions();
@@ -109,7 +112,7 @@ export const Modal = ({
     const { theme } = useTheme();
     const dragging = useSharedValue<boolean>(false);
     const appTheme = useSharedValue<typeof theme>(theme);
-    const pathname = usePathname();
+    const draggingDragHandlerColorShared = useSharedValue<typeof draggingDragHandlerColor>(undefined);
 
     const panAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -210,9 +213,15 @@ export const Modal = ({
 
     const dragHandlerAnimation = useAnimatedStyle(() => ({
         backgroundColor: withTiming(dragging.value ?
-            (appTheme.value == "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)")
+            (
+                draggingDragHandlerColorShared.value ?
+                    draggingDragHandlerColorShared.value
+                    :
+                    (appTheme.value == "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)")
+            )
             :
-            (appTheme.value == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"),
+            (appTheme.value == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)")
+            ,
             {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad),
@@ -227,6 +236,10 @@ export const Modal = ({
     useEffect(() => {
         hideValue.value = dH + (dH * .2);
     }, [dH]);
+
+    useEffect(() => {
+        draggingDragHandlerColorShared.value = draggingDragHandlerColor;
+    }, [draggingDragHandlerColor]);
 
     return (
         <AnimatedKeyboardAvoidingView
@@ -266,7 +279,7 @@ export const Modal = ({
                 >
                     <View className="w-full h-full flex items-center">
                         <View className="absolute w-full z-[1] dark:bg-black bg-white">
-                            <View className=" w-full flex justify-center items-center dark:bg-white/20 bg-black/20">
+                            <View className=" w-full flex justify-center items-center dark:bg-white/20 bg-white">
                                 {
                                     typeof dragHandler != "boolean" && (
                                         dragHandler ?

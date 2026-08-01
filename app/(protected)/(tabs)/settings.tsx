@@ -16,6 +16,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
@@ -44,10 +45,6 @@ export default function Settings() {
         setScroll(value);
     }
 
-    const forceScroll = (value: number) => {
-
-    }
-
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
             const y = e.contentOffset.y;
@@ -67,10 +64,10 @@ export default function Settings() {
     }));
 
     const headerAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollY.value >= (headerHeight - minHeaderHeight) ?
-            appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, .95)"
-            :
-            appTheme.value == "dark" ? "rgba(0, 0, 0, .9)" : "rgba(255, 255, 255, .2)",
+        // backgroundColor: scrollY.value >= (headerHeight - minHeaderHeight) ?
+        //     appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, .95)"
+        //     :
+        //     appTheme.value == "dark" ? "rgba(0, 0, 0, .9)" : "rgba(255, 255, 255, .2)",
     }));
 
     const avatarAnimation = useAnimatedStyle(() => ({
@@ -184,56 +181,91 @@ export default function Settings() {
     return (
         <Container safeArea={false}>
             <StatusBar
-                style={scroll >= (headerHeight - minHeaderHeight) ? (theme == "dark" ? "light" : "dark") : "light"}
+                style={scroll >= ((headerHeight - minHeaderHeight) * .6) ? (theme == "dark" ? "light" : "dark") : "light"}
                 translucent
             />
 
             <View className="flex-1 dark:bg-black bg-white/10">
                 <Animated.View
                     style={headerContainerAnimation}
-                    className="absolute top-0 left-0 w-full z-[100] overflow-hidden dark:bg-white bg-black"
+                    className="absolute top-0 left-0 w-full z-[100] overflow-hidden"
                 >
-                    <Animated.View
-                        style={headerAnimation}
-                        className="w-full h-full flex justify-center items-center gap-12 overflow-hidden"
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        locations={[0, .7, 1]}
+                        className="w-full"
                     >
-                        <Animated.View style={avatarAnimation}>
-                            <Avatar
-                                size={130}
-                                name="Youmbi Le-duc"
-                            />
-                        </Animated.View>
-
-                        <Animated.View style={usernameAnimation}>
-                            <View className="w-full flex items-center">
-                                <TextAnimated
-                                    dark="rgba(255, 255, 255, .8)"
-                                    light="rgba(255, 255, 255, .8)"
-                                    className="text-lg font-bold tracking-widest"
-                                >
-                                    Youmbi Le-duc
-                                </TextAnimated>
-                            </View>
-                        </Animated.View>
-
-                        <Animated.View
-                            style={titleAnimation}
-                            className="absolute left-0 top-0 w-full h-full flex justify-center items-center border-b dark:border-b-white/20 border-b-black/20 pt-8"
+                        <LinearGradient
+                            colors={
+                                scroll >= ((headerHeight - minHeaderHeight) * .6) ?
+                                    (
+                                        theme == "dark" ?
+                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                                            :
+                                            ["rgba(255, 255, 255, .04)", "rgba(255, 255, 255, .04)", "rgba(255, 255, 255, 0)"]
+                                    )
+                                    :
+                                    (
+                                        theme == "dark" ?
+                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)"]
+                                            :
+                                            ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)"]
+                                    )
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                            locations={[0, .7, 1]}
+                            className="w-full h-full"
                         >
-                            <PageTitle>
-                                <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                                    <FontAwesome6
-                                        name="gears"
-                                        size={25}
-                                        color={COLORS.emerald[500]}
+                            <Animated.View
+                                style={headerAnimation}
+                                className="w-full h-full flex justify-center items-center gap-12 overflow-hidden"
+                            >
+                                <Animated.View style={avatarAnimation}>
+                                    <Avatar
+                                        size={130}
+                                        name="Youmbi Le-duc"
                                     />
-                                    <Text className="text-xl text-emerald-500 font-bold">
-                                        {t("settings")}
-                                    </Text>
-                                </View>
-                            </PageTitle>
-                        </Animated.View>
-                    </Animated.View>
+                                </Animated.View>
+
+                                <Animated.View style={usernameAnimation}>
+                                    <View className="w-full flex items-center">
+                                        <TextAnimated
+                                            dark="rgba(255, 255, 255, .8)"
+                                            light="rgba(255, 255, 255, .8)"
+                                            className="text-lg font-bold tracking-widest"
+                                        >
+                                            Youmbi Le-duc
+                                        </TextAnimated>
+                                    </View>
+                                </Animated.View>
+
+                                <Animated.View
+                                    style={titleAnimation}
+                                    className="absolute left-0 top-0 w-full h-full flex justify-center items-center pt-8"
+                                >
+                                    <PageTitle>
+                                        <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                                            <FontAwesome6
+                                                name="gears"
+                                                size={25}
+                                                color={COLORS.emerald[500]}
+                                            />
+                                            <Text className="text-xl text-emerald-500 font-bold">
+                                                {t("settings")}
+                                            </Text>
+                                        </View>
+                                    </PageTitle>
+                                </Animated.View>
+                            </Animated.View>
+                        </LinearGradient>
+                    </LinearGradient>
                 </Animated.View>
 
                 <AnimatedScrollView
@@ -559,6 +591,28 @@ export default function Settings() {
                     </View>
                 </AnimatedScrollView>
             </View>
+
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 1 }}
+                end={{ x: 0, y: 0 }}
+                className="absolute left-0 bottom-0 w-full z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                    }
+                    start={{ x: 0, y: 1 }}
+                    end={{ x: 0, y: 0 }}
+                    className="w-full h-[50px]"
+                />
+            </LinearGradient>
         </Container>
     );
 }

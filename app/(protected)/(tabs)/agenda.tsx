@@ -1,4 +1,4 @@
-import { Calendar } from "@/components/calendar/calendar";
+import { Calendar } from "@/components/agenda/calendar";
 import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
 import { COLORS } from "@/constants/colors";

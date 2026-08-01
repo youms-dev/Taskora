@@ -1,5 +1,4 @@
 import { View } from "react-native";
-import { Shadow } from "./shadow";
 import { TextAnimated } from "./text-animated";
 
 interface Props {
@@ -33,7 +32,6 @@ export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
             }}
             className="flex shrink-0 justify-center items-center dark:bg-white/20 bg-white rounded-full border dark:border-white/20 border-black/10"
         >
-            <Shadow />
             <TextAnimated
                 numberOfLines={1}
                 style={{

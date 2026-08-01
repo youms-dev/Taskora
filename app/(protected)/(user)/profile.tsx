@@ -78,19 +78,34 @@ export default function Profile() {
             </View>
 
             <ScrollView
+                showsVerticalScrollIndicator={false}
                 className="w-full h-full"
                 contentContainerClassName="w-full flex items-center pb-[100px]"
             >
                 <View>
-                    <Avatar
-                        size={200}
-                        name="Youmbi Le-duc"
-                    />
+                    <View>
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    }
+                                ],
+                                filter: "blur(5px)"
+                            }}
+                            className="absolute bottom-0 w-full h-full bg-black/10 -z-[1] rounded-full"
+                        />
+
+                        <Avatar
+                            size={200}
+                            name="Youmbi Le-duc"
+                        />
+                    </View>
 
                     <PressableAnimated
                         scale={.8}
                         onPress={() => setCameraModalActive(true)}
-                        className="absolute bottom-0 right-0 bg-emerald-500 rounded-full p-3 shadow-lg shadow-black"
+                        className="absolute bottom-0 right-0 size-[50px] flex justify-center items-center bg-emerald-500 rounded-full shadow-lg shadow-black"
                     >
                         <FontAwesome
                             name="camera"

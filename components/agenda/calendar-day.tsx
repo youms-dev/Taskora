@@ -149,6 +149,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
             <FlatList
                 numColumns={7}
                 nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
                 data={days}
                 keyExtractor={(day, i) => (day.toString() + i)}
                 renderItem={renderItem}
