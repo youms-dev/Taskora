@@ -1664,13 +1664,24 @@ export default function Tasks() {
                 style={[
                     {
                         maxWidth: width * .9,
-                        zIndex: tasksSelected.length > 0 ? 10 : -10,
                     },
                     taskSelectedAnimation,
                 ]}
-                className="absolute right-0 bottom-0 dark:bg-white bg-black rounded-2xl overflow-hidden"
+                className="absolute right-0 bottom-0 dark:bg-black bg-white rounded-2xl"
             >
-                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-black/80 bg-white rounded-2xl px-3 py-1 border-none border border-black/20">
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 10,
+                            }
+                        ],
+                        filter: "blur(5px)"
+                    }}
+                    className="absolute bottom-0 w-[100%] h-full bg-black/30 -z-[1] rounded-[50px]"
+                />
+
+                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-white/20 bg-white rounded-2xl px-3 py-1 dark:border-white/10 border border-black/20">
                     <View className="flex flex-row items-center gap-3">
                         <TextAnimated className="text-lg font-bold">
                             {t("tasks_selected")}
@@ -1705,19 +1716,31 @@ export default function Tasks() {
 
             <Animated.View
                 style={addTaskButtonAnimation}
-                className="absolute right-0 bottom-0 size-[50px] dark:bg-white bg-black rounded-full"
+                className="absolute right-0 bottom-0 size-[50px] dark:bg-black bg-white rounded-full"
             >
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 5,
+                            }
+                        ],
+                        filter: "blur(5px)"
+                    }}
+                    className="absolute bottom-0 w-full h-full bg-black/20 -z-[1] rounded-full"
+                />
+
                 <Pressable
                     onPress={() => {
-                        if (tasks.length > 0) {
-                            setTasks([]);
-                            tasksTmp.current = [];
-                            setCount(0);
-                            setCountTmp(0);
-                        }
-                        else getTasks();
+                        // if (tasks.length > 0) {
+                        //     setTasks([]);
+                        //     tasksTmp.current = [];
+                        //     setCount(0);
+                        //     setCountTmp(0);
+                        // }
+                        // else getTasks();
                     }}
-                    className="size-full flex justify-center items-center rounded-full dark:border-none border border-black/10 dark:bg-black/85 bg-white"
+                    className="size-full flex justify-center items-center rounded-full border dark:border-white/10 border-black/10 dark:bg-white/15 bg-white"
                 >
                     <FontAwesome5
                         name="plus"
@@ -1726,6 +1749,28 @@ export default function Tasks() {
                     />
                 </Pressable>
             </Animated.View>
+
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 1 }}
+                end={{ x: 0, y: 0 }}
+                className="absolute left-0 bottom-0 w-full z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
+                    }
+                    start={{ x: 0, y: 1 }}
+                    end={{ x: 0, y: 0 }}
+                    className="w-full h-[50px]"
+                />
+            </LinearGradient>
 
             {/* Search section */}
 

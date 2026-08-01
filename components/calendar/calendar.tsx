@@ -555,6 +555,18 @@ export const Calendar = () => {
                         style={monthsListAnimation}
                         className="dark:bg-black bg-black rounded-xl z-[1px]"
                     >
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    }
+                                ],
+                                filter: "blur(5px)"
+                            }}
+                            className="absolute bottom-0 w-full h-full bg-black/30 -z-[1] rounded-xl"
+                        />
+
                         <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
                             <FlatList
                                 ref={monthsFlatListRef}
@@ -590,6 +602,18 @@ export const Calendar = () => {
                         style={yearsListAnimation}
                         className="dark:bg-black bg-black rounded-xl z-[1px]"
                     >
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    }
+                                ],
+                                filter: "blur(5px)"
+                            }}
+                            className="absolute bottom-0 w-full h-full bg-black/30 -z-[1] rounded-xl"
+                        />
+
                         <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
                             <FlatList
                                 ref={yearsFlatListRef}

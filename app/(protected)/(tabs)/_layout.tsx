@@ -8,7 +8,6 @@ import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Fontisto from '@expo/vector-icons/Fontisto';
 import clsx from "clsx";
-import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -152,7 +151,7 @@ export default function Layout() {
                     style={[
                         navAnimation,
                     ]}
-                    className="absolute bottom-0 border dark:border-white/20 border-black/20 overflow-hidden z-[9999]"
+                    className="absolute bottom-0 border dark:border-white/20 border-black/20 z-[9999]"
                 >
                     {
                         minimize && (
@@ -173,62 +172,73 @@ export default function Layout() {
 
                     {
                         !minimize && (
-                            <LinearGradient
-                                colors={theme == "dark" ? ["rgba(0, 0, 0, .5)", "rgba(0, 0, 0, .9)", "rgba(0, 0, 0, .5)"] : ["rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, .9)"]}
-                                className="w-full flex-row justify-center items-center px-3 py-2"
-                            >
-                                <NavButton
-                                    name={t("nav_tasks")}
-                                    focused={pathname == "/"}
-                                    icon={(
-                                        <FontAwesome6
-                                            name="list-check"
-                                            size={25}
-                                            color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => router.navigate("/")}
-                                />
+                            <View className="w-full dark:bg-black bg-white rounded-[50px]">
+                                <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px]">
+                                    <View
+                                        style={{
+                                            transform: [
+                                                {
+                                                    translateY: 10,
+                                                }
+                                            ],
+                                            filter: "blur(5px)"
+                                        }}
+                                        className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
+                                    />
 
-                                <NavButton
-                                    name={t("agenda")}
-                                    focused={pathname == "/agenda"}
-                                    icon={(
-                                        <Fontisto
-                                            name="calendar"
-                                            size={25}
-                                            color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => router.navigate("/agenda")}
-                                />
+                                    <NavButton
+                                        name={t("nav_tasks")}
+                                        focused={pathname == "/"}
+                                        icon={(
+                                            <FontAwesome6
+                                                name="list-check"
+                                                size={25}
+                                                color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                            />
+                                        )}
+                                        onPress={() => router.navigate("/")}
+                                    />
 
-                                <NavButton
-                                    name={t("notifications")}
-                                    focused={pathname == "/notifications"}
-                                    icon={(
-                                        <Entypo
-                                            name="bell"
-                                            size={25}
-                                            color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => router.navigate("/notifications")}
-                                />
+                                    <NavButton
+                                        name={t("agenda")}
+                                        focused={pathname == "/agenda"}
+                                        icon={(
+                                            <Fontisto
+                                                name="calendar"
+                                                size={25}
+                                                color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                            />
+                                        )}
+                                        onPress={() => router.navigate("/agenda")}
+                                    />
 
-                                <NavButton
-                                    name={t("settings")}
-                                    focused={pathname == "/settings"}
-                                    icon={(
-                                        <FontAwesome6
-                                            name="gears"
-                                            size={25}
-                                            color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => router.navigate("/settings")}
-                                />
-                            </LinearGradient>
+                                    <NavButton
+                                        name={t("notifications")}
+                                        focused={pathname == "/notifications"}
+                                        icon={(
+                                            <Entypo
+                                                name="bell"
+                                                size={25}
+                                                color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                            />
+                                        )}
+                                        onPress={() => router.navigate("/notifications")}
+                                    />
+
+                                    <NavButton
+                                        name={t("settings")}
+                                        focused={pathname == "/settings"}
+                                        icon={(
+                                            <FontAwesome6
+                                                name="gears"
+                                                size={25}
+                                                color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                            />
+                                        )}
+                                        onPress={() => router.navigate("/settings")}
+                                    />
+                                </View>
+                            </View>
                         )
                     }
 

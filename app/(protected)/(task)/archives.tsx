@@ -683,9 +683,21 @@ export default function Archives() {
                     },
                     taskSelectedAnimation,
                 ]}
-                className="absolute right-0 bottom-0 dark:bg-white bg-black rounded-2xl overflow-hidden"
+                className="absolute right-0 bottom-0 dark:bg-black bg-white rounded-2xl"
             >
-                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-black/80 bg-white rounded-2xl px-3 py-1 border-none border border-black/20">
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 10,
+                            }
+                        ],
+                        filter: "blur(5px)"
+                    }}
+                    className="absolute bottom-0 w-full h-full bg-black/30 -z-[1] rounded-[50px]"
+                />
+
+                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-white/20 bg-white rounded-2xl px-3 py-1 border dark:border-white/10 border-black/20">
                     <View className="flex flex-row items-center gap-3">
                         <TextAnimated className="text-lg font-bold">
                             {t("tasks_selected")}
