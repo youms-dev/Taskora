@@ -5,7 +5,7 @@ import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { LANGUAGE_STORAGE } from "@/constants/names";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
-import { CalendarProvider } from "@/hooks/use-calendar";
+import { CalendarProvider } from "@/hooks/agenda/use-calendar";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";

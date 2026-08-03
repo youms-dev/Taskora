@@ -2,6 +2,7 @@ import { THEME_STORAGE } from "@/constants/names";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "nativewind";
 import { createContext, useContext, useEffect, useState } from "react";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
 
 type ThemeType = "light" | "dark";
 
@@ -9,18 +10,21 @@ type ContextType = {
     theme: ThemeType;
     target: ThemeType | "system";
     setTheme: (value: ThemeType | "system") => void;
+    themeShared: SharedValue<ThemeType>;
 };
 
 const Context = createContext<ContextType>({
     theme: "dark",
     target: "dark",
     setTheme: () => { },
+    themeShared: useSharedValue<ThemeType>("dark"),
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const { colorScheme, setColorScheme } = useColorScheme();
     const [theme, setTheme] = useState<ThemeType>(colorScheme == "dark" ? "dark" : "light");
     const [target, setTarget] = useState<ThemeType | "system">("system");
+    const themeShared = useSharedValue<ThemeType>(colorScheme == "dark" ? "dark" : "light");
 
     const changeTheme = async (value: ThemeType | "system") => {
         const { setItem } = useAsyncStorage(THEME_STORAGE);
@@ -59,11 +63,16 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         })();
     }, [colorScheme]);
 
+    useEffect(() => {
+        themeShared.value = theme;
+    }, [theme]);
+
     return (
         <Context.Provider value={{
             theme,
             target,
             setTheme: changeTheme,
+            themeShared,
         }}>
             {children}
         </Context.Provider>

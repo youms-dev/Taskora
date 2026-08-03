@@ -1,5 +1,5 @@
 import { monthsTranslation } from "@/constants/calendar";
-import { INITIAL_RANGE, NUM_TO_ADD, useCalendar } from "@/hooks/use-calendar";
+import { INITIAL_RANGE, NUM_TO_ADD, useCalendar } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
