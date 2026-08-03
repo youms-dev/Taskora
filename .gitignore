@@ -37,7 +37,11 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env*
+<<<<<<< HEAD
 !.env.exemple*
+=======
+!.env.example
+>>>>>>> 6bb9eb7 (Edit: global changes)
 
 # temp directory
 .temp
