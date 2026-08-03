@@ -1,63 +1,73 @@
+import { useTheme } from "@/hooks/use-theme";
 import { TaskType } from "@/types/task";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { JSX, memo, useCallback } from "react";
-import { NativeScrollEvent, NativeSyntheticEvent, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
+import Animated, { runOnJS, SharedValue } from "react-native-reanimated";
+import { Skeleton } from "../skeleton";
+import { TextAnimated } from "../text-animated";
+import { TaskCard } from "./task-card";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
 interface Props {
-    withGesture: ReturnType<typeof Gesture.Native>;
-    data: TaskType[];
-    renderItem: (item: TaskType) => JSX.Element;
-    onScroll: ReturnType<typeof useAnimatedScrollHandler>;
-    onMomentumScrollBegin?: () => void;
-    onMomentumScrollEnd: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
     onEndReached: () => void;
-    getItemLayout: (data?: TaskType[] | null, index?: number) => {
-        length: number;
-        offset: number;
-        index: number;
-    };
-    ListEmptyComponent: () => JSX.Element | null | undefined;
-    ListFooterComponent: () => JSX.Element | null | undefined;
-    handleRef: (ref: FlatList | null) => void;
+    data: TaskType[];
+    withGesture: ReturnType<typeof Gesture.Native>;
     loading: boolean;
     onContentSizeChange: (contentWidth: number, contentHeight: number) => void;
     gap?: number;
+    scrollY: SharedValue<number>;
+    handleRef: (ref: FlatList | null) => void;
+    refreshTranslateY: SharedValue<number>;
 }
 
 export const TaskList = memo(({
     withGesture,
     data,
-    renderItem,
-    onScroll,
-    onMomentumScrollBegin,
-    onMomentumScrollEnd,
     onEndReached,
-    getItemLayout,
-    ListEmptyComponent,
-    ListFooterComponent,
     handleRef,
     loading,
     onContentSizeChange,
     gap,
+    scrollY,
+    refreshTranslateY
 }: Props) => {
-    const handleMomentumScrollBegin = useCallback(() => onMomentumScrollBegin?.(), [onMomentumScrollBegin]);
-
-    const handleMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => onMomentumScrollEnd(e), [onMomentumScrollEnd]);
-
-    const handleItemLayout = useCallback((data: null, index: number) => getItemLayout(data, index), [getItemLayout]);
-
-    const handleListEmptyComponent = useCallback(() => ListEmptyComponent(), [loading]);
-
-    const handleListFooterComponent = useCallback(() => ListFooterComponent(), [loading]);
+    const { t } = useTranslation();
+    const { theme } = useTheme();
+    const taskHeight = 100;
+    const tasksGap = 20;
 
     const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
 
+    const renderItem = useCallback((task: TaskType) => (
+        <TaskCard
+            loading={loading}
+            task={task}
+            withGesture={withGesture}
+            refreshTranslateY={refreshTranslateY}
+        />
+    ), [loading]);
+
+
+    const r = (v: any) => console.log(v);
+
+    const gesturesList = Gesture.Race(
+        Gesture.Pan()
+            .simultaneousWithExternalGesture(withGesture)
+            .activeOffsetX([-5, 5])
+            .failOffsetY([-5, 5])
+            .onUpdate(({ translationX: x }) => {
+                runOnJS(r)(x);
+            }),
+    )
+
+
     return (
         <View className="w-screen flex items-center shrink-0">
-            <GestureDetector gesture={withGesture}>
+            <GestureDetector gesture={gesturesList}>
                 <FlatListAnimated
                     ref={handleRef}
                     nestedScrollEnabled
@@ -70,16 +80,61 @@ export const TaskList = memo(({
                     data={data}
                     keyExtractor={(item) => String((item as TaskType).idTask)}
                     renderItem={({ item }) => renderItem(item as TaskType)}
+                    // renderItem={({ item }) => <></>}
                     onEndReachedThreshold={.1}
                     scrollEventThrottle={16}
-                    onScroll={onScroll}
-                    onMomentumScrollBegin={handleMomentumScrollBegin}
-                    onMomentumScrollEnd={handleMomentumScrollEnd}
+                    onScroll={() => {
+
+                    }}
+                    onMomentumScrollBegin={() => {
+
+                    }}
+                    onMomentumScrollEnd={() => {
+
+                    }}
                     onContentSizeChange={handleContentSize}
                     onEndReached={onEndReached}
-                    getItemLayout={(data, index) => handleItemLayout(data as any, index)}
-                    ListEmptyComponent={handleListEmptyComponent}
-                    ListFooterComponent={handleListFooterComponent}
+                    getItemLayout={(_, index) => ({
+                        length: (taskHeight + tasksGap),
+                        offset: (index ?? 0) * (taskHeight + tasksGap),
+                        index: (index ?? 0),
+                    })}
+                    ListEmptyComponent={() => {
+                        if (!loading) {
+                            return (
+                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                    <MaterialIcons
+                                        name="playlist-remove"
+                                        size={120}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                    />
+                                    <TextAnimated
+                                        dark="rgba(255, 255, 255, .5)"
+                                        light="rgba(0, 0, 0, .5)"
+                                        className="font-bold text-lg tracking-wider"
+                                    >
+                                        {t("tasks_no_tasks")}
+                                    </TextAnimated>
+                                </View>
+                            );
+                        }
+                    }}
+                    ListFooterComponent={() => {
+                        if (loading) return (
+                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                {
+                                    Array(3).fill(0).map((_, i) => (
+                                        <View
+                                            key={i}
+                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                        >
+                                            <Skeleton />
+                                        </View>
+                                    ))
+                                }
+                            </View>
+                        );
+                    }}
                     className="w-full"
                     contentContainerStyle={{
                         gap,

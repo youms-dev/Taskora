@@ -1,6 +1,8 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { TasksHeader } from "@/components/tasks/header";
+import { Pager } from "@/components/tasks/pager";
 import { Search } from "@/components/tasks/search";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
@@ -16,11 +18,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, JSX, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
-import { Gesture } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import { BackHandler, FlatList, FlatListProps, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { AnimatedProps, Easing, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+
+const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
 const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
 
@@ -29,7 +33,7 @@ export default function Tasks() {
     const { setToast, setDismiss } = useToast();
     const [value, setValue] = useState<string>("");
     const router = useRouter();
-    const { theme, themeShared } = useTheme();
+    const { theme } = useTheme();
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const tasksTmp = useRef<TaskType[]>([]);
     const limit = 10;
@@ -39,7 +43,7 @@ export default function Tasks() {
     const pathname = usePathname();
     const otherElement = Gesture.Native();
     const scrollYShared = useSharedValue<number>(0);
-    const translateY = useSharedValue<number>(0);
+    const [left, setLeft] = useState<number>(0);
     const syncLoading = useRef<boolean>(false);
     const synced = useRef<boolean>(false);
     const { t } = useTranslation();
@@ -47,9 +51,13 @@ export default function Tasks() {
     const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const tasksSelectedShared = useSharedValue<boolean>(false);
     const scrollCheckPoint = 100;
+    const themeShared = useSharedValue<typeof theme>(theme);
     const showAddTaskButton = useSharedValue<boolean>(true);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const selectLimit = 50;
+    const tasksFlatListRef = useRef<FlatList>(null);
+    const taskHeight = 100;
+    const tasksGap = 20;
     const getTaskTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const quietProcessing = useSharedValue<boolean>(false);
@@ -62,6 +70,8 @@ export default function Tasks() {
     const [searchLoading, setSearchLoading] = useState<boolean>(false);
     const [currentFilter, setCurrentFilter] = useState<number>(1);
     const [currentFolder, setCurrentFolder] = useState<FolderType["idFolder"] | null>(null);
+    const foldersFlatListRef = useRef<FlatList>(null);
+    const filterScrollViewRef = useRef<ScrollView>(null);
     const { getFolders } = useFolders();
     const flatListsRef = useRef<{
         id: string;
@@ -72,6 +82,85 @@ export default function Tasks() {
     const [loading, setLoading] = useState<boolean>(false);
     const contentsSize = useRef<number[]>([]);
     const [scrollY, setScrollY] = useState<number>(0);
+    const refreshTranslateY = useSharedValue<number>(0);
+
+    const syncData = useCallback(async (position: number = 0) => {
+        if (pathname != "/" || syncLoading.current) return;
+        try {
+            syncLoading.current = true;
+            await syncTasks(position);
+            synced.current = true;
+            syncLoading.current = false;
+            console.log("synced");
+        }
+        catch (e) {
+            syncLoading.current = false;
+            synced.current = false;
+            console.log(e);
+        }
+    }, [pathname]);
+
+    const handleGetTasks = useCallback(async (refresh: boolean = false) => {
+        getTaskTimeout.current && clearTimeout(getTaskTimeout.current);
+        if (pathname != "/" || loadingRef.current || processing) {
+            return;
+        }
+
+        getTaskTimeout.current = setTimeout(async () => {
+            setTasksSelected([]);
+            setCountTmp(0);
+            tasksTmp.current = [];
+            setValue("");
+
+            try {
+                if (refresh) {
+                    quietProcessing.value = true;
+                    setProcessing(true);
+                }
+                else {
+                    loadingRef.current = true;
+                    setLoading(true);
+                }
+                const data = await getTasks(limit, refresh ? 0 : tasks.length) as TaskType[];
+
+                if (refresh) setTasks(data);
+                else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
+
+                if (!synced.current) syncData(data.length);
+                refreshTranslateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
+                quietProcessing.value = false;
+                loadingRef.current = false;
+                setLoading(false);
+                setProcessing(false);
+            }
+            catch (e) {
+                refreshTranslateY.value = withTiming(0, {
+                    duration: 200,
+                    easing: Easing.inOut(Easing.quad),
+                });
+                setLoading(false);
+                setProcessing(false);
+                setToast("Aucune connexion internet", "error");
+                console.log(e);
+            }
+        }, 0);
+    }, [pathname, tasks, loading, processing]);
+
+    const handleGetCount = useCallback(async () => {
+        if (pathname != "/") return;
+        try {
+            const data = await getTasksCount() as number;
+
+            setCount(data);
+        }
+        catch (e) {
+            setToast("Aucune connexion internet", "error");
+            console.log(e);
+        }
+    }, [pathname]);
 
     const handleFilter = useCallback((entry: null | boolean) => {
         if (filterLoading) return;
@@ -107,37 +196,37 @@ export default function Tasks() {
         ]
     }));
 
-    const refreshPanAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    translateY.value,
-                    [0, 90],
-                    [160, 230],
-                    Extrapolation.CLAMP,
-                ),
+    const toggleShowScrollButton = () => {
+        showButtonTimeout.current && clearTimeout(showButtonTimeout.current);
+        showScrollButton.value = true;
+        showButtonTimeout.current = setTimeout(() => {
+            showScrollButton.value = false;
+        }, 500);
+    }
+
+    const setScrollYValue = (value: number) => setScrollY(value);
+
+    const handleScroll = useAnimatedScrollHandler({
+        onScroll: (e) => {
+            const y = e.contentOffset.y;
+
+            if (y >= 0 && y <= scrollYShared.value) {
+                showAddTaskButton.value = true;
             }
-        ],
-        opacity: quietProcessing.value && translateY.value >= 90 ? withRepeat(
-            withSequence(
-                withTiming(.5, {
-                    duration: 1000,
-                    easing: Easing.inOut(Easing.quad),
-                }),
-                withDelay(
-                    300,
-                    withTiming(1, {
-                        duration: 1000,
-                        easing: Easing.inOut(Easing.quad),
-                    }),
-                )
-            ),
-            Infinity,
-            true,
-        )
-            :
-            translateY.value == 0 ? 0 : 1,
-    }));
+            else {
+                showAddTaskButton.value = false;
+            }
+
+            if (y > 0 && y < scrollYShared.value) {
+                runOnJS(toggleShowScrollButton)();
+            }
+            else {
+                showScrollButton.value = false;
+            }
+            scrollYShared.value = y;
+            runOnJS(setScrollYValue)(y);
+        }
+    });
 
     const scrollButtonAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(showScrollButton.value ? 1 : 0, {
@@ -178,10 +267,118 @@ export default function Tasks() {
         ],
     }));
 
+    useEffect(() => {
+        themeShared.value = theme;
+    }, [theme]);
+
     const selectMap = useMemo(() => new Map(
         tasksSelected.map((t, i) => [t.idTask, i + 1]),
     ), [tasksSelected]);
 
+    const handleRefresh = useCallback((e: boolean = false) => {
+        if (e) {
+            setCount(prev => prev + 1);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+        }
+        tasksTmp.current = [];
+        setProcessing(false);
+    }, []);
+
+    const handleArchiveTask = useCallback((task: TaskType) => {
+        if (processing || tasksTmp.current.length > 0) return;
+        setProcessing(true);
+        tasksTmp.current = [...tasks];
+        setCount(prev => prev - 1);
+        if ((tasks.length * 100) <= (height + 100) && tasks.length < count) handleGetTasks();
+        setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
+    }, [processing, tasks, height, count]);
+
+    const handleDeleteTask = useCallback((task: TaskType) => {
+        if (processing || tasksTmp.current.length > 0) return;
+        setProcessing(true);
+        tasksTmp.current = [...tasks];
+        setCount(prev => prev - 1);
+        if ((tasks.length * 100) <= (height + 100) && tasks.length < count) handleGetTasks();
+        setTasks(prev => [...prev.filter(t => t.idTask !== task.idTask)]);
+    }, [processing, tasks, height, count]);
+
+    const handleLongPress = useCallback((task: TaskType) => {
+        setTasksSelected(prev => {
+            const pos = prev.findIndex(t => t.idTask == task.idTask);
+
+            if (pos == -1) return [...prev, task];
+            else return prev.filter(t => t.idTask != task.idTask);
+        });
+    }, []);
+
+    const handleTaskPress = useCallback((id: TaskType["idTask"]) => {
+        if (processing || selectMap.size > 0) return;
+        console.log("Pressed", id);
+    }, [selectMap, processing]);
+
+    const isBlocked = useMemo(() => {
+        return (loading || processing || searchSectionActive);
+    }, [processing, searchSectionActive]);
+
+    const handleArchive = async () => {
+        if (tasksSelected.length == 0 || processing || loading) return;
+        setProcessing(true);
+        const tab = [...tasksSelected];
+
+        tasksTmp.current = tasks;
+        setTasks(prev => [...prev.filter(t => !tab.find(e => e.idTask == t.idTask))]);
+        setTasksSelected([]);
+        setCount(prev => prev - tab.length);
+
+        try {
+            await toggleArchiveTasks([...tab.map(t => t.idTask)], true);
+            setProcessing(false);
+            handleGetTasks(true);
+        }
+        catch (e) {
+            console.log(e);
+            setProcessing(false);
+            setCount(prev => prev + tab.length);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current = [];
+            setToast("Une erreur s'est produite", "error");
+        }
+    }
+
+    const handleDelete = async (init: boolean = true) => {
+        if (tasksSelected.length == 0 || processing || loading) return;
+        setProcessing(true);
+        const tab = [...tasksSelected];
+
+        if (init) {
+            tasksTmp.current = tasks;
+            setTasks(prev => [...prev.filter(t => !tab.find(e => e.idTask == t.idTask))]);
+            setTasksSelected([]);
+            setCount(prev => prev - tab.length);
+            setDismiss(
+                () => handleDelete(false),
+                () => {
+                    setCount(prev => prev + tab.length);
+                    tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    tasksTmp.current = [];
+                    setProcessing(false);
+                });
+            return;
+        }
+        try {
+            await deleteTasks([...tab.map(t => t.idTask)]);
+            setProcessing(false);
+            handleGetTasks(true);
+        }
+        catch (e) {
+            console.log(e);
+            setProcessing(false);
+            setCount(prev => prev + tab.length);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current = [];
+            setToast("Une erreur s'est produite", "error");
+        }
+    }
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -221,7 +418,7 @@ export default function Tasks() {
 
     const handleEndReached = useCallback(() => {
         if (loading || currentFolder || tasks.length >= count || processing) return;
-        // handleGetTasks();
+        handleGetTasks();
     }, [loading, tasks, count]);
 
     const currentIndex = useMemo(() => {
@@ -261,6 +458,47 @@ export default function Tasks() {
         }
     }, [tasksSelected, tasks, currentFolder]);
 
+    const folderDataMap = useMemo(() => {
+        const map = new Map(
+            folders.map(folder => [folder.idFolder, tasks.filter(t => t.idFolder == folder.idFolder)]),
+        );
+
+        return map;
+    }, [tasks, folders]);
+
+    const onFolderPress = useCallback((folder: FolderType, index: number) => {
+        if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
+        setCurrentFolder(index == 0 ? null : folder.idFolder);
+        setTasksSelected([]);
+        flatListsRef.current && flatListsRef.current.forEach(item => {
+            item.value.scrollToOffset({
+                offset: 0,
+                animated: false,
+            });
+        });
+        tasksFlatListRef.current?.scrollToOffset({
+            offset: index == 0 ? 0 : (index * width),
+            animated: true,
+        });
+        foldersFlatListRef.current?.scrollToOffset({
+            offset: index == 0 ? 0 : (index * 100),
+            animated: true,
+        });
+
+        if (contentsSize.current[index] < height) {
+            flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
+                offset: 0,
+                animated: true,
+            });
+        }
+        else {
+            flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
+                offset: scrollCheckPoint,
+                animated: true,
+            });
+        }
+    }, [folders, height, currentFolder]);
+
     useEffect(() => {
         tasksSelectedShared.value = selectMap.size > 0;
     }, [selectMap]);
@@ -268,20 +506,24 @@ export default function Tasks() {
     useEffect(() => {
         if (pathname == "/") {
             handleGetFolders();
-            // handleGetCount();
-            // handleGetTasks(tasks.length > 0);
+            handleGetCount();
+            handleGetTasks(tasks.length > 0);
         }
     }, [pathname]);
 
-    const r = (c: any, p: any) => {
-        console.log("Previous theme :", p);
-        console.log("Current theme :", c);
-    }
-
     return (
         <Container centerX>
+            <TasksHeader
+                scrollY={scrollYShared}
+                folders={folders}
+                currentFolder={currentFolder}
+                tasks={tasks}
+                loading={loading}
+                currentFilter={currentFilter}
+                refreshTranslateY={refreshTranslateY}
+            />
 
-            {
+            {/* {
                 filterLoading && (
                     <View className="absolute left-0 top-0 w-screen h-screen flex justify-center items-center dark:bg-black/50 bg-black/20 z-[200]">
                         <ActivityIndicator
@@ -290,11 +532,18 @@ export default function Tasks() {
                         />
                     </View>
                 )
-            }
+            } */}
 
-
-
-
+            <Pager
+                scrollY={scrollYShared}
+                folders={folders}
+                tasks={tasks}
+                currentFolder={currentFolder}
+                currentFilter={currentFilter}
+                loading={loading}
+                refreshTranslateY={refreshTranslateY}
+                onEndReached={() => { }}
+            />
 
             <PressableToScrollAnimated
                 onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
@@ -359,8 +608,7 @@ export default function Tasks() {
                         onPress={() => onCheckboxPress()}
                     />
 
-                    {/* <PressableAnimated onPress={() => handleArchive()}> */}
-                    <PressableAnimated onPress={() => { }}>
+                    <PressableAnimated onPress={() => handleArchive()}>
                         <MaterialIcons
                             name="archive"
                             size={30}
@@ -368,8 +616,7 @@ export default function Tasks() {
                         />
                     </PressableAnimated>
 
-                    {/* <PressableAnimated onPress={() => handleDelete()}> */}
-                    <PressableAnimated onPress={() => { }}>
+                    <PressableAnimated onPress={() => handleDelete()}>
                         <FontAwesome6
                             name="trash-alt"
                             size={25}

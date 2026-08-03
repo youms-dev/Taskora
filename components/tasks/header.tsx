@@ -1,19 +1,20 @@
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
+import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, SharedValue, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import Octicons from "@expo/vector-icons/Octicons";
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -50,14 +51,33 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 
 export const scrollCheckPoint = 100;
 
-export const Header = () => {
+interface Props {
+    scrollY: SharedValue<number>;
+    folders: FolderType[];
+    currentFolder: FolderType["idFolder"] | null;
+    tasks: TaskType[];
+    loading: boolean;
+    currentFilter: number;
+    refreshTranslateY: SharedValue<number>;
+}
+
+export const TasksHeader = memo(({ scrollY: scrollYShared, folders = [], currentFolder = null, tasks = [], loading = false, currentFilter = 1, refreshTranslateY }: Props) => {
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
-    const translateY = useSharedValue<number>(0);
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const filterScrollViewRef = useRef<ScrollView>(null);
+    const [scrollY, setScrollY] = useState<number>(0);
+    const loadingShared = useSharedValue<boolean>(loading);
+    const [left, setLeft] = useState<number>(0);
+
+    useAnimatedReaction(
+        () => scrollYShared.value,
+        () => {
+            runOnJS(setScrollY)(scrollYShared.value);
+        }
+    );
 
     const fakeInputAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -114,10 +134,9 @@ export const Header = () => {
                 )
             }
         ],
-        opacity: (scrollYShared.value == 0 && showFilter.value) ? 1 : .3,
-        pointerEvents: (scrollYShared.value == 0 && showFilter.value) ? "auto" : "none",
+        opacity: (scrollYShared.value == 0) ? 1 : .3,
+        pointerEvents: (scrollYShared.value == 0) ? "auto" : "none",
     }));
-
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -169,38 +188,38 @@ export const Header = () => {
     //     return map;
     // }, [tasks, folders]);
 
-    // const onFolderPress = useCallback((folder: FolderType, index: number) => {
-    //     if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
-    //     setCurrentFolder(index == 0 ? null : folder.idFolder);
-    //     setTasksSelected([]);
-    //     flatListsRef.current && flatListsRef.current.forEach(item => {
-    //         item.value.scrollToOffset({
-    //             offset: 0,
-    //             animated: false,
-    //         });
-    //     });
-    //     tasksFlatListRef.current?.scrollToOffset({
-    //         offset: index == 0 ? 0 : (index * screenWidth),
-    //         animated: true,
-    //     });
-    //     foldersFlatListRef.current?.scrollToOffset({
-    //         offset: index == 0 ? 0 : (index * 100),
-    //         animated: true,
-    //     });
+    const onFolderPress = useCallback((folder: FolderType, index: number) => {
+        if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
+        // setCurrentFolder(index == 0 ? null : folder.idFolder);
+        // setTasksSelected([]);
+        // flatListsRef.current && flatListsRef.current.forEach(item => {
+        //     item.value.scrollToOffset({
+        //         offset: 0,
+        //         animated: false,
+        //     });
+        // });
+        // tasksFlatListRef.current?.scrollToOffset({
+        //     offset: index == 0 ? 0 : (index * screenWidth),
+        //     animated: true,
+        // });
+        foldersFlatListRef.current?.scrollToOffset({
+            offset: index == 0 ? 0 : (index * 100),
+            animated: true,
+        });
 
-    //     if (contentsSize.current[index] < screenHeight) {
-    //         flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
-    //             offset: 0,
-    //             animated: true,
-    //         });
-    //     }
-    //     else {
-    //         flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
-    //             offset: scrollCheckPoint,
-    //             animated: true,
-    //         });
-    //     }
-    // }, [folders, screenHeight, currentFolder]);
+        // if (contentsSize.current[index] < screenHeight) {
+        //     flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
+        //         offset: 0,
+        //         animated: true,
+        //     });
+        // }
+        // else {
+        //     flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
+        //         offset: scrollCheckPoint,
+        //         animated: true,
+        //     });
+        // }
+    }, [folders, screenHeight, currentFolder]);
 
     const foldersRenderItem = useCallback((folder: FolderType, index: number) => {
         const isActive = index === 0 ? currentFolder === null : currentFolder === folder.idFolder;
@@ -228,6 +247,55 @@ export const Header = () => {
         // tasksTmp.current = [];
         // setProcessing(false);
     }, []);
+
+    const refreshPanAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    refreshTranslateY.value,
+                    [0, 90],
+                    [160, 230],
+                    Extrapolation.CLAMP,
+                ),
+            }
+        ],
+        opacity: loadingShared.value && refreshTranslateY.value >= 90 ? withRepeat(
+            withSequence(
+                withTiming(.5, {
+                    duration: 1000,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+                withDelay(
+                    300,
+                    withTiming(1, {
+                        duration: 1000,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+                )
+            ),
+            Infinity,
+            true,
+        )
+            :
+            refreshTranslateY.value == 0 ? 0 : 1,
+    }));
+
+    const showRefreshAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(
+                    refreshTranslateY.value,
+                    [60, 100],
+                    [0, 150],
+                    Extrapolation.CLAMP,
+                ),
+            }
+        ]
+    }));
+
+    useEffect(() => {
+        loadingShared.value = loading;
+    }, [loading]);
 
     return (
         <Animated.View
@@ -283,9 +351,9 @@ export const Header = () => {
                     >
                         <Pressable
                             onPress={() => {
-                                setTasksSelected([]);
-                                setSearchSectionActive(true);
-                                event.emit(HIDE_NAVBAR);
+                                // setTasksSelected([]);
+                                // setSearchSectionActive(true);
+                                // event.emit(HIDE_NAVBAR);
                             }}
                             className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                         >
@@ -312,7 +380,7 @@ export const Header = () => {
                                 className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
                             >
                                 {
-                                    loading && !processing && tasks.length == 0 && (
+                                    loading && tasks.length == 0 && (
                                         <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                             <Skeleton />
                                         </View>
@@ -408,7 +476,7 @@ export const Header = () => {
                             className="w-full flex flex-row items-center gap-3 px-3 py-1"
                         >
                             {
-                                loading && !processing && tasks.length == 0 && (
+                                loading && tasks.length == 0 && (
                                     <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                         <Skeleton />
                                     </View>
@@ -473,12 +541,12 @@ export const Header = () => {
                                                     key={i}
                                                     scale={.95}
                                                     onPress={() => {
-                                                        setCurrentFilter(i + 1);
-                                                        handleFilter(i == 0 ? null : (i == 1 ? true : false));
-                                                        filterScrollViewRef.current?.scrollTo({
-                                                            x: i * 100,
-                                                            animated: true,
-                                                        });
+                                                        // setCurrentFilter(i + 1);
+                                                        // handleFilter(i == 0 ? null : (i == 1 ? true : false));
+                                                        // filterScrollViewRef.current?.scrollTo({
+                                                        //     x: i * 100,
+                                                        //     animated: true,
+                                                        // });
                                                     }}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
@@ -532,6 +600,34 @@ export const Header = () => {
                     </View>
                 </LinearGradient>
             </LinearGradient>
+
+            {/* Refresh */}
+
+            <Animated.View
+                onLayout={(e) => setLeft((screenWidth / 2) - (e.nativeEvent.layout.width / 2))}
+                style={[
+                    refreshPanAnimation,
+                    {
+                        left,
+                    }
+                ]}
+                className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
+            >
+                <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
+                    <Octicons
+                        name="tasklist"
+                        size={25}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                    />
+                </View>
+
+                <Animated.View
+                    style={showRefreshAnimation}
+                    className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
+                >
+                    <View className="size-full dark:bg-black/90 bg-white/80" />
+                </Animated.View>
+            </Animated.View>
         </Animated.View>
     );
-}
+});
