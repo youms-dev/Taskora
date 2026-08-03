@@ -3,6 +3,7 @@ import { Container } from "@/components/container";
 import { PageTitle } from "@/components/page-title";
 import { PressableAnimated, PressableAnimatedProps } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
+import { Search } from "@/components/task/search";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useFolders } from "@/hooks/database/use-folders";
@@ -12,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { event, HIDE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
-import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -23,7 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { Component, JSX, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, BackHandler, FlatList, FlatListProps, Keyboard, KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, PressableProps, ScrollView, Text, TextInput, useWindowDimensions, Vibration, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, FlatListProps, NativeScrollEvent, NativeSyntheticEvent, Pressable, PressableProps, ScrollView, Text, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { AnimatedProps, Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 
@@ -309,7 +309,7 @@ interface FolderFlatListProps {
     onMomentumScrollBegin?: () => void;
     onMomentumScrollEnd: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
     onEndReached: () => void;
-    getItemLayout: (data?: TaskType, index?: number) => {
+    getItemLayout: (data?: TaskType[] | null, index?: number) => {
         length: number;
         offset: number;
         index: number;
@@ -338,11 +338,11 @@ const TaskFlatList = memo(({
     onContentSizeChange,
     gap,
 }: FolderFlatListProps) => {
-    const handleMomentumScrollBegin = useCallback(() => onMomentumScrollBegin?.(), []);
+    const handleMomentumScrollBegin = useCallback(() => onMomentumScrollBegin?.(), [onMomentumScrollBegin]);
 
-    const handleMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => onMomentumScrollEnd(e), []);
+    const handleMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => onMomentumScrollEnd(e), [onMomentumScrollEnd]);
 
-    const handleItemLayout = useCallback(() => getItemLayout(), [getItemLayout]);
+    const handleItemLayout = useCallback((data: null, index: number) => getItemLayout(data, index), [getItemLayout]);
 
     const handleListEmptyComponent = useCallback(() => ListEmptyComponent(), [loading]);
 
@@ -350,18 +350,16 @@ const TaskFlatList = memo(({
 
     const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
 
-    const gesture = useMemo(() => withGesture, []);
-
     return (
         <View className="w-screen flex items-center shrink-0">
-            <GestureDetector gesture={gesture}>
+            <GestureDetector gesture={withGesture}>
                 <FlatListAnimated
                     ref={handleRef}
                     nestedScrollEnabled
                     horizontal={false}
                     initialNumToRender={10}
-                    maxToRenderPerBatch={10}
-                    windowSize={5}
+                    maxToRenderPerBatch={20}
+                    windowSize={10}
                     removeClippedSubviews
                     showsVerticalScrollIndicator={false}
                     data={data}
@@ -374,7 +372,7 @@ const TaskFlatList = memo(({
                     onMomentumScrollEnd={handleMomentumScrollEnd}
                     onContentSizeChange={handleContentSize}
                     onEndReached={onEndReached}
-                    getItemLayout={handleItemLayout}
+                    getItemLayout={(data, index) => handleItemLayout(data as any, index)}
                     ListEmptyComponent={handleListEmptyComponent}
                     ListFooterComponent={handleListFooterComponent}
                     className="w-full"
@@ -401,7 +399,6 @@ export default function Tasks() {
     const [countTmp, setCountTmp] = useState<number>(0);
     const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
     const pathname = usePathname();
-    const textInputRef = useRef<TextInput>(null);
     const otherElement = Gesture.Native();
     const scrollYShared = useSharedValue<number>(0);
     const translateY = useSharedValue<number>(0);
@@ -409,7 +406,6 @@ export default function Tasks() {
     const syncLoading = useRef<boolean>(false);
     const synced = useRef<boolean>(false);
     const { t } = useTranslation();
-    const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const showScrollButton = useSharedValue<boolean>(false);
     const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const tasksSelectedShared = useSharedValue<boolean>(false);
@@ -428,17 +424,13 @@ export default function Tasks() {
     const showFilter = useSharedValue<boolean>(true);
     const { syncTasks, getTasks, searchTasks, deleteTasks, toggleArchiveTasks, getTasksCount } = useTasks();
     const [tasksSearch, setTasksSearch] = useState<TaskType[]>([]);
-    const searchScrollY = useSharedValue<number>(0);
-    const searchScrollCheckPoint = 100;
-    const searchSectionActive = useSharedValue<boolean>(false);
-    const [isSearchSectionActive, setIsSearchSectionActive] = useState<boolean>(false);
+    const [searchSectionActive, setSearchSectionActive] = useState<boolean>(false);
     const [countSearch, setCountSearch] = useState<number>(0);
     const [searchLoading, setSearchLoading] = useState<boolean>(false);
     const [currentFilter, setCurrentFilter] = useState<number>(1);
     const [currentFolder, setCurrentFolder] = useState<FolderType["idFolder"] | null>(null);
     const foldersFlatListRef = useRef<FlatList>(null);
     const filterScrollViewRef = useRef<ScrollView>(null);
-    const searchFlatListRef = useRef<FlatList>(null);
     const { getFolders } = useFolders();
     const flatListsRef = useRef<{
         id: string;
@@ -548,39 +540,6 @@ export default function Tasks() {
         setFilterLoading(false);
     }, [countTmp, tasks]);
 
-    const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
-        searchTimeout.current && clearTimeout(searchTimeout.current);
-        if (pathname != "/" || value.trim().length == 0) {
-            setCountSearch(0);
-            setTasksSearch([]);
-            setSearchLoading(false);
-            return;
-        }
-        if (searchLoading) return;
-        setSearchLoading(true);
-        searchTimeout.current = setTimeout(async () => {
-            try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasksSearch.length : 0) as {
-                    data: TaskType[];
-                    count: number;
-                };
-
-                setCountSearch(count);
-                if (pagination) {
-                    setTasksSearch(prev => [...prev, ...data.filter((task) => !prev.find(t => t.idTask == task.idTask))]);
-                }
-                else {
-                    setTasksSearch([...data]);
-                }
-                setSearchLoading(false);
-            }
-            catch (e) {
-                setSearchLoading(false);
-                console.log(e);
-            }
-        }, 100);
-    }, [pathname, tasksSearch]);
-
     const taskSelectedAnimation = useAnimatedStyle(() => ({
         transform: [
             {
@@ -594,15 +553,6 @@ export default function Tasks() {
             },
         ]
     }));
-
-    useEffect(() => {
-        const { remove } = Keyboard.addListener("keyboardDidHide", () => {
-            if (!textInputRef.current) return;
-            textInputRef.current.blur();
-        });
-
-        return () => remove();
-    }, []);
 
     const panRefresh = useMemo(() => Gesture.Pan()
         .simultaneousWithExternalGesture(otherElement)
@@ -789,8 +739,8 @@ export default function Tasks() {
     }, [selectMap, processing]);
 
     const isBlocked = useMemo(() => {
-        return (loading || processing || isSearchSectionActive);
-    }, [processing, isSearchSectionActive]);
+        return (loading || processing || searchSectionActive);
+    }, [processing, searchSectionActive]);
 
     const renderItem = useCallback((task: TaskType) => (
         <TaskCard
@@ -958,106 +908,24 @@ export default function Tasks() {
         }
     }
 
-    const onSearchScroll = useAnimatedScrollHandler({
-        onScroll: (e) => {
-            const y = e.contentOffset.y;
-
-            searchScrollY.value = y;
-        }
-    });
-
-    const textInputAnimation = useAnimatedStyle(() => ({
-        width: interpolate(
-            searchScrollY.value,
-            [0, searchScrollCheckPoint],
-            [width, width * .8],
-            Extrapolation.CLAMP,
-        ),
-        transform: [
-            {
-                translateX: interpolate(
-                    searchScrollY.value,
-                    [0, searchScrollCheckPoint],
-                    [0, -5],
-                    Extrapolation.CLAMP,
-                )
-            },
-            {
-                translateY: interpolate(
-                    searchScrollY.value,
-                    [0, searchScrollCheckPoint],
-                    [70, 4],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-        borderWidth: 1,
-        borderColor: themeShared.value == "dark" ?
-            "rgba(255,255, 255, .1)"
-            :
-            (searchScrollY.value >= searchScrollCheckPoint ? "rgba(0, 0, 0, .1)" : "rgba(0, 0, 0, 0)"),
-        borderRadius: 30,
-    }));
-
-    const searchSectionAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: searchSectionActive.value ? withTiming(0, {
-                    duration: 200,
-                    easing: Easing.inOut(Easing.quad),
-                }) : 50,
-            }
-        ],
-        opacity: searchSectionActive.value ? withTiming(1, {
-            duration: 200,
-            easing: Easing.inOut(Easing.linear),
-        }) : 0,
-        zIndex: searchSectionActive.value ? 100 : -100,
-    }));
-
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (isSearchSectionActive) {
-                textInputRef.current?.blur();
-                setIsSearchSectionActive(false);
-                setCountSearch(0);
-                setTasksSearch([]);
-                setValue("");
-                setSearchLoading(false);
-                searchTimeout.current && clearTimeout(searchTimeout.current);
-                event.emit(SHOW_NAVBAR);
-                return true;
-            }
-            else if ((tasksTmp.current.length > 0 && countTmp > 0) || selectMap.size > 0) {
+            if ((tasksTmp.current.length > 0 && countTmp > 0) || selectMap.size > 0) {
                 tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
                 countTmp > 0 && setCount(countTmp);
                 setTasksSelected([]);
                 tasksTmp.current = [];
                 setCountTmp(0);
+                selectMap.clear();
+
                 return true;
             }
 
             return false;
         });
 
-        searchSectionActive.value = isSearchSectionActive;
-        if (!isSearchSectionActive) {
-            textInputRef.current?.blur();
-            searchTimeout.current && clearTimeout(searchTimeout.current);
-            setIsSearchSectionActive(false);
-            setCountSearch(0);
-            setTasksSearch([]);
-            setValue("");
-            setSearchLoading(false);
-            event.emit(SHOW_NAVBAR);
-        }
-
         return () => remove();
-    }, [tasksSelected, countTmp, isSearchSectionActive]);
-
-    useEffect(() => {
-        if (isSearchSectionActive && value.trim().length == 0) textInputRef.current?.focus();
-    }, [value, isSearchSectionActive]);
+    }, [tasksSelected, countTmp, selectMap]);
 
     const foldersSnapOffset = useMemo(() => {
         const tab: number[] = [];
@@ -1221,7 +1089,7 @@ export default function Tasks() {
                 }}
                 onEndReached={() => index == 0 && handleEndReached()}
                 onContentSizeChange={(_, y) => contentsSize.current[index] = y}
-                getItemLayout={(data: TaskType | undefined, index: number | undefined) => ({
+                getItemLayout={(_, index?: number) => ({
                     length: (taskHeight + tasksGap),
                     offset: (index ?? 0) * (taskHeight + tasksGap),
                     index: (index ?? 0),
@@ -1335,7 +1203,7 @@ export default function Tasks() {
                             <Pressable
                                 onPress={() => {
                                     setTasksSelected([]);
-                                    setIsSearchSectionActive(true);
+                                    setSearchSectionActive(true);
                                     event.emit(HIDE_NAVBAR);
                                 }}
                                 className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
@@ -1794,187 +1662,12 @@ export default function Tasks() {
                 />
             </LinearGradient>
 
-            {/* Search section */}
+            {/* Search component */}
 
-            <Animated.View
-                style={searchSectionAnimation}
-                className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white"
-            >
-                <View className="w-full h-full flex items-center dark:bg-black bg-[rgba(0,0,0,.05)]">
-                    <LinearGradient
-                        colors={theme == "dark" ?
-                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                            :
-                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                        }
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        locations={[.5, .6, 1]}
-                        className="absolute left-0 top-0 w-full z-[10]"
-                    >
-                        <LinearGradient
-                            colors={theme == "dark" ?
-                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                :
-                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
-                            }
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 0, y: 1 }}
-                            locations={[.5, .6, 1]}
-                            className="w-full flex flex-row justify-between px-3 pt-2 pb-8"
-                        >
-                            <PressableAnimated
-                                onPress={() => {
-                                    setIsSearchSectionActive(false);
-                                    event.emit(SHOW_NAVBAR);
-                                }}
-                                className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
-                            >
-                                <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full">
-                                    <Entypo
-                                        name="chevron-left"
-                                        size={30}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                    />
-                                </View>
-                            </PressableAnimated>
-
-                            <Animated.View
-                                style={textInputAnimation}
-                                className="absolute right-0 top-0 w-[80%] flex items-center overflow-hidden"
-                            >
-                                <KeyboardAvoidingView
-                                    behavior={Platform.OS === "android" ? "height" : "padding"}
-                                    className="w-full flex items-center px-2 dark:bg-black bg-white"
-                                >
-                                    <TextInput
-                                        ref={textInputRef}
-                                        placeholder={t("tasks_search")}
-                                        cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
-                                        placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                                        value={value}
-                                        onChangeText={(e) => {
-                                            setValue(e);
-                                            handleSearch(e);
-                                        }}
-                                        onSubmitEditing={() => handleSearch(value)}
-                                        className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
-                                    />
-
-                                    <PressableAnimated
-                                        onPress={() => value.trim().length == 0 ? textInputRef.current?.focus() : handleSearch(value)}
-                                        className="absolute top-4 right-5 z-[1]"
-                                    >
-                                        <FontAwesome5
-                                            name="search"
-                                            size={24}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .6)"}
-                                        />
-                                    </PressableAnimated>
-                                </KeyboardAvoidingView>
-                            </Animated.View>
-                        </LinearGradient>
-                    </LinearGradient>
-
-                    <FlatListAnimated
-                        ref={searchFlatListRef}
-                        horizontal={false}
-                        showsVerticalScrollIndicator={false}
-                        windowSize={5}
-                        removeClippedSubviews
-                        initialNumToRender={10}
-                        maxToRenderPerBatch={10}
-                        getItemLayout={(_, index) => ({
-                            length: (taskHeight + tasksGap),
-                            offset: index * (taskHeight + tasksGap),
-                            index,
-                        })}
-                        data={tasksSearch}
-                        keyExtractor={(task) => (task as TaskType).idTask}
-                        renderItem={({ item }) => renderItem(item as TaskType)}
-                        scrollEventThrottle={16}
-                        onScroll={onSearchScroll}
-                        onMomentumScrollEnd={() => {
-                            if (searchScrollY.value > 0 && searchScrollY.value < (searchScrollCheckPoint * .5)) searchFlatListRef.current?.scrollToOffset({
-                                offset: 0,
-                                animated: true,
-                            });
-                            else if (searchScrollY.value >= (searchScrollCheckPoint * .5) && searchScrollY.value < searchScrollCheckPoint) searchFlatListRef.current?.scrollToOffset({
-                                offset: searchScrollCheckPoint,
-                                animated: true,
-                            });
-                        }}
-                        onEndReachedThreshold={.1}
-                        onEndReached={() => tasksSearch.length < countSearch && !searchLoading && handleSearch(value, true)}
-                        ListEmptyComponent={() => {
-                            if (!searchLoading && value.trim().length > 0) {
-                                return (
-                                    <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                        <MaterialIcons
-                                            name="playlist-remove"
-                                            size={120}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                        />
-                                        <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                                            {t("tasks_search_tasks_empty")}
-                                        </Text>
-                                    </View>
-                                );
-                            }
-                        }}
-                        ListFooterComponent={searchLoading ? (
-                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                                {
-                                    Array(3).fill(0).map((_, i) => (
-                                        <View
-                                            key={i}
-                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                        >
-                                            <Skeleton />
-                                        </View>
-                                    ))
-                                }
-                            </View>
-                        ) : null}
-                        className="w-full"
-                        contentContainerStyle={{
-                            gap: tasksGap,
-                        }}
-                        contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
-                    />
-
-                    <LinearGradient
-                        colors={theme == "dark" ?
-                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
-                            :
-                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                        }
-                        locations={[.5, .6, 1]}
-                        start={{ x: 0, y: 1 }}
-                        end={{ x: 0, y: 0 }}
-                        style={{
-                            transform: [
-                                {
-                                    translateY: -10,
-                                }
-                            ]
-                        }}
-                        className="absolute left-0 bottom-0 w-full z-[10]"
-                    >
-                        <LinearGradient
-                            colors={theme == "dark" ?
-                                ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                :
-                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
-                            }
-                            locations={[.5, .6, 1]}
-                            start={{ x: 0, y: 1 }}
-                            end={{ x: 0, y: 0 }}
-                            className="w-full h-[100px]"
-                        />
-                    </LinearGradient>
-                </View>
-            </Animated.View>
+            <Search
+                active={searchSectionActive}
+                onClose={() => setSearchSectionActive(false)}
+            />
         </Container>
     );
 }
