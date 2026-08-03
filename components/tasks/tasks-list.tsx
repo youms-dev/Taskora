@@ -3,9 +3,9 @@ import { TaskType } from "@/types/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { JSX, memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, SharedValue } from "react-native-reanimated";
+import Animated, { runOnJS, SharedValue, useAnimatedScrollHandler } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { TaskCard } from "./task-card";
@@ -18,23 +18,12 @@ interface Props {
     withGesture: ReturnType<typeof Gesture.Native>;
     loading: boolean;
     onContentSizeChange: (contentWidth: number, contentHeight: number) => void;
-    gap?: number;
     scrollY: SharedValue<number>;
     handleRef: (ref: FlatList | null) => void;
     refreshTranslateY: SharedValue<number>;
 }
 
-export const TaskList = memo(({
-    withGesture,
-    data,
-    onEndReached,
-    handleRef,
-    loading,
-    onContentSizeChange,
-    gap,
-    scrollY,
-    refreshTranslateY
-}: Props) => {
+export const TaskList = memo(({ withGesture, data, onEndReached, handleRef, loading, onContentSizeChange, scrollY, refreshTranslateY }: Props) => {
     const { t } = useTranslation();
     const { theme } = useTheme();
     const taskHeight = 100;
@@ -51,23 +40,17 @@ export const TaskList = memo(({
         />
     ), [loading]);
 
+    const handleScroll = useAnimatedScrollHandler({
+        onScroll: (e) => {
+            const y = e.contentOffset.y;
 
-    const r = (v: any) => console.log(v);
-
-    const gesturesList = Gesture.Race(
-        Gesture.Pan()
-            .simultaneousWithExternalGesture(withGesture)
-            .activeOffsetX([-5, 5])
-            .failOffsetY([-5, 5])
-            .onUpdate(({ translationX: x }) => {
-                runOnJS(r)(x);
-            }),
-    )
-
+            scrollY.value = y;
+        }
+    });
 
     return (
         <View className="w-screen flex items-center shrink-0">
-            <GestureDetector gesture={gesturesList}>
+            <GestureDetector gesture={withGesture}>
                 <FlatListAnimated
                     ref={handleRef}
                     nestedScrollEnabled
@@ -83,9 +66,7 @@ export const TaskList = memo(({
                     // renderItem={({ item }) => <></>}
                     onEndReachedThreshold={.1}
                     scrollEventThrottle={16}
-                    onScroll={() => {
-
-                    }}
+                    onScroll={handleScroll}
                     onMomentumScrollBegin={() => {
 
                     }}
@@ -96,8 +77,8 @@ export const TaskList = memo(({
                     onEndReached={onEndReached}
                     getItemLayout={(_, index) => ({
                         length: (taskHeight + tasksGap),
-                        offset: (index ?? 0) * (taskHeight + tasksGap),
-                        index: (index ?? 0),
+                        offset: index * (taskHeight + tasksGap),
+                        index: index,
                     })}
                     ListEmptyComponent={() => {
                         if (!loading) {
@@ -137,9 +118,9 @@ export const TaskList = memo(({
                     }}
                     className="w-full"
                     contentContainerStyle={{
-                        gap,
+                        gap: tasksGap,
                     }}
-                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[100px] px-3"
+                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[150px] px-3"
                 />
             </GestureDetector>
         </View>

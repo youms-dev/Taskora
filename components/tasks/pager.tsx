@@ -18,9 +18,10 @@ interface Props {
     currentFilter: number;
     refreshTranslateY: SharedValue<number>;
     onEndReached: () => void;
+    withGesture: ReturnType<typeof Gesture.Native>;
 }
 
-export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks = [], loading = false, currentFilter = 1, refreshTranslateY, onEndReached }: Props) => {
+export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks = [], loading = false, currentFilter = 1, refreshTranslateY, onEndReached, withGesture }: Props) => {
     const flatListRef = useRef<FlatList>(null);
     const otherElement = Gesture.Native();
     const { width: screenWidth } = useWindowDimensions();
@@ -35,27 +36,6 @@ export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks 
     const loadingShared = useSharedValue<boolean>(loading);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
-    const e = (v: any) => console.log(v);
-
-    const panGesture = Gesture.Pan()
-        .simultaneousWithExternalGesture(otherElement)
-        // .activeOffsetY(50)
-        .failOffsetX([-10, 10])
-        .onUpdate(({ translationY: y }) => {
-            // refreshTranslateY.value = y;
-            // if (scrollY.value == 0 && !loadingShared.value) {
-            // }
-            runOnJS(e)(y);
-        })
-        .onEnd(() => {
-            if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
-                refreshTranslateY.value = 0;
-            }
-            else if (refreshTranslateY.value >= 90) {
-                refreshTranslateY.value = 180;
-                // runOnJS(handleGetTasks)(true);
-            };
-        });
 
     const checkScroll = useCallback((index: number = 0, y: number) => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
@@ -98,38 +78,64 @@ export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks 
         loadingShared.value = loading;
     }, [loading]);
 
+    // const e = (v: any) => console.log(v);
+
+    // const panGesture = Gesture.Pan()
+    //     // .simultaneousWithExternalGesture(otherElement)
+    //     // .activeOffsetY(50)
+    //     .failOffsetX([-10, 10])
+    //     .onUpdate(({ translationY: y }) => {
+    //         // refreshTranslateY.value = y;
+    //         // if (scrollY.value == 0 && !loadingShared.value) {
+    //         // }
+    //         runOnJS(e)(y);
+    //     })
+    //     .onEnd(() => {
+    //         if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
+    //             refreshTranslateY.value = 0;
+    //         }
+    //         else if (refreshTranslateY.value >= 90) {
+    //             refreshTranslateY.value = 180;
+    //             // runOnJS(handleGetTasks)(true);
+    //         };
+    //     });
+
     return (
-        <GestureDetector gesture={panGesture}>
-                <FlatList
-                    ref={flatListRef}
-                    horizontal
-                    scrollEnabled={false}
-                    showsHorizontalScrollIndicator={false}
-                    nestedScrollEnabled
-                    pagingEnabled
-                    decelerationRate="fast"
-                    initialNumToRender={1}
-                    maxToRenderPerBatch={1}
-                    removeClippedSubviews
-                    data={[
-                        {
-                            idFolder: "all_folder",
-                            title: "all",
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
-                        } as FolderType,
-                        ...folders,
-                    ]}
-                    keyExtractor={(item) => item.idFolder}
-                    renderItem={({ item, index }) => listRenderItem(item, index)}
-                    getItemLayout={(_, index) => ({
-                        length: screenWidth,
-                        offset: index * screenWidth,
-                        index,
-                    })}
-                    className="w-full"
-                    contentContainerClassName="flex flex-row"
-                />
+        <GestureDetector gesture={withGesture}>
+            <FlatList
+                ref={flatListRef}
+                horizontal
+                scrollEnabled={false}
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                pagingEnabled
+                decelerationRate="fast"
+                initialNumToRender={1}
+                maxToRenderPerBatch={1}
+                removeClippedSubviews
+                data={[
+                    {
+                        idFolder: "all_folder",
+                        title: "all",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    } as FolderType,
+                    ...folders,
+                ]}
+                keyExtractor={(item) => item.idFolder}
+                renderItem={({ item, index }) => listRenderItem(item, index)}
+                // renderItem={({ item, index }) => <></>}
+                getItemLayout={(_, index) => ({
+                    length: screenWidth,
+                    offset: index * screenWidth,
+                    index,
+                })}
+                className="w-full"
+                // contentContainerStyle={{
+                //     height: 300,
+                // }}
+                contentContainerClassName="flex flex-row"
+            />
         </GestureDetector>
     );
 });

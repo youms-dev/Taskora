@@ -22,7 +22,7 @@ import { Component, JSX, memo, useCallback, useEffect, useMemo, useRef, useState
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, FlatListProps, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { AnimatedProps, Easing, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { AnimatedProps, Easing, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
@@ -47,7 +47,6 @@ export default function Tasks() {
     const syncLoading = useRef<boolean>(false);
     const synced = useRef<boolean>(false);
     const { t } = useTranslation();
-    const showScrollButton = useSharedValue<boolean>(false);
     const showButtonTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const tasksSelectedShared = useSharedValue<boolean>(false);
     const scrollCheckPoint = 100;
@@ -83,6 +82,9 @@ export default function Tasks() {
     const contentsSize = useRef<number[]>([]);
     const [scrollY, setScrollY] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
+    const timeout = useSharedValue<ReturnType<typeof setTimeout>>(0);
+
+    const showScrollButton = useSharedValue<boolean>(false);
 
     const syncData = useCallback(async (position: number = 0) => {
         if (pathname != "/" || syncLoading.current) return;
@@ -201,32 +203,44 @@ export default function Tasks() {
         showScrollButton.value = true;
         showButtonTimeout.current = setTimeout(() => {
             showScrollButton.value = false;
-        }, 500);
+        }, 1000);
     }
 
-    const setScrollYValue = (value: number) => setScrollY(value);
-
-    const handleScroll = useAnimatedScrollHandler({
-        onScroll: (e) => {
-            const y = e.contentOffset.y;
-
-            if (y >= 0 && y <= scrollYShared.value) {
-                showAddTaskButton.value = true;
-            }
-            else {
-                showAddTaskButton.value = false;
-            }
-
-            if (y > 0 && y < scrollYShared.value) {
-                runOnJS(toggleShowScrollButton)();
+    useAnimatedReaction(
+        () => scrollYShared.value,
+        (current) => {
+            if (current > 0) {
+                !showScrollButton.value && runOnJS(toggleShowScrollButton)();
             }
             else {
                 showScrollButton.value = false;
             }
-            scrollYShared.value = y;
-            runOnJS(setScrollYValue)(y);
         }
-    });
+    );
+
+    const setScrollYValue = (value: number) => setScrollY(value);
+
+    // const handleScroll = useAnimatedScrollHandler({
+    //     onScroll: (e) => {
+    //         const y = e.contentOffset.y;
+
+    //         if (y >= 0 && y <= scrollYShared.value) {
+    //             showAddTaskButton.value = true;
+    //         }
+    //         else {
+    //             showAddTaskButton.value = false;
+    //         }
+
+    //         if (y > 0 && y < scrollYShared.value) {
+    //             runOnJS(toggleShowScrollButton)();
+    //         }
+    //         else {
+    //             showScrollButton.value = false;
+    //         }
+    //         scrollYShared.value = y;
+    //         runOnJS(setScrollYValue)(y);
+    //     }
+    // });
 
     const scrollButtonAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(showScrollButton.value ? 1 : 0, {
@@ -511,6 +525,30 @@ export default function Tasks() {
         }
     }, [pathname]);
 
+
+    const e = (v: any) => console.log(v);
+
+    const panGesture = Gesture.Pan()
+        .simultaneousWithExternalGesture(otherElement)
+        // .activeOffsetY(50)
+        .activeOffsetY(10)
+        .failOffsetX([-10, 10])
+        .onUpdate(({ translationY: y }) => {
+            // refreshTranslateY.value = y;
+            // if (scrollY.value == 0 && !loadingShared.value) {
+            // }
+            runOnJS(e)(y);
+        })
+        .onEnd(() => {
+            // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
+            //     refreshTranslateY.value = 0;
+            // }
+            // else if (refreshTranslateY.value >= 90) {
+            //     refreshTranslateY.value = 180;
+            //     // runOnJS(handleGetTasks)(true);
+            // };
+        });
+
     return (
         <Container centerX>
             <TasksHeader
@@ -534,16 +572,21 @@ export default function Tasks() {
                 )
             } */}
 
-            <Pager
-                scrollY={scrollYShared}
-                folders={folders}
-                tasks={tasks}
-                currentFolder={currentFolder}
-                currentFilter={currentFilter}
-                loading={loading}
-                refreshTranslateY={refreshTranslateY}
-                onEndReached={() => { }}
-            />
+            <GestureDetector gesture={panGesture}>
+                <View className="w-full h-screen">
+                    <Pager
+                        scrollY={scrollYShared}
+                        folders={folders}
+                        tasks={tasks}
+                        currentFolder={currentFolder}
+                        currentFilter={currentFilter}
+                        loading={loading}
+                        refreshTranslateY={refreshTranslateY}
+                        onEndReached={() => { }}
+                        withGesture={otherElement}
+                    />
+                </View>
+            </GestureDetector>
 
             <PressableToScrollAnimated
                 onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
@@ -670,6 +713,13 @@ export default function Tasks() {
                 }
                 start={{ x: 0, y: 1 }}
                 end={{ x: 0, y: 0 }}
+                style={{
+                    transform: [
+                        {
+                            translateY: 20,
+                        }
+                    ]
+                }}
                 className="absolute left-0 bottom-0 w-full z-[10]"
             >
                 <LinearGradient
@@ -680,7 +730,7 @@ export default function Tasks() {
                     }
                     start={{ x: 0, y: 1 }}
                     end={{ x: 0, y: 0 }}
-                    className="w-full h-[50px]"
+                    className="w-full h-[80px]"
                 />
             </LinearGradient>
 

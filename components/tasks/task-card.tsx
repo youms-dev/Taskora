@@ -123,7 +123,7 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
     //         })
     // ), [handleLongPressLocal, handleArchive, handleDelete]);
 
-    const r = (v: any) => console.log(v);
+    const r = (v: any) => console.log("x", v);
 
     const gesturesList = Gesture.Race(
         Gesture.Pan()
@@ -181,87 +181,85 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
 
     return (
         <GestureDetector gesture={gesturesList}>
-            <GestureDetector gesture={withGesture}>
-                <Pressable
-                    {...rest}
-                    // onPress={handlePress}
-                    style={{
-                        height,
-                    }}
-                    className="w-full flex justify-center items-center rounded-2xl"
+            <Pressable
+                {...rest}
+                // onPress={handlePress}
+                style={{
+                    height,
+                }}
+                className="w-full flex justify-center items-center rounded-2xl"
+            >
+                <Animated.View
+                    style={swipeAnimation}
+                    className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
                 >
-                    <Animated.View
-                        style={swipeAnimation}
-                        className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
-                    >
-                        <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
-                            {
-                                task.title && (
-                                    <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
-                                        <TextAnimated
-                                            numberOfLines={1}
-                                            className="text-lg tracking-widest"
-                                        >
-                                            {task.title}
-                                        </TextAnimated>
-                                    </View>
-                                )
-                            }
-
-                            <View className="w-full">
-                                <TextAnimated
-                                    numberOfLines={2}
-                                    className="text-lg dark:opacity-70 opacity-60"
-                                >
-                                    {task.content}
-                                </TextAnimated>
-                            </View>
-                        </View>
-                    </Animated.View>
-
-                    <View className="w-full h-full flex flex-row justify-center items-center p-2 rounded-2xl pointer-events-none">
-                        <Animated.View
-                            style={opacityAnimation}
-                            className="w-1/2 h-full flex justify-center bg-red-500 rounded-l-2xl pl-10"
-                        >
-                            <FontAwesome6
-                                name="trash-alt"
-                                size={25}
-                                color="rgba(255, 255, 255, .8)"
-                            />
-                        </Animated.View>
-
-                        <Animated.View
-                            style={opacityAnimation}
-                            className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
-                        >
-                            <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
-                                <MaterialIcons
-                                    name="archive"
-                                    size={30}
-                                    color="rgba(255, 255, 255, .8)"
-                                />
-                            </View>
-                        </Animated.View>
-                    </View>
-
-                    <Animated.View
-                        style={selectAnimation}
-                        className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
-                    >
+                    <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
                         {
-                            index > 0 && (
-                                <TextAnimated
-                                    style={textAnimation}
-                                    className="absolute text-4xl"
-                                >
-                                    {index}
-                                </TextAnimated>
+                            task.title && (
+                                <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="text-lg tracking-widest"
+                                    >
+                                        {task.title}
+                                    </TextAnimated>
+                                </View>
                             )
                         }
+
+                        <View className="w-full">
+                            <TextAnimated
+                                numberOfLines={2}
+                                className="text-lg dark:opacity-70 opacity-60"
+                            >
+                                {task.content}
+                            </TextAnimated>
+                        </View>
+                    </View>
+                </Animated.View>
+
+                <View className="w-full h-full flex flex-row justify-center items-center p-2 rounded-2xl pointer-events-none">
+                    <Animated.View
+                        style={opacityAnimation}
+                        className="w-1/2 h-full flex justify-center bg-red-500 rounded-l-2xl pl-10"
+                    >
+                        <FontAwesome6
+                            name="trash-alt"
+                            size={25}
+                            color="rgba(255, 255, 255, .8)"
+                        />
                     </Animated.View>
-                </Pressable>
-            </GestureDetector>
+
+                    <Animated.View
+                        style={opacityAnimation}
+                        className="w-1/2 h-full dark:bg-white/50 bg-black rounded-r-2xl overflow-hidden"
+                    >
+                        <View className="w-full h-full flex justify-center items-end pr-10 dark:bg-transparent bg-white/30">
+                            <MaterialIcons
+                                name="archive"
+                                size={30}
+                                color="rgba(255, 255, 255, .8)"
+                            />
+                        </View>
+                    </Animated.View>
+                </View>
+
+                <Animated.View
+                    style={selectAnimation}
+                    className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
+                >
+                    {
+                        index > 0 && (
+                            <TextAnimated
+                                style={textAnimation}
+                                className="absolute text-4xl"
+                            >
+                                {index}
+                            </TextAnimated>
+                        )
+                    }
+                </Animated.View>
+            </Pressable>
         </GestureDetector>
     );
 });
