@@ -117,9 +117,8 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
 
     const gesturesList = Gesture.Race(
         Gesture.Pan()
-            // .simultaneousWithExternalGesture(extraGesture)
-            .activeOffsetX([-5, 5])
-            .failOffsetY([-5, 5])
+            .activeOffsetX([-50, 50])
+            .failOffsetY(10)
             .onUpdate(({ translationX: x }) => {
                 runOnJS(r)(x);
             }),

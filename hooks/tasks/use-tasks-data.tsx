@@ -1,12 +1,12 @@
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { usePathname } from "expo-router";
-import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Gesture } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
 import { useTasks } from "../database/use-tasks";
 import { useToast } from "../use-toast";
-import { Gesture } from "react-native-gesture-handler";
 
 const Context = createContext<{
     tasks: TaskType[];
@@ -45,7 +45,7 @@ export const TasksDataProvider = ({ children }: Props) => {
     const [tasksCount, setTasksCount] = useState<number>(0);
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
-    let extraGesture = Gesture.Native();
+    const extraGesture = useMemo(() => Gesture.Native(), []);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -98,10 +98,8 @@ export const TasksDataProvider = ({ children }: Props) => {
     };
 
     useEffect(() => {
-        console.log("Loading :", loading);
         loadingRef.current = loading;
-        extraGesture = Gesture.Native();
-    }, [loading, tasks, folders]);
+    }, [loading]);
 
     const handleGetFolders = async () => {
         try {

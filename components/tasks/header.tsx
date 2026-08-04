@@ -1,21 +1,22 @@
 import { COLORS } from "@/constants/colors";
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
-import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, SharedValue, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import Octicons from "@expo/vector-icons/Octicons";
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+
+const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -60,16 +61,8 @@ export const TasksHeader = memo(() => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const filterScrollViewRef = useRef<ScrollView>(null);
-    const [scrollY, setScrollY] = useState<number>(0);
     const loadingShared = useSharedValue<boolean>(loading);
     const [left, setLeft] = useState<number>(0);
-
-    useAnimatedReaction(
-        () => scrollYShared.value,
-        () => {
-            runOnJS(setScrollY)(scrollYShared.value);
-        }
-    );
 
     const fakeInputAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -91,7 +84,7 @@ export const TasksHeader = memo(() => {
     }));
 
     const stickyAnimation = useAnimatedStyle(() => ({
-        screenWidth: withSpring(scrollYShared.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
+        width: withSpring(scrollYShared.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
             stiffness: 500,
             mass: 1,
             damping: 10,
@@ -289,15 +282,13 @@ export const TasksHeader = memo(() => {
         loadingShared.value = loading;
     }, [loading]);
 
-
-    // const r = (a: any) => console.log(a);
-
-    // useAnimatedReaction(
-    //     () => scrollYShared.value,
-    //     (current) => {
-    //         runOnJS(r)(current);
-    //     }
-    // )
+    const addFolderButtonBackgroundAnimation = useAnimatedStyle(() => ({
+        backgroundColor: scrollYShared.value >= scrollCheckPoint * .5 ?
+            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .1)"
+            :
+            themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .06)"
+        ,
+    }));
 
     return (
         <Animated.View
@@ -414,49 +405,10 @@ export const TasksHeader = memo(() => {
                                                 contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
                                             />
 
-                                            <LinearGradient
-                                                colors={
-                                                    scrollY >= scrollCheckPoint * .5 ?
-                                                        (
-                                                            theme == "dark" ?
-                                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                                :
-                                                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                                        )
-                                                        :
-                                                        (
-                                                            theme == "dark" ?
-                                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                                :
-                                                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                                        )
-                                                }
-                                                start={{ x: 1, y: 0 }}
-                                                end={{ x: 0, y: 0 }}
-                                                locations={[.5, .6, 1]}
-                                                className="absolute right-0 top-0 z-[10]"
-                                            >
-                                                <LinearGradient
-                                                    colors={
-                                                        scrollY >= scrollCheckPoint * .5 ?
-                                                            (
-                                                                theme == "dark" ?
-                                                                    ["rgba(255, 255, 255, .2)", "rgba(255, 255, 255, .2)", "rgba(255, 255, 255, 0)"]
-                                                                    :
-                                                                    ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(255, 255, 255, .2)"]
-                                                            )
-                                                            :
-                                                            (
-                                                                theme == "dark" ?
-                                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
-                                                                    :
-                                                                    ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .0)"]
-                                                            )
-                                                    }
-                                                    start={{ x: 1, y: 0 }}
-                                                    end={{ x: 0, y: 0 }}
-                                                    locations={[.5, .6, 1]}
-                                                    className="w-full h-full flex justify-center items-center pl-10 pr-3 py-1"
+                                            <View className="absolute right-0 top-0 dark:bg-black bg-white z-[10]">
+                                                <Animated.View
+                                                    style={addFolderButtonBackgroundAnimation}
+                                                    className="w-full h-full flex justify-center items-center px-5 py-1"
                                                 >
                                                     <PressableAnimated>
                                                         <FontAwesome5
@@ -465,8 +417,8 @@ export const TasksHeader = memo(() => {
                                                             color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                                                         />
                                                     </PressableAnimated>
-                                                </LinearGradient>
-                                            </LinearGradient>
+                                                </Animated.View>
+                                            </View>
                                         </>
                                     )
                                 }

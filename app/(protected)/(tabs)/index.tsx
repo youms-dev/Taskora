@@ -531,11 +531,11 @@ export default function Tasks() {
     const panGesture = Gesture.Pan()
         .simultaneousWithExternalGesture(otherElement)
         // .activeOffsetY(50)
-        .activeOffsetY(10)
+        .activeOffsetY(0)
         .failOffsetX([-10, 10])
         .onUpdate(({ translationY: y }) => {
-            // refreshTranslateY.value = y;
             // if (scrollY.value == 0 && !loadingShared.value) {
+            //     // refreshTranslateY.value = y;
             // }
             runOnJS(e)(y);
         })
@@ -551,38 +551,7 @@ export default function Tasks() {
 
     return (
         <Container centerX>
-            <TasksHeader
-            // scrollY={scrollYShared}
-            // folders={folders}
-            // currentFolder={currentFolder}
-            // tasks={tasks}
-            // loading={loading}
-            // currentFilter={currentFilter}
-            // refreshTranslateY={refreshTranslateY}
-            />
-
-            {/* {
-                filterLoading && (
-                    <View className="absolute left-0 top-0 w-screen h-screen flex justify-center items-center dark:bg-black/50 bg-black/20 z-[200]">
-                        <ActivityIndicator
-                            size={30}
-                            color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                        />
-                    </View>
-                )
-            } */}
-
-            {/* <Pager
-                scrollY={scrollYShared}
-                folders={folders}
-                tasks={tasks}
-                currentFolder={currentFolder}
-                currentFilter={currentFilter}
-                loading={loading}
-                refreshTranslateY={refreshTranslateY}
-                onEndReached={() => { }}
-                withGesture={otherElement}
-            /> */}
+            <TasksHeader />
 
             <Pager />
 

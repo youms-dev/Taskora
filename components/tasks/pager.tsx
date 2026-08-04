@@ -2,26 +2,22 @@ import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS, SharedValue, useSharedValue } from "react-native-reanimated";
+import Animated, { runOnJS, SharedValue, useSharedValue } from "react-native-reanimated";
 import { scrollCheckPoint } from "./header";
 import { TaskList } from "./tasks-list";
 
 export const Pager = memo(() => {
     const { refreshTranslateY, loading, folders, tasks, scrollY, extraGesture } = useTasksData();
     const flatListRef = useRef<FlatList>(null);
-    const otherElement = Gesture.Native();
     const { width: screenWidth } = useWindowDimensions();
     const flatListsRef = useRef<{
         id: string;
         value: FlatList;
     }[]>([]);
     const contentsSize = useRef<number[]>([]);
-    const tasksGap = 20;
-    const { theme } = useTheme();
-    const taskHeight = 100;
     const loadingShared = useSharedValue<boolean>(loading);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -40,12 +36,11 @@ export const Pager = memo(() => {
         }, 100);
     }, [folders, tasks]);
 
-    const n = Gesture.Native();
     const listRenderItem = useCallback((folder: FolderType, index: number) => {
         return (
-            <TaskList gesture={n} />
+            <TaskList />
         );
-    }, [tasks, loading, folders, n]);
+    }, [tasks, folders]);
 
     useEffect(() => {
         loadingShared.value = loading;
@@ -53,29 +48,31 @@ export const Pager = memo(() => {
 
     const e = (v: any) => console.log(v);
 
-    const panGesture = Gesture.Pan()
-        // .simultaneousWithExternalGesture(extraGesture)
-        .simultaneousWithExternalGesture(n)
-        .activeOffsetY(50)
-        .failOffsetX([-10, 10])
-        .onUpdate(({ translationY: y }) => {
-            if (scrollY.value <= 0 && y > 0) {
-                refreshTranslateY.value = y;
-            }
-            // if (scrollY.value == 0 && !loadingShared.value) {
-            // }
-            runOnJS(e)(y);
-        })
-        .onEnd(() => {
-            refreshTranslateY.value = 0;
-            // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
-            //     refreshTranslateY.value = 0;
-            // }
-            // else if (refreshTranslateY.value >= 90) {
-            //     refreshTranslateY.value = 180;
-            //     // runOnJS(handleGetTasks)(true);
-            // };
-        });
+    const panGesture = useMemo(() =>
+        Gesture.Pan()
+            .simultaneousWithExternalGesture(extraGesture)
+            .activeOffsetY(5)
+            .failOffsetX([-50, 50])
+            .onUpdate(({ translationY: y }) => {
+                if (scrollY.value <= 0 && y > 0) {
+                    refreshTranslateY.value = y;
+                    runOnJS(e)({
+                        y,
+                        scroll: scrollY.value,
+                    });
+                }
+            })
+            .onEnd(() => {
+                refreshTranslateY.value = 0;
+                // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
+                //     refreshTranslateY.value = 0;
+                // }
+                // else if (refreshTranslateY.value >= 90) {
+                //     refreshTranslateY.value = 180;
+                //     // runOnJS(handleGetTasks)(true);
+                // };
+            })
+        , [tasks, loading]);
 
     return (
         <GestureDetector gesture={panGesture}>
@@ -97,11 +94,12 @@ export const Pager = memo(() => {
                         createdAt: new Date(),
                         updatedAt: new Date(),
                     } as FolderType,
-                    ...folders,
+                    // ...folders,
+                    // folders[1]
                 ]}
                 keyExtractor={(item) => item.idFolder}
-                // renderItem={({ item, index }) => listRenderItem(item, index)}
-                renderItem={({ item, index }) => <></>}
+                renderItem={({ item, index }) => listRenderItem(item, index)}
+                // renderItem={({ item, index }) => <></>}
                 getItemLayout={(_, index) => ({
                     length: screenWidth,
                     offset: index * screenWidth,
