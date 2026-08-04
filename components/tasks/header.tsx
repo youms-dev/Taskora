@@ -15,6 +15,7 @@ import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import Octicons from "@expo/vector-icons/Octicons";
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -51,17 +52,8 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 
 export const scrollCheckPoint = 100;
 
-interface Props {
-    scrollY: SharedValue<number>;
-    folders: FolderType[];
-    currentFolder: FolderType["idFolder"] | null;
-    tasks: TaskType[];
-    loading: boolean;
-    currentFilter: number;
-    refreshTranslateY: SharedValue<number>;
-}
-
-export const TasksHeader = memo(({ scrollY: scrollYShared, folders = [], currentFolder = null, tasks = [], loading = false, currentFilter = 1, refreshTranslateY }: Props) => {
+export const TasksHeader = memo(() => {
+    const { handleGetTasks, handleGetFolders, loading, tasks, folders, scrollY: scrollYShared, currentFilter, currentFolder, refreshTranslateY } = useTasksData();
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -297,6 +289,16 @@ export const TasksHeader = memo(({ scrollY: scrollYShared, folders = [], current
         loadingShared.value = loading;
     }, [loading]);
 
+
+    // const r = (a: any) => console.log(a);
+
+    // useAnimatedReaction(
+    //     () => scrollYShared.value,
+    //     (current) => {
+    //         runOnJS(r)(current);
+    //     }
+    // )
+
     return (
         <Animated.View
             style={headerContainerAnimation}
@@ -380,7 +382,7 @@ export const TasksHeader = memo(({ scrollY: scrollYShared, folders = [], current
                                 className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
                             >
                                 {
-                                    loading && tasks.length == 0 && (
+                                    loading && folders.length == 0 && (
                                         <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                             <Skeleton />
                                         </View>
@@ -388,7 +390,7 @@ export const TasksHeader = memo(({ scrollY: scrollYShared, folders = [], current
                                 }
 
                                 {
-                                    (!loading || tasks.length > 0) && (
+                                    (!loading || folders.length > 0) && (
                                         <>
                                             <FlatList
                                                 ref={foldersFlatListRef}

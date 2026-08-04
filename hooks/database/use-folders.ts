@@ -27,7 +27,7 @@ export const useFolders = () => {
         }
     }
 
-    async function getFolderCount(): Promise<number | unknown> {
+    async function getFoldersCount(): Promise<number | unknown> {
         if (!db) return;
 
         try {
@@ -55,7 +55,7 @@ export const useFolders = () => {
 
     return {
         getFolders,
-        getFolderCount,
+        getFoldersCount,
         deleteFolder,
     }
 }

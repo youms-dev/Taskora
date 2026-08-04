@@ -1,31 +1,20 @@
 import { useTasks } from "@/hooks/database/use-tasks";
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useToast } from "@/hooks/use-toast";
 import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, PressableProps, Vibration, View } from "react-native";
+import { Pressable, PressableProps, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, SharedValue, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { TextAnimated } from "../text-animated";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
-    // onRefresh: (error?: boolean) => void;
-    loading: boolean;
-    selectedIndex?: number;
-    // onLongPress?: (task: TaskType) => void;
-    // selection?: boolean;
-    // onDelete?: (task: TaskType) => void;
-    // onArchive?: (task: TaskType) => void;
-    // onPress?: (id: TaskType["idTask"]) => void;
-    withGesture: ReturnType<typeof Gesture.Native>;
-    refreshTranslateY: SharedValue<number>;
 }
-
-// export const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, selectedIndex: index = 0, onLongPress, selection: selecting = false, onDelete, onArchive, onPress, height, ...rest }: TaskCardProps) => {
-export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIndex: index = 0, withGesture, refreshTranslateY, ...rest }: TaskCardProps) => {
+export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
@@ -35,6 +24,7 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
     const [loading, setLoading] = useState<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
+    const { extraGesture } = useTasksData();
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -127,7 +117,7 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
 
     const gesturesList = Gesture.Race(
         Gesture.Pan()
-            .simultaneousWithExternalGesture(withGesture)
+            // .simultaneousWithExternalGesture(extraGesture)
             .activeOffsetX([-5, 5])
             .failOffsetY([-5, 5])
             .onUpdate(({ translationX: x }) => {
@@ -244,7 +234,7 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
                     </Animated.View>
                 </View>
 
-                <Animated.View
+                {/* <Animated.View
                     style={selectAnimation}
                     className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
                 >
@@ -258,7 +248,7 @@ export const TaskCard = memo(({ task, loading: parentLoading = false, selectedIn
                             </TextAnimated>
                         )
                     }
-                </Animated.View>
+                </Animated.View> */}
             </Pressable>
         </GestureDetector>
     );

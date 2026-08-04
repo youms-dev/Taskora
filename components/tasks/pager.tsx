@@ -1,27 +1,16 @@
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { FlatList, useWindowDimensions, View } from "react-native";
+import { memo, useCallback, useEffect, useRef } from "react";
+import { FlatList, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, SharedValue, useSharedValue } from "react-native-reanimated";
 import { scrollCheckPoint } from "./header";
-import { TaskCard } from "./task-card";
 import { TaskList } from "./tasks-list";
 
-interface Props {
-    scrollY: SharedValue<number>;
-    folders: FolderType[];
-    currentFolder: string | null;
-    tasks: TaskType[];
-    loading: boolean;
-    currentFilter: number;
-    refreshTranslateY: SharedValue<number>;
-    onEndReached: () => void;
-    withGesture: ReturnType<typeof Gesture.Native>;
-}
-
-export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks = [], loading = false, currentFilter = 1, refreshTranslateY, onEndReached, withGesture }: Props) => {
+export const Pager = memo(() => {
+    const { refreshTranslateY, loading, folders, tasks, scrollY, extraGesture } = useTasksData();
     const flatListRef = useRef<FlatList>(null);
     const otherElement = Gesture.Native();
     const { width: screenWidth } = useWindowDimensions();
@@ -51,57 +40,45 @@ export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks 
         }, 100);
     }, [folders, tasks]);
 
+    const n = Gesture.Native();
     const listRenderItem = useCallback((folder: FolderType, index: number) => {
         return (
-            <TaskList
-                key={folder.idFolder}
-                handleRef={(ref) => {
-                    if (ref) {
-                        flatListsRef.current[index] = {
-                            id: folder.idFolder,
-                            value: ref as FlatList,
-                        }
-                    }
-                }}
-                loading={loading}
-                withGesture={otherElement}
-                data={index == 0 ? tasks : []}
-                scrollY={scrollY}
-                onEndReached={() => index == 0 && onEndReached()}
-                onContentSizeChange={(_, y) => contentsSize.current[index] = y}
-                refreshTranslateY={refreshTranslateY}
-            />
+            <TaskList gesture={n} />
         );
-    }, [tasks]);
+    }, [tasks, loading, folders, n]);
 
     useEffect(() => {
         loadingShared.value = loading;
     }, [loading]);
 
-    // const e = (v: any) => console.log(v);
+    const e = (v: any) => console.log(v);
 
-    // const panGesture = Gesture.Pan()
-    //     // .simultaneousWithExternalGesture(otherElement)
-    //     // .activeOffsetY(50)
-    //     .failOffsetX([-10, 10])
-    //     .onUpdate(({ translationY: y }) => {
-    //         // refreshTranslateY.value = y;
-    //         // if (scrollY.value == 0 && !loadingShared.value) {
-    //         // }
-    //         runOnJS(e)(y);
-    //     })
-    //     .onEnd(() => {
-    //         if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
-    //             refreshTranslateY.value = 0;
-    //         }
-    //         else if (refreshTranslateY.value >= 90) {
-    //             refreshTranslateY.value = 180;
-    //             // runOnJS(handleGetTasks)(true);
-    //         };
-    //     });
+    const panGesture = Gesture.Pan()
+        // .simultaneousWithExternalGesture(extraGesture)
+        .simultaneousWithExternalGesture(n)
+        .activeOffsetY(50)
+        .failOffsetX([-10, 10])
+        .onUpdate(({ translationY: y }) => {
+            if (scrollY.value <= 0 && y > 0) {
+                refreshTranslateY.value = y;
+            }
+            // if (scrollY.value == 0 && !loadingShared.value) {
+            // }
+            runOnJS(e)(y);
+        })
+        .onEnd(() => {
+            refreshTranslateY.value = 0;
+            // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
+            //     refreshTranslateY.value = 0;
+            // }
+            // else if (refreshTranslateY.value >= 90) {
+            //     refreshTranslateY.value = 180;
+            //     // runOnJS(handleGetTasks)(true);
+            // };
+        });
 
     return (
-        <GestureDetector gesture={withGesture}>
+        <GestureDetector gesture={panGesture}>
             <FlatList
                 ref={flatListRef}
                 horizontal
@@ -123,8 +100,8 @@ export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks 
                     ...folders,
                 ]}
                 keyExtractor={(item) => item.idFolder}
-                renderItem={({ item, index }) => listRenderItem(item, index)}
-                // renderItem={({ item, index }) => <></>}
+                // renderItem={({ item, index }) => listRenderItem(item, index)}
+                renderItem={({ item, index }) => <></>}
                 getItemLayout={(_, index) => ({
                     length: screenWidth,
                     offset: index * screenWidth,
@@ -138,4 +115,41 @@ export const Pager = memo(({ scrollY, folders = [], currentFolder = null, tasks 
             />
         </GestureDetector>
     );
+
+    // return (
+    //     <FlatList
+    //         ref={flatListRef}
+    //         horizontal
+    //         scrollEnabled={false}
+    //         showsHorizontalScrollIndicator={false}
+    //         nestedScrollEnabled
+    //         pagingEnabled
+    //         decelerationRate="fast"
+    //         initialNumToRender={1}
+    //         maxToRenderPerBatch={1}
+    //         removeClippedSubviews
+    //         data={[
+    //             {
+    //                 idFolder: "all_folder",
+    //                 title: "all",
+    //                 createdAt: new Date(),
+    //                 updatedAt: new Date(),
+    //             } as FolderType,
+    //             ...folders,
+    //         ]}
+    //         keyExtractor={(item) => item.idFolder}
+    //         renderItem={({ item, index }) => listRenderItem(item, index)}
+    //         // renderItem={({ item, index }) => <></>}
+    //         getItemLayout={(_, index) => ({
+    //             length: screenWidth,
+    //             offset: index * screenWidth,
+    //             index,
+    //         })}
+    //         className="w-full"
+    //         // contentContainerStyle={{
+    //         //     height: 300,
+    //         // }}
+    //         contentContainerClassName="flex flex-row"
+    //     />
+    // );
 });

@@ -18,11 +18,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import { Component, JSX, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, FlatListProps, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import { BackHandler, FlatList, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { AnimatedProps, Easing, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
@@ -517,13 +517,13 @@ export default function Tasks() {
         tasksSelectedShared.value = selectMap.size > 0;
     }, [selectMap]);
 
-    useEffect(() => {
-        if (pathname == "/") {
-            handleGetFolders();
-            handleGetCount();
-            handleGetTasks(tasks.length > 0);
-        }
-    }, [pathname]);
+    // useEffect(() => {
+    //     if (pathname == "/") {
+    //         handleGetFolders();
+    //         handleGetCount();
+    //         handleGetTasks(tasks.length > 0);
+    //     }
+    // }, [pathname]);
 
 
     const e = (v: any) => console.log(v);
@@ -552,13 +552,13 @@ export default function Tasks() {
     return (
         <Container centerX>
             <TasksHeader
-                scrollY={scrollYShared}
-                folders={folders}
-                currentFolder={currentFolder}
-                tasks={tasks}
-                loading={loading}
-                currentFilter={currentFilter}
-                refreshTranslateY={refreshTranslateY}
+            // scrollY={scrollYShared}
+            // folders={folders}
+            // currentFolder={currentFolder}
+            // tasks={tasks}
+            // loading={loading}
+            // currentFilter={currentFilter}
+            // refreshTranslateY={refreshTranslateY}
             />
 
             {/* {
@@ -572,21 +572,19 @@ export default function Tasks() {
                 )
             } */}
 
-            <GestureDetector gesture={panGesture}>
-                <View className="w-full h-screen">
-                    <Pager
-                        scrollY={scrollYShared}
-                        folders={folders}
-                        tasks={tasks}
-                        currentFolder={currentFolder}
-                        currentFilter={currentFilter}
-                        loading={loading}
-                        refreshTranslateY={refreshTranslateY}
-                        onEndReached={() => { }}
-                        withGesture={otherElement}
-                    />
-                </View>
-            </GestureDetector>
+            {/* <Pager
+                scrollY={scrollYShared}
+                folders={folders}
+                tasks={tasks}
+                currentFolder={currentFolder}
+                currentFilter={currentFilter}
+                loading={loading}
+                refreshTranslateY={refreshTranslateY}
+                onEndReached={() => { }}
+                withGesture={otherElement}
+            /> */}
+
+            <Pager />
 
             <PressableToScrollAnimated
                 onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
