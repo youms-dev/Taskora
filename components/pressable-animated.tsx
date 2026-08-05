@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { memo, useEffect } from "react";
 import { Pressable, PressableProps } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
@@ -29,7 +29,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  */
 
 
-export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
+export const PressableAnimated = memo(({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
     const pressed = useSharedValue<boolean>(false);
     const scaleValue = useSharedValue<number>(1);
 
@@ -40,7 +40,7 @@ export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPr
     const animation = useAnimatedStyle(() => ({
         transform: [{
             scale: withTiming(pressed.value ? scaleValue.value : 1, {
-                duration: 300,
+                duration: 200,
                 easing: Easing.inOut(Easing.quad)
             }),
         }]
@@ -50,16 +50,16 @@ export const PressableAnimated = ({ children, style, scale = .9, onPressIn, onPr
         <AnimatedPressable
             {...rest}
             onPressIn={(e) => {
-                onPressIn && onPressIn(e);
                 pressed.value = true;
+                onPressIn && onPressIn(e);
             }}
             onPressOut={(e) => {
-                onPressOut && onPressOut(e);
                 pressed.value = false;
+                onPressOut && onPressOut(e);
             }}
             style={[animation, style]}
         >
             {children}
         </AnimatedPressable>
     );
-}
+});

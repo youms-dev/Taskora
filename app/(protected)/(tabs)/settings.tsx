@@ -22,7 +22,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedProps, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -35,22 +35,16 @@ export default function Settings() {
     const headerHeight = 250;
     const minHeaderHeight = 100;
     const appTheme = useSharedValue<typeof theme>(theme);
-    const [scroll, setScroll] = useState<number>(0);
+    const [change, setChange] = useState<boolean>(false);
     const [currentLanguage, setCurrentLanguage] = useState<string | null>(null);
     const [locales] = useLocales();
     const scrollViewRef = useRef<ScrollView>(null);
-    const timeout = useRef<ReturnType<typeof setTimeout>>(0);
-
-    const onScroll = (value: number) => {
-        setScroll(value);
-    }
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
             const y = e.contentOffset.y;
 
             scrollY.value = y;
-            runOnJS(onScroll)(y);
         }),
     });
 
@@ -61,13 +55,6 @@ export default function Settings() {
             [headerHeight, minHeaderHeight],
             Extrapolation.CLAMP,
         ),
-    }));
-
-    const headerAnimation = useAnimatedStyle(() => ({
-        // backgroundColor: scrollY.value >= (headerHeight - minHeaderHeight) ?
-        //     appTheme.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, .95)"
-        //     :
-        //     appTheme.value == "dark" ? "rgba(0, 0, 0, .9)" : "rgba(255, 255, 255, .2)",
     }));
 
     const avatarAnimation = useAnimatedStyle(() => ({
@@ -178,10 +165,43 @@ export default function Settings() {
         })();
     }, []);
 
+    const onScrollEnd = useAnimatedProps(() => ({
+        onMomentumScrollEnd: () => {
+            if (scrollY.value >= (headerHeight - minHeaderHeight) * .6) {
+                runOnJS(setChange)(true);
+            }
+            else {
+                runOnJS(setChange)(false);
+            }
+
+            if (scrollY.value > 0 && scrollY.value < Math.round((headerHeight - minHeaderHeight) / 2)) {
+                runOnJS(setChange)(false);
+                scrollViewRef.current?.scrollTo({
+                    y: 0,
+                });
+            }
+            else if (scrollY.value > 0 && scrollY.value < Math.round(headerHeight - minHeaderHeight)) {
+                runOnJS(setChange)(true);
+                scrollViewRef.current?.scrollTo({
+                    y: headerHeight - minHeaderHeight,
+                });
+            }
+        }
+    }));
+
+    const opacityAnimation = useAnimatedStyle(() => ({
+        opacity: interpolate(
+            scrollY.value,
+            [0, (headerHeight - minHeaderHeight)],
+            [1, 0],
+            Extrapolation.CLAMP,
+        )
+    }));
+
     return (
         <Container safeArea={false}>
             <StatusBar
-                style={scroll >= ((headerHeight - minHeaderHeight) * .6) ? (theme == "dark" ? "light" : "dark") : "light"}
+                style={change ? (theme == "dark" ? "light" : "dark") : "light"}
                 translucent
             />
 
@@ -202,21 +222,10 @@ export default function Settings() {
                         className="w-full"
                     >
                         <LinearGradient
-                            colors={
-                                scroll >= ((headerHeight - minHeaderHeight) * .6) ?
-                                    (
-                                        theme == "dark" ?
-                                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
-                                            :
-                                            ["rgba(255, 255, 255, .04)", "rgba(255, 255, 255, .04)", "rgba(255, 255, 255, 0)"]
-                                    )
-                                    :
-                                    (
-                                        theme == "dark" ?
-                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)"]
-                                            :
-                                            ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)"]
-                                    )
+                            colors={theme == "dark" ?
+                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                                :
+                                ["rgba(255, 255, 255, .04)", "rgba(255, 255, 255, .04)", "rgba(255, 255, 255, 0)"]
                             }
                             start={{ x: 0, y: 0 }}
                             end={{ x: 0, y: 1 }}
@@ -224,9 +233,16 @@ export default function Settings() {
                             className="w-full h-full"
                         >
                             <Animated.View
-                                style={headerAnimation}
-                                className="w-full h-full flex justify-center items-center gap-12 overflow-hidden"
+                                style={opacityAnimation}
+                                className="absolute w-full h-full dark:bg-black bg-white"
                             >
+                                <Animated.View
+                                    style={opacityAnimation}
+                                    className="size-full dark:bg-white/10 bg-black/80"
+                                />
+                            </Animated.View>
+
+                            <Animated.View className="w-full h-full flex justify-center items-center gap-12 overflow-hidden z-[1]">
                                 <Animated.View style={avatarAnimation}>
                                     <Avatar
                                         size={130}
@@ -271,20 +287,7 @@ export default function Settings() {
                 <AnimatedScrollView
                     ref={scrollViewRef}
                     onScroll={scrollHandler}
-                    onMomentumScrollEnd={() => {
-                        if (scroll > 0 && scroll < Math.round((headerHeight - minHeaderHeight) / 2)) {
-                            scrollViewRef.current?.scrollTo({
-                                y: 0,
-                                animated: true,
-                            });
-                        }
-                        else if (scroll > 0 && scroll < Math.round(headerHeight - minHeaderHeight)) {
-                            scrollViewRef.current?.scrollTo({
-                                y: headerHeight - minHeaderHeight,
-                                animated: true,
-                            });
-                        }
-                    }}
+                    animatedProps={onScrollEnd}
                     scrollEventThrottle={16}
                     showsVerticalScrollIndicator={false}
                     className="flex-1"

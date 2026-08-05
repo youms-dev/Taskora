@@ -1,4 +1,4 @@
-import { PressableAnimated, PressableAnimatedProps } from "@/components/pressable-animated";
+import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { TasksDataProvider } from "@/hooks/tasks/use-tasks-data";
@@ -12,10 +12,10 @@ import clsx from "clsx";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useWindowDimensions, View } from "react-native";
+import { Pressable, PressableProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-interface IconProps extends PressableAnimatedProps {
+interface IconProps extends PressableProps {
     focused?: boolean;
     name: string;
     icon: ReactNode;
@@ -23,14 +23,14 @@ interface IconProps extends PressableAnimatedProps {
 
 const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
     return (
-        <PressableAnimated
+        <Pressable
             {...rest}
-            scale={.8}
             className="w-[25%] h-full flex justify-center items-center"
         >
             <View className="flex justify-center items-center py-1">
                 {icon}
             </View>
+
             <TextAnimated
                 numberOfLines={1}
                 dark={focused ? COLORS.emerald[500] : "rgba(255, 255, 255, 0.8)"}
@@ -42,7 +42,7 @@ const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
             >
                 {name}
             </TextAnimated>
-        </PressableAnimated>
+        </Pressable>
     )
 }
 
@@ -60,6 +60,7 @@ export default function Layout() {
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [minimize, setMinimize] = useState<boolean>(false);
     const navHeight = useSharedValue<number>(0);
+    const tabChangeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     useEffect(() => {
         const onOpen = () => {
@@ -235,7 +236,12 @@ export default function Layout() {
                                             color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                         />
                                     )}
-                                    onPress={() => router.navigate("/")}
+                                    onPress={() => {
+                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                        tabChangeTimeout.current = setTimeout(() => {
+                                            pathname != "/" && router.navigate("/");
+                                        }, 250);
+                                    }}
                                 />
 
                                 <NavButton
@@ -248,7 +254,12 @@ export default function Layout() {
                                             color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                         />
                                     )}
-                                    onPress={() => router.navigate("/agenda")}
+                                    onPress={() => {
+                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                        tabChangeTimeout.current = setTimeout(() => {
+                                            pathname != "/agenda" && router.navigate("/agenda");
+                                        }, 250);
+                                    }}
                                 />
 
                                 <NavButton
@@ -261,7 +272,12 @@ export default function Layout() {
                                             color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                         />
                                     )}
-                                    onPress={() => router.navigate("/notifications")}
+                                    onPress={() => {
+                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                        tabChangeTimeout.current = setTimeout(() => {
+                                            pathname != "/notifications" && router.navigate("/notifications");
+                                        }, 250);
+                                    }}
                                 />
 
                                 <NavButton
@@ -274,7 +290,12 @@ export default function Layout() {
                                             color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
                                         />
                                     )}
-                                    onPress={() => router.navigate("/settings")}
+                                    onPress={() => {
+                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                        tabChangeTimeout.current = setTimeout(() => {
+                                            pathname != "/settings" && router.navigate("/settings");
+                                        }, 250);
+                                    }}
                                 />
                             </View>
                         </Animated.View>
