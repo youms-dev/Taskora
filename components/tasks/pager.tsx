@@ -7,7 +7,7 @@ import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { scrollCheckPoint } from "./header";
 import { TaskList } from "./tasks-list";
 
-export const Pager = memo(() => {
+export const TasksPager = memo(() => {
     const { refreshTranslateY, loading, folders, tasks, scrollY, extraGesture, scrolling, currentFilter, currentFolder, pager } = useTasksData();
     const { width: screenWidth } = useWindowDimensions();
     const flatListsRef = useRef<{
@@ -79,38 +79,69 @@ export const Pager = memo(() => {
     }, [tasks, currentFolder]);
 
     return (
-        <GestureDetector gesture={panGesture}>
-            <FlatList
-                ref={pager}
-                horizontal
-                scrollEnabled={false}
-                showsHorizontalScrollIndicator={false}
-                nestedScrollEnabled
-                pagingEnabled
-                decelerationRate="fast"
-                initialNumToRender={3}
-                maxToRenderPerBatch={folders.length / 2}
-                removeClippedSubviews
-                data={[
-                    {
-                        idFolder: "all_folder",
-                        title: "all",
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    } as FolderType,
-                    ...folders,
-                ]}
-                keyExtractor={(item) => item.idFolder}
-                renderItem={listRenderItem}
-                // renderItem={({ item, index }) => <></>}
-                getItemLayout={(_, index) => ({
-                    length: screenWidth,
-                    offset: index * screenWidth,
-                    index,
-                })}
-                className="w-full"
-                contentContainerClassName="flex flex-row"
-            />
-        </GestureDetector>
+        // <GestureDetector gesture={panGesture}>
+        //     <FlatList
+        //         ref={pager}
+        //         horizontal
+        //         scrollEnabled={false}
+        //         showsHorizontalScrollIndicator={false}
+        //         nestedScrollEnabled
+        //         pagingEnabled
+        //         decelerationRate="fast"
+        //         initialNumToRender={3}
+        //         maxToRenderPerBatch={folders.length / 2}
+        //         removeClippedSubviews
+        //         data={[
+        //             {
+        //                 idFolder: "all_folder",
+        //                 title: "all",
+        //                 createdAt: new Date(),
+        //                 updatedAt: new Date(),
+        //             } as FolderType,
+        //             ...folders,
+        //         ]}
+        //         keyExtractor={(item) => item.idFolder}
+        //         renderItem={listRenderItem}
+        //         // renderItem={({ item, index }) => <></>}
+        //         getItemLayout={(_, index) => ({
+        //             length: screenWidth,
+        //             offset: index * screenWidth,
+        //             index,
+        //         })}
+        //         className="w-full"
+        //         contentContainerClassName="flex flex-row"
+        //     />
+        // </GestureDetector>
+        <FlatList
+            ref={pager}
+            horizontal
+            scrollEnabled={false}
+            showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            pagingEnabled
+            decelerationRate="fast"
+            initialNumToRender={3}
+            maxToRenderPerBatch={folders.length / 2}
+            removeClippedSubviews
+            data={[
+                {
+                    idFolder: "all_folder",
+                    title: "all",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                } as FolderType,
+                ...folders,
+            ]}
+            keyExtractor={(item) => item.idFolder}
+            renderItem={listRenderItem}
+            // renderItem={({ item, index }) => <></>}
+            getItemLayout={(_, index) => ({
+                length: screenWidth,
+                offset: index * screenWidth,
+                index,
+            })}
+            className="w-full"
+            contentContainerClassName="flex flex-row"
+        />
     );
 });

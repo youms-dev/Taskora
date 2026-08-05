@@ -16,13 +16,13 @@ import { TextAnimated } from "../text-animated";
 
 const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
 
-export const Footer = memo(() => {
+export const TasksFooter = memo(() => {
     const { } = useTasksData();
     const { theme } = useTheme();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const showScrollButton = useSharedValue<boolean>(false);
     const tasksSelectedShared = useSharedValue<boolean>(false);
-    const showAddTaskButton = useSharedValue<boolean>(false);
+    const showAddTaskButton = useSharedValue<boolean>(true);
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
@@ -92,6 +92,8 @@ export const Footer = memo(() => {
 
     return (
         <View className="w-full flex items-center">
+            {/* Scroll to top button */}
+
             <PressableToScrollAnimated
                 // onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
                 //     offset: 0,
@@ -119,6 +121,8 @@ export const Footer = memo(() => {
                     />
                 </View>
             </PressableToScrollAnimated>
+
+            {/* Selection section */}
 
             <Animated.View
                 style={[
@@ -179,6 +183,8 @@ export const Footer = memo(() => {
                     </PressableAnimated>
                 </View>
             </Animated.View>
+
+            {/* Add task button */}
 
             <Animated.View
                 style={addTaskButtonAnimation}

@@ -70,7 +70,7 @@ const TaskCard = memo(({ task, onPress, height, ...rest }: TaskCardProps) => {
     );
 });
 
-export const Search = memo(() => {
+export const TasksSearch = memo(() => {
     const { searchSectionActive, setSearchSectionActive } = useTasksData();
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);

@@ -282,6 +282,8 @@ export const TasksHeader = memo(() => {
         ,
     }));
 
+    // return null;
+
     return (
         <Animated.View
             style={headerContainerAnimation}
@@ -334,9 +336,12 @@ export const TasksHeader = memo(() => {
                         style={fakeInputAnimation}
                         className="absolute left-0 w-full flex items-center px-3"
                     >
+                        <View className="shrink-0">
+
+                        </View>
+
                         <Pressable
                             onPress={() => {
-                                // setTasksSelected([]);
                                 setSearchSectionActive(true);
                                 event.emit(HIDE_NAVBAR);
                             }}
@@ -363,7 +368,7 @@ export const TasksHeader = memo(() => {
                                 }
                             ]
                         }}
-                        className="absolute left-0 w-full flex items-center gap-1"
+                        className="w-full flex items-center gap-1"
                     >
                         {/* Folders */}
 

@@ -1,8 +1,8 @@
 import { Container } from "@/components/container";
-import { Footer } from "@/components/tasks/footer";
+import { TasksFooter } from "@/components/tasks/footer";
 import { TasksHeader } from "@/components/tasks/header";
-import { Pager } from "@/components/tasks/pager";
-import { Search } from "@/components/tasks/search";
+import { TasksPager } from "@/components/tasks/pager";
+import { TasksSearch } from "@/components/tasks/search";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, ScrollView, useWindowDimensions } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
-import { Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { Easing, runOnJS, useAnimatedReaction, useSharedValue, withTiming } from "react-native-reanimated";
 
 export default function Tasks() {
     const { width, height } = useWindowDimensions();
@@ -452,23 +452,15 @@ export default function Tasks() {
         tasksSelectedShared.value = selectMap.size > 0;
     }, [selectMap]);
 
-    // useEffect(() => {
-    //     if (pathname == "/") {
-    //         handleGetFolders();
-    //         handleGetCount();
-    //         handleGetTasks(tasks.length > 0);
-    //     }
-    // }, [pathname]);
-
     return (
         <Container centerX>
             <TasksHeader />
 
-            <Pager />
+            <TasksPager />
 
-            <Search />
+            <TasksSearch />
 
-            <Footer />
+            <TasksFooter />
         </Container>
     );
 }

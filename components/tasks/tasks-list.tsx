@@ -2,10 +2,10 @@ import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { TaskType } from "@/types/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
@@ -43,9 +43,116 @@ export const TaskList = memo(() => {
         }
     });
 
+
+    const e = (v: any) => console.log(v);
+
+    const test = Gesture.Native();
+
+    const panGesture = useMemo(() => {
+        return (
+            Gesture.Pan()
+                .activeOffsetY(5)
+                .failOffsetX([-50, 50])
+                .onUpdate(({ translationY: y }) => {
+                    // runOnJS(e)(scrolling.value);
+                    if (scrollY.value <= 0 && y > 0 && !scrolling.value) {
+                        refreshTranslateY.value = y;
+                    }
+                })
+                .onEnd(() => {
+                    // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
+                    if (scrollY.value > 0 || refreshTranslateY.value < 90) {
+                        refreshTranslateY.value = 0;
+                    }
+                    else if (refreshTranslateY.value >= 90) {
+                        // refreshTranslateY.value = withTiming(180, {
+                        //     duration: 300,
+                        //     easing: Easing.inOut(Easing.quad),
+                        // });
+                        refreshTranslateY.value = 0;
+                        // runOnJS(handleGetTasks)(true);
+                    };
+                })
+        );
+    }, []);
+
+    const g = Gesture.Simultaneous(test, panGesture);
+
     return (
         <View className="w-screen flex items-center shrink-0">
-            <GestureDetector gesture={extraGesture}>
+            {/* <GestureDetector gesture={extraGesture}>
+                <FlatListAnimated
+                    // ref={handleRef}
+                    nestedScrollEnabled
+                    scrollEnabled
+                    horizontal={false}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={20}
+                    windowSize={10}
+                    removeClippedSubviews
+                    showsVerticalScrollIndicator={false}
+                    data={tasks}
+                    keyExtractor={(item) => String((item as TaskType).idTask)}
+                    renderItem={renderItem}
+                    // renderItem={({ item }) => <></>}
+                    onEndReachedThreshold={.1}
+                    scrollEventThrottle={16}
+                    onScroll={handleScroll}
+                    onMomentumScrollEnd={() => {
+                        if (scrolling.value) scrolling.value = false;
+                    }}
+                    onContentSizeChange={handleContentSize}
+                    // onEndReached={onEndReached}
+                    onEndReached={() => { }}
+                    getItemLayout={(_, index) => ({
+                        length: (taskHeight + tasksGap),
+                        offset: index * (taskHeight + tasksGap),
+                        index: index,
+                    })}
+                    ListEmptyComponent={() => {
+                        if (!loading) {
+                            return (
+                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                                    <MaterialIcons
+                                        name="playlist-remove"
+                                        size={120}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                                    />
+                                    <TextAnimated
+                                        dark="rgba(255, 255, 255, .5)"
+                                        light="rgba(0, 0, 0, .5)"
+                                        className="font-bold text-lg tracking-wider"
+                                    >
+                                        {t("tasks_no_tasks")}
+                                    </TextAnimated>
+                                </View>
+                            );
+                        }
+                    }}
+                    ListFooterComponent={() => {
+                        if (loading) return (
+                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
+                                {
+                                    Array(3).fill(0).map((_, i) => (
+                                        <View
+                                            key={i}
+                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
+                                        >
+                                            <Skeleton />
+                                        </View>
+                                    ))
+                                }
+                            </View>
+                        );
+                    }}
+                    className="w-full"
+                    contentContainerStyle={{
+                        gap: tasksGap,
+                    }}
+                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[150px] px-3"
+                />
+            </GestureDetector> */}
+            <GestureDetector gesture={g}>
                 <FlatListAnimated
                     // ref={handleRef}
                     nestedScrollEnabled
