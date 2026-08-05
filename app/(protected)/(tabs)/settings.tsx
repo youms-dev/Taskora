@@ -120,7 +120,7 @@ export default function Settings() {
             {
                 translateY: interpolate(
                     scrollY.value,
-                    [0, headerHeight - minHeaderHeight],
+                    [0, (headerHeight - minHeaderHeight) * .8],
                     [headerHeight + minHeaderHeight, 0],
                     Extrapolation.CLAMP,
                 )
@@ -132,12 +132,7 @@ export default function Settings() {
             [0, 1],
             Extrapolation.CLAMP,
         ),
-        zIndex: interpolate(
-            scrollY.value,
-            [0, headerHeight - minHeaderHeight],
-            [-100, 1],
-            Extrapolation.CLAMP,
-        ),
+        zIndex: scrollY.value >= (headerHeight - minHeaderHeight) ? 1 : -100,
     }));
 
     const changeLanguage = async (value: string | null) => {
