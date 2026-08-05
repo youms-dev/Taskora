@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/colors";
 import { useTasks } from "@/hooks/database/use-tasks";
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
@@ -69,12 +70,8 @@ const TaskCard = memo(({ task, onPress, height, ...rest }: TaskCardProps) => {
     );
 });
 
-interface Props {
-    active?: boolean;
-    onClose?: () => void;
-}
-
-export const Search = memo(({ active: searchSectionActive, onClose }: Props) => {
+export const Search = memo(() => {
+    const { searchSectionActive, setSearchSectionActive } = useTasksData();
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useRef<FlatList>(null);
@@ -162,7 +159,6 @@ export const Search = memo(({ active: searchSectionActive, onClose }: Props) => 
         themeShared.value = theme;
     }, [theme]);
 
-
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
         if (pathname != "/" || value.trim().length == 0) {
@@ -214,15 +210,11 @@ export const Search = memo(({ active: searchSectionActive, onClose }: Props) => 
     }, []);
 
     useEffect(() => {
-        if (searchSectionActive && value.trim().length == 0) textInputRef.current?.focus();
-    }, [value, searchSectionActive]);
-
-    useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
             if (searchSectionActive) {
                 searchTimeout.current && clearTimeout(searchTimeout.current);
                 textInputRef.current?.blur();
-                onClose?.();
+                setSearchSectionActive(false);
                 setCount(0);
                 setTasks([]);
                 setValue("");
@@ -240,12 +232,15 @@ export const Search = memo(({ active: searchSectionActive, onClose }: Props) => 
         if (!searchSectionActive) {
             searchTimeout.current && clearTimeout(searchTimeout.current);
             textInputRef.current?.blur();
-            onClose?.();
+            setSearchSectionActive(false);
             setCount(0);
             setTasks([]);
             setValue("");
             setLoading(false);
             event.emit(SHOW_NAVBAR);
+        }
+        else {
+            textInputRef.current?.focus();
         }
 
         return () => {
@@ -284,7 +279,7 @@ export const Search = memo(({ active: searchSectionActive, onClose }: Props) => 
                     >
                         <PressableAnimated
                             onPress={() => {
-                                onClose?.();
+                                setSearchSectionActive(false);
                                 event.emit(SHOW_NAVBAR);
                             }}
                             className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"

@@ -15,6 +15,7 @@ import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 
 const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
 
@@ -29,6 +30,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
     return (
         <PressableAnimated
             {...rest}
+            scale={.95}
             style={{
                 backgroundColor: active ?
                     (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
@@ -54,7 +56,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 export const TasksHeader = memo(() => {
-    const { handleGetTasks, handleGetFolders, loading, tasks, folders, scrollY: scrollYShared, currentFilter, currentFolder, refreshTranslateY } = useTasksData();
+    const { handleGetTasks, handleGetFolders, loading, tasks, folders, scrollY: scrollYShared, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive } = useTasksData();
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -63,6 +65,7 @@ export const TasksHeader = memo(() => {
     const filterScrollViewRef = useRef<ScrollView>(null);
     const loadingShared = useSharedValue<boolean>(loading);
     const [left, setLeft] = useState<number>(0);
+    const foldersButtonsSizes = useRef<number[]>([]);
 
     const fakeInputAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -70,7 +73,7 @@ export const TasksHeader = memo(() => {
                 translateY: interpolate(
                     scrollYShared.value,
                     [0, scrollCheckPoint],
-                    [0, -100],
+                    [50, -100],
                     Extrapolation.CLAMP,
                 )
             }
@@ -155,16 +158,6 @@ export const TasksHeader = memo(() => {
         ),
     }));
 
-    const foldersSnapOffset = useMemo(() => {
-        const tab: number[] = [];
-
-        for (let i = 0; i <= folders.length; i++) {
-            tab.push(i * 100);
-        }
-
-        return tab;
-    }, [folders]);
-
     // const folderDataMap = useMemo(() => {
     //     const map = new Map(
     //         folders.map(folder => [folder.idFolder, tasks.filter(t => t.idFolder == folder.idFolder)]),
@@ -175,21 +168,19 @@ export const TasksHeader = memo(() => {
 
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
-        // setCurrentFolder(index == 0 ? null : folder.idFolder);
+        setCurrentFolder(index == 0 ? null : folder.idFolder);
+        foldersFlatListRef.current?.scrollToOffset({
+            offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
+        });
         // setTasksSelected([]);
-        // flatListsRef.current && flatListsRef.current.forEach(item => {
+        // pager.current.forEach(item => {
         //     item.value.scrollToOffset({
         //         offset: 0,
         //         animated: false,
         //     });
         // });
-        // tasksFlatListRef.current?.scrollToOffset({
-        //     offset: index == 0 ? 0 : (index * screenWidth),
-        //     animated: true,
-        // });
-        foldersFlatListRef.current?.scrollToOffset({
-            offset: index == 0 ? 0 : (index * 100),
-            animated: true,
+        pager.current?.scrollToIndex({
+            index,
         });
 
         // if (contentsSize.current[index] < screenHeight) {
@@ -204,9 +195,9 @@ export const TasksHeader = memo(() => {
         //         animated: true,
         //     });
         // }
-    }, [folders, screenHeight, currentFolder]);
+    }, [folders, currentFolder]);
 
-    const foldersRenderItem = useCallback((folder: FolderType, index: number) => {
+    const foldersRenderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
         const isActive = index === 0 ? currentFolder === null : currentFolder === folder.idFolder;
 
         return (
@@ -214,6 +205,7 @@ export const TasksHeader = memo(() => {
                 key={folder.idFolder}
                 active={isActive}
                 onPress={() => onFolderPress(folder, index)}
+                onLayout={(e) => foldersButtonsSizes.current[index] = e.nativeEvent.layout.width}
             >
                 {index == 0 ? t("tasks_all_folders") : folder.title}
             </FolderButton>
@@ -284,7 +276,7 @@ export const TasksHeader = memo(() => {
 
     const addFolderButtonBackgroundAnimation = useAnimatedStyle(() => ({
         backgroundColor: scrollYShared.value >= scrollCheckPoint * .5 ?
-            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .1)"
+            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .15)"
             :
             themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .06)"
         ,
@@ -319,7 +311,7 @@ export const TasksHeader = memo(() => {
                 >
                     <Animated.View
                         style={headerAnimation}
-                        className="w-full flex items-center"
+                        className="absolute left-0 top-0 w-full flex items-center"
                     >
                         <PageTitle>
                             <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
@@ -340,13 +332,13 @@ export const TasksHeader = memo(() => {
 
                     <Animated.View
                         style={fakeInputAnimation}
-                        className="w-full flex items-center px-3"
+                        className="absolute left-0 w-full flex items-center px-3"
                     >
                         <Pressable
                             onPress={() => {
                                 // setTasksSelected([]);
-                                // setSearchSectionActive(true);
-                                // event.emit(HIDE_NAVBAR);
+                                setSearchSectionActive(true);
+                                event.emit(HIDE_NAVBAR);
                             }}
                             className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                         >
@@ -363,7 +355,18 @@ export const TasksHeader = memo(() => {
                         </Pressable>
                     </Animated.View>
 
-                    <View className="w-full flex items-center gap-1">
+                    <View
+                        style={{
+                            transform: [
+                                {
+                                    translateY: 130,
+                                }
+                            ]
+                        }}
+                        className="absolute left-0 w-full flex items-center gap-1"
+                    >
+                        {/* Folders */}
+
                         <Animated.View
                             style={stickyAnimation}
                             className="flex items-center"
@@ -388,8 +391,6 @@ export const TasksHeader = memo(() => {
                                                 horizontal
                                                 showsHorizontalScrollIndicator={false}
                                                 nestedScrollEnabled
-                                                snapToOffsets={foldersSnapOffset}
-                                                decelerationRate="fast"
                                                 data={[
                                                     {
                                                         idFolder: "all_folders",
@@ -400,7 +401,7 @@ export const TasksHeader = memo(() => {
                                                     ...folders,
                                                 ]}
                                                 keyExtractor={(folder) => folder.idFolder}
-                                                renderItem={({ item, index }) => foldersRenderItem(item, index)}
+                                                renderItem={foldersRenderItem}
                                                 className="w-[90%]"
                                                 contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
                                             />
@@ -408,7 +409,7 @@ export const TasksHeader = memo(() => {
                                             <View className="absolute right-0 top-0 dark:bg-black bg-white z-[10]">
                                                 <Animated.View
                                                     style={addFolderButtonBackgroundAnimation}
-                                                    className="w-full h-full flex justify-center items-center px-5 py-1"
+                                                    className="w-full h-full flex justify-center items-center px-4 py-1"
                                                 >
                                                     <PressableAnimated>
                                                         <FontAwesome5
@@ -424,6 +425,8 @@ export const TasksHeader = memo(() => {
                                 }
                             </Animated.View>
                         </Animated.View>
+
+                        {/* Filters */}
 
                         <Animated.View
                             style={filterAnimation}
@@ -565,9 +568,21 @@ export const TasksHeader = memo(() => {
                         left,
                     }
                 ]}
-                className="absolute z-[100] rounded-full overflow-hidden pointer-events-none dark:bg-white bg-black"
+                className="absolute size-[50px] z-[100] rounded-full pointer-events-none dark:bg-black bg-white"
             >
-                <View className="size-full flex justify-center items-center rounded-full dark:bg-black/80 bg-white p-4">
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 8,
+                            }
+                        ],
+                        filter: "blur(5px)",
+                    }}
+                    className="absolute size-full rounded-full bg-black/30"
+                />
+
+                <View className="size-full flex justify-center items-center rounded-full dark:bg-white/10 bg-white border dark:border-white/10 border-black/20">
                     <Octicons
                         name="tasklist"
                         size={25}
@@ -575,12 +590,14 @@ export const TasksHeader = memo(() => {
                     />
                 </View>
 
-                <Animated.View
-                    style={showRefreshAnimation}
-                    className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden dark:bg-white bg-black"
-                >
-                    <View className="size-full dark:bg-black/90 bg-white/80" />
-                </Animated.View>
+                <View className="absolute size-full flex justify-center items-center z-[1] rounded-full overflow-hidden">
+                    <Animated.View
+                        style={showRefreshAnimation}
+                        className="absolute size-full flex justify-center items-center rounded-full dark:bg-black bg-white"
+                    >
+                        <View className="size-full dark:bg-white/20 bg-black/80 rounded-full" />
+                    </Animated.View>
+                </View>
             </Animated.View>
         </Animated.View>
     );

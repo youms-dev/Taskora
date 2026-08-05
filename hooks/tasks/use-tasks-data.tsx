@@ -1,7 +1,8 @@
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { usePathname } from "expo-router";
-import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, ReactNode, RefObject, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { FlatList } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
@@ -21,6 +22,11 @@ const Context = createContext<{
     foldersCount: number;
     refreshTranslateY: SharedValue<number>;
     extraGesture: ReturnType<typeof Gesture.Native>;
+    scrolling: SharedValue<boolean>;
+    setCurrentFolder: ((value: string | null) => void);
+    pager: RefObject<FlatList | null>;
+    searchSectionActive: boolean;
+    setSearchSectionActive: ((value: boolean) => void);
 } | null>(null);
 
 interface Props {
@@ -46,6 +52,9 @@ export const TasksDataProvider = ({ children }: Props) => {
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
     const extraGesture = useMemo(() => Gesture.Native(), []);
+    const scrolling = useSharedValue<boolean>(false);
+    const pager = useRef<FlatList>(null);
+    const [searchSectionActive, setSearchSectionActive] = useState<boolean>(false);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -133,6 +142,11 @@ export const TasksDataProvider = ({ children }: Props) => {
             foldersCount,
             refreshTranslateY,
             extraGesture,
+            scrolling,
+            setCurrentFolder,
+            pager,
+            searchSectionActive,
+            setSearchSectionActive,
         }}>
             {children}
         </Context.Provider>

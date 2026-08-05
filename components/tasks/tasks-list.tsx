@@ -5,8 +5,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedScrollHandler } from "react-native-reanimated";
+import { GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { TaskCard } from "./task-card";
@@ -22,20 +22,24 @@ export const TaskList = memo(() => {
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, extraGesture, tasks, refreshTranslateY } = useTasksData();
+    const { loading, scrollY, extraGesture, tasks, refreshTranslateY, scrolling } = useTasksData();
 
     // const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
     const handleContentSize = useCallback((x: number, y: number) => { }, []);
 
-    const renderItem = useCallback((task: TaskType) => (
-        <TaskCard task={task} />
-    ), [tasks, loading]);
+    const renderItem = useCallback(({ item: task }: { item: unknown }) => (
+        <TaskCard task={task as TaskType} />
+    ), [tasks]);
 
     const handleScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
             const y = e.contentOffset.y;
 
             scrollY.value = y;
+
+            if (!scrolling.value) {
+                scrolling.value = true;
+            }
         }
     });
 
@@ -54,16 +58,13 @@ export const TaskList = memo(() => {
                     showsVerticalScrollIndicator={false}
                     data={tasks}
                     keyExtractor={(item) => String((item as TaskType).idTask)}
-                    renderItem={({ item }) => renderItem(item as TaskType)}
+                    renderItem={renderItem}
                     // renderItem={({ item }) => <></>}
                     onEndReachedThreshold={.1}
                     scrollEventThrottle={16}
                     onScroll={handleScroll}
-                    onMomentumScrollBegin={() => {
-
-                    }}
                     onMomentumScrollEnd={() => {
-
+                        if (scrolling.value) scrolling.value = false;
                     }}
                     onContentSizeChange={handleContentSize}
                     // onEndReached={onEndReached}
@@ -110,14 +111,8 @@ export const TaskList = memo(() => {
                         );
                     }}
                     className="w-full"
-                    style={{
-                        borderWidth: 2,
-                        borderColor: "blue",
-                    }}
                     contentContainerStyle={{
                         gap: tasksGap,
-                        borderWidth: 2,
-                        borderColor: "red",
                     }}
                     contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[150px] px-3"
                 />
