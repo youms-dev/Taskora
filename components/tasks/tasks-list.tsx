@@ -2,27 +2,37 @@ import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { TaskType } from "@/types/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import { scrollCheckPoint } from "./header";
 import { TaskCard } from "./task-card";
+import { FolderType } from "@/types/folder";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
-// interface Props {
-//     gesture: ReturnType<typeof Gesture.Native>;
-// }
+interface Props {
+    folder: FolderType;
+    index: number;
+}
 
-export const TaskList = memo(() => {
+export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const { t } = useTranslation();
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, extraGesture, tasks, refreshTranslateY, scrolling } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, folders } = useTasksData();
+    const nativeGesture = Gesture.Native();
+    const [thresholdReached, setThresholdReached] = useState<boolean>(false);
+    const folderTasks = useMemo(() => {
+        // if (folderIndex == 0) return tasks;
+        // return tasks.filter((t) => t.idFolder == folder.idFolder);
+        return tasks;
+    }, [tasks, folder, folderIndex]);
 
     // const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
     const handleContentSize = useCallback((x: number, y: number) => { }, []);
@@ -43,18 +53,29 @@ export const TaskList = memo(() => {
         }
     });
 
+    // const checkScroll = useCallback((index: number = 0, y: number) => {
+    //     scrollTimeout.current && clearTimeout(scrollTimeout.current);
+    //     scrollTimeout.current = setTimeout(() => {
+    //         if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint + 50) flatListsRef.current[index]?.value.scrollToOffset({
+    //             offset: scrollCheckPoint + 50,
+    //             animated: true,
+    //         });
+    //         else if (y < (scrollCheckPoint * .3)) flatListsRef.current[index]?.value.scrollToOffset({
+    //             offset: 0,
+    //             animated: true,
+    //         });
+    //     }, 100);
+    // }, [folders, tasks]);
 
     const e = (v: any) => console.log(v);
-
-    const test = Gesture.Native();
 
     const panGesture = useMemo(() => {
         return (
             Gesture.Pan()
-                .activeOffsetY(5)
+                .activeOffsetY([-5, 5])
                 .failOffsetX([-50, 50])
                 .onUpdate(({ translationY: y }) => {
-                    // runOnJS(e)(scrolling.value);
+                    runOnJS(e)(y);
                     if (scrollY.value <= 0 && y > 0 && !scrolling.value) {
                         refreshTranslateY.value = y;
                     }
@@ -76,11 +97,20 @@ export const TaskList = memo(() => {
         );
     }, []);
 
-    const g = Gesture.Simultaneous(test, panGesture);
+    const gesture = Gesture.Simultaneous(nativeGesture, panGesture);
+
+    useAnimatedReaction(
+        () => scrollY.value >= scrollCheckPoint,
+        (current, prev) => {
+            if (current != prev) {
+                runOnJS(setThresholdReached)(current);
+            }
+        }
+    );
 
     return (
         <View className="w-screen flex items-center shrink-0">
-            {/* <GestureDetector gesture={extraGesture}>
+            <GestureDetector gesture={gesture}>
                 <FlatListAnimated
                     // ref={handleRef}
                     nestedScrollEnabled
@@ -91,7 +121,7 @@ export const TaskList = memo(() => {
                     windowSize={10}
                     removeClippedSubviews
                     showsVerticalScrollIndicator={false}
-                    data={tasks}
+                    data={folderTasks}
                     keyExtractor={(item) => String((item as TaskType).idTask)}
                     renderItem={renderItem}
                     // renderItem={({ item }) => <></>}
@@ -148,80 +178,9 @@ export const TaskList = memo(() => {
                     className="w-full"
                     contentContainerStyle={{
                         gap: tasksGap,
+                        paddingTop: !currentFolder ? 220 : (thresholdReached ? 80 : 220),
                     }}
-                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[150px] px-3"
-                />
-            </GestureDetector> */}
-            <GestureDetector gesture={g}>
-                <FlatListAnimated
-                    // ref={handleRef}
-                    nestedScrollEnabled
-                    scrollEnabled
-                    horizontal={false}
-                    initialNumToRender={10}
-                    maxToRenderPerBatch={20}
-                    windowSize={10}
-                    removeClippedSubviews
-                    showsVerticalScrollIndicator={false}
-                    data={tasks}
-                    keyExtractor={(item) => String((item as TaskType).idTask)}
-                    renderItem={renderItem}
-                    // renderItem={({ item }) => <></>}
-                    onEndReachedThreshold={.1}
-                    scrollEventThrottle={16}
-                    onScroll={handleScroll}
-                    onMomentumScrollEnd={() => {
-                        if (scrolling.value) scrolling.value = false;
-                    }}
-                    onContentSizeChange={handleContentSize}
-                    // onEndReached={onEndReached}
-                    onEndReached={() => { }}
-                    getItemLayout={(_, index) => ({
-                        length: (taskHeight + tasksGap),
-                        offset: index * (taskHeight + tasksGap),
-                        index: index,
-                    })}
-                    ListEmptyComponent={() => {
-                        if (!loading) {
-                            return (
-                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                    <MaterialIcons
-                                        name="playlist-remove"
-                                        size={120}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                    />
-                                    <TextAnimated
-                                        dark="rgba(255, 255, 255, .5)"
-                                        light="rgba(0, 0, 0, .5)"
-                                        className="font-bold text-lg tracking-wider"
-                                    >
-                                        {t("tasks_no_tasks")}
-                                    </TextAnimated>
-                                </View>
-                            );
-                        }
-                    }}
-                    ListFooterComponent={() => {
-                        if (loading) return (
-                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                                {
-                                    Array(3).fill(0).map((_, i) => (
-                                        <View
-                                            key={i}
-                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                        >
-                                            <Skeleton />
-                                        </View>
-                                    ))
-                                }
-                            </View>
-                        );
-                    }}
-                    className="w-full"
-                    contentContainerStyle={{
-                        gap: tasksGap,
-                    }}
-                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[150px] px-3"
+                    contentContainerClassName="w-full flex flex-col items-center pb-[150px] px-3"
                 />
             </GestureDetector>
         </View>

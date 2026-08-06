@@ -3,37 +3,36 @@ import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-
-const PressableToScrollAnimated = Animated.createAnimatedComponent(Pressable);
+import { scrollCheckPoint } from "./header";
 
 export const TasksFooter = memo(() => {
     const { } = useTasksData();
     const { theme } = useTheme();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const showScrollButton = useSharedValue<boolean>(false);
     const tasksSelectedShared = useSharedValue<boolean>(false);
-    const showAddTaskButton = useSharedValue<boolean>(true);
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
+    const { scrollY } = useTasksData();
+    const showAddTaskButton = useSharedValue<boolean>(false);
 
-    const scrollButtonAnimation = useAnimatedStyle(() => ({
-        opacity: withTiming(showScrollButton.value ? 1 : 0, {
-            duration: 300,
-            easing: Easing.inOut(Easing.quad),
-        }),
-        pointerEvents: showScrollButton.value ? "auto" : "none",
-    }));
+    useAnimatedReaction(
+        () => scrollY.value > scrollCheckPoint,
+        (current, prev) => {
+            if (current != prev) {
+                showAddTaskButton.value = current;
+            }
+        }
+    );
 
     const addTaskButtonAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -92,36 +91,6 @@ export const TasksFooter = memo(() => {
 
     return (
         <View className="w-full flex items-center">
-            {/* Scroll to top button */}
-
-            <PressableToScrollAnimated
-                // onPress={() => flatListsRef.current[currentIndex].value.scrollToOffset({
-                //     offset: 0,
-                //     animated: true,
-                // })}
-                style={[
-                    {
-                        bottom: 0,
-                        transform: [
-                            {
-                                // translateY: tasksSelected.length > 0 ? -screenHeight * .17 : -screenHeight * .1,
-                                translateY: -screenHeight * .1,
-                            }
-                        ]
-                    },
-                    scrollButtonAnimation,
-                ]}
-                className="absolute dark:bg-black bg-white rounded-full overflow-hidden"
-            >
-                <View className="size-full dark:bg-white/20 bg-black/50 p-2">
-                    <Ionicons
-                        name="chevron-up-sharp"
-                        size={30}
-                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(255, 255, 255, .8)"}
-                    />
-                </View>
-            </PressableToScrollAnimated>
-
             {/* Selection section */}
 
             <Animated.View
@@ -211,6 +180,12 @@ export const TasksFooter = memo(() => {
                         //     setCountTmp(0);
                         // }
                         // else getTasks();
+                    }}
+                    android_ripple={{
+                        color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
+                        borderless: true,
+                        foreground: true,
+                        radius: 20,
                     }}
                     className="size-full flex justify-center items-center rounded-full border dark:border-white/10 border-black/10 dark:bg-white/15 bg-white"
                 >

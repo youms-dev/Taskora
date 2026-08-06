@@ -336,10 +336,6 @@ export const TasksHeader = memo(() => {
                         style={fakeInputAnimation}
                         className="absolute left-0 w-full flex items-center px-3"
                     >
-                        <View className="shrink-0">
-
-                        </View>
-
                         <Pressable
                             onPress={() => {
                                 setSearchSectionActive(true);

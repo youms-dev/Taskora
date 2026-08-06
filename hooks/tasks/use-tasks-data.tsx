@@ -3,7 +3,6 @@ import { TaskType } from "@/types/task";
 import { usePathname } from "expo-router";
 import { createContext, ReactNode, RefObject, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList } from "react-native";
-import { Gesture } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
 import { useTasks } from "../database/use-tasks";
@@ -21,7 +20,6 @@ const Context = createContext<{
     tasksCount: number;
     foldersCount: number;
     refreshTranslateY: SharedValue<number>;
-    extraGesture: ReturnType<typeof Gesture.Native>;
     scrolling: SharedValue<boolean>;
     setCurrentFolder: ((value: string | null) => void);
     pager: RefObject<FlatList | null>;
@@ -51,10 +49,12 @@ export const TasksDataProvider = ({ children }: Props) => {
     const [tasksCount, setTasksCount] = useState<number>(0);
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
-    const extraGesture = useMemo(() => Gesture.Native(), []);
     const scrolling = useSharedValue<boolean>(false);
     const pager = useRef<FlatList>(null);
     const [searchSectionActive, setSearchSectionActive] = useState<boolean>(false);
+    const scroll = useMemo(() => scrollY, [scrollY]);
+    const refreshTranslate = useMemo(() => refreshTranslateY, [refreshTranslateY]);
+    const isScrolling = useMemo(() => scrolling, [scrolling]);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -134,15 +134,14 @@ export const TasksDataProvider = ({ children }: Props) => {
             folders,
             currentFolder,
             currentFilter,
-            scrollY,
+            scrollY: scroll,
             loading,
             handleGetTasks,
             handleGetFolders,
             tasksCount,
             foldersCount,
-            refreshTranslateY,
-            extraGesture,
-            scrolling,
+            refreshTranslateY: refreshTranslate,
+            scrolling: isScrolling,
             setCurrentFolder,
             pager,
             searchSectionActive,
