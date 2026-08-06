@@ -7,10 +7,9 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { scrollCheckPoint } from "./header";
 import { TaskCard } from "./task-card";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
@@ -25,7 +24,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, tasksSelected } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, selectMap, handleGetTasks } = useTasksData();
     const nativeGesture = Gesture.Native();
     const folderTasks = useMemo(() => {
         if (folderIndex == 0) return tasks;
@@ -33,9 +32,6 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     }, [tasks, folder, folderIndex]);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
-
-    // const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
-    const handleContentSize = useCallback((x: number, y: number) => { }, []);
 
     const renderItem = useCallback(({ item: task }: { item: unknown }) => (
         <TaskCard task={task as TaskType} />
@@ -89,15 +85,11 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                         });
                     }
                     else if (refreshTranslateY.value >= 90) {
-                        // refreshTranslateY.value = withTiming(180, {
-                        //     duration: 300,
-                        //     easing: Easing.inOut(Easing.quad),
-                        // });
-                        refreshTranslateY.value = withTiming(0, {
-                            duration: 200,
+                        refreshTranslateY.value = withTiming(180, {
+                            duration: 300,
                             easing: Easing.inOut(Easing.quad),
                         });
-                        // runOnJS(handleGetTasks)(true);
+                        runOnJS(handleGetTasks)(true);
                     };
                 })
         );
@@ -115,8 +107,8 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     }, [currentFolder]);
 
     useEffect(() => {
-        areTasksSelected.value = tasksSelected.length > 0;
-    }, [tasksSelected]);
+        areTasksSelected.value = selectMap.size > 0;
+    }, [selectMap]);
 
     if (!mounted) return null;
 
@@ -143,7 +135,6 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     onMomentumScrollEnd={() => {
                         if (scrolling.value) scrolling.value = false;
                     }}
-                    onContentSizeChange={handleContentSize}
                     // onEndReached={onEndReached}
                     onEndReached={() => { }}
                     getItemLayout={(_, index) => ({
@@ -191,7 +182,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     contentContainerStyle={{
                         gap: tasksGap,
                     }}
-                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[80px] px-3"
+                    contentContainerClassName="w-full flex flex-col items-center pt-[215px] pb-[80px] px-3"
                 />
             </GestureDetector>
         </View>

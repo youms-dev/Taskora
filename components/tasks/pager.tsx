@@ -34,7 +34,7 @@ export const TasksPager = memo(() => {
             decelerationRate="fast"
             initialNumToRender={3}
             maxToRenderPerBatch={folders.length / 2}
-            removeClippedSubviews
+            removeClippedSubviews={false}
             data={[
                 {
                     idFolder: "all_folder",

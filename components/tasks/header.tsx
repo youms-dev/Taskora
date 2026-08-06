@@ -8,7 +8,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -16,8 +16,6 @@ import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-
-const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -56,7 +54,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 export const TasksHeader = memo(() => {
-    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive } = useTasksData();
+    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive, setCurrentFilter } = useTasksData();
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -64,7 +62,7 @@ export const TasksHeader = memo(() => {
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const filterScrollViewRef = useRef<ScrollView>(null);
     const loadingShared = useSharedValue<boolean>(loading);
-    const [left, setLeft] = useState<number>(0);
+    const refreshPosition = useSharedValue<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
 
     // const folderDataMap = useMemo(() => {
@@ -126,16 +124,8 @@ export const TasksHeader = memo(() => {
         screenWidthShared.value = screenWidth;
     }, [screenWidth]);
 
-    const handleRefresh = useCallback((e: boolean = false) => {
-        // if (e) {
-        //     setCount(prev => prev + 1);
-        //     tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
-        // }
-        // tasksTmp.current = [];
-        // setProcessing(false);
-    }, []);
-
     const refreshPanAnimation = useAnimatedStyle(() => ({
+        left: refreshPosition.value,
         transform: [
             {
                 translateY: interpolate(
@@ -146,23 +136,29 @@ export const TasksHeader = memo(() => {
                 ),
             }
         ],
-        opacity: loadingShared.value && refreshTranslateY.value >= 90 ? withRepeat(
-            withSequence(
-                withTiming(.5, {
-                    duration: 1000,
-                    easing: Easing.inOut(Easing.quad),
-                }),
-                withDelay(
-                    300,
-                    withTiming(1, {
-                        duration: 1000,
-                        easing: Easing.inOut(Easing.quad),
-                    }),
-                )
-            ),
-            Infinity,
-            true,
-        )
+        opacity: loadingShared.value ?
+            (
+                refreshTranslateY.value >= 100 ?
+                    withRepeat(
+                        withSequence(
+                            withTiming(.5, {
+                                duration: 500,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                            withDelay(
+                                500,
+                                withTiming(1, {
+                                    duration: 500,
+                                    easing: Easing.inOut(Easing.quad),
+                                }),
+                            )
+                        ),
+                        Infinity,
+                        true,
+                    )
+                    :
+                    0
+            )
             :
             refreshTranslateY.value == 0 ? 0 : 1,
     }));
@@ -182,9 +178,20 @@ export const TasksHeader = memo(() => {
 
     useEffect(() => {
         loadingShared.value = loading;
+        if (!loading) {
+            refreshTranslateY.value = withTiming(0, {
+                duration: 500,
+                easing: Easing.inOut(Easing.quad),
+            });
+        }
     }, [loading]);
 
-    // return null;
+    const onFilterButtonPress = useCallback((value: typeof currentFilter) => {
+        setCurrentFilter(value);
+        filterScrollViewRef.current?.scrollTo({
+            x: (value - 1) * (100 + 10),
+        });
+    }, [setCurrentFilter]);
 
     return (
         <View className="absolute w-full z-[50]">
@@ -275,8 +282,10 @@ export const TasksHeader = memo(() => {
                             <View className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden">
                                 {
                                     loading && folders.length == 0 && (
-                                        <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
-                                            <Skeleton />
+                                        <View className="w-full">
+                                            <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                                <Skeleton />
+                                            </View>
                                         </View>
                                     )
                                 }
@@ -389,14 +398,7 @@ export const TasksHeader = memo(() => {
                                                 <PressableAnimated
                                                     key={i}
                                                     scale={.95}
-                                                    onPress={() => {
-                                                        // setCurrentFilter(i + 1);
-                                                        // handleFilter(i == 0 ? null : (i == 1 ? true : false));
-                                                        // filterScrollViewRef.current?.scrollTo({
-                                                        //     x: i * 100,
-                                                        //     animated: true,
-                                                        // });
-                                                    }}
+                                                    onPress={() => onFilterButtonPress(i as 1 | 2 | 3)}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
                                                             (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
@@ -453,13 +455,8 @@ export const TasksHeader = memo(() => {
             {/* Refresh */}
 
             <Animated.View
-                onLayout={(e) => setLeft((screenWidth / 2) - (e.nativeEvent.layout.width / 2))}
-                style={[
-                    refreshPanAnimation,
-                    {
-                        left,
-                    }
-                ]}
+                onLayout={(e) => refreshPosition.value = (screenWidth / 2) - (e.nativeEvent.layout.width / 2)}
+                style={refreshPanAnimation}
                 className="absolute size-[50px] z-[100] rounded-full pointer-events-none dark:bg-black bg-white"
             >
                 <View

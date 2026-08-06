@@ -1,15 +1,18 @@
+import { COLORS } from "@/constants/colors";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, PressableProps, View } from "react-native";
+import { Pressable, PressableProps, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { TextAnimated } from "../text-animated";
+import { SELECT_LIMIT } from "./footer";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -24,7 +27,13 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     const [loading, setLoading] = useState<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
-    const { tasksSelected, setTasksSelected } = useTasksData();
+    const { tasksSelected, setTasksSelected, selectMap, folders } = useTasksData();
+    const { theme } = useTheme();
+    const taskFolder = useMemo(() => {
+        if (task.idFolder) {
+            return folders.find(f => f.idFolder == task.idFolder);
+        }
+    }, [folders, task]);
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -79,10 +88,6 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     //     }
     // }, [onLongPress, task]);
 
-    // const handlePress = useCallback(() => {
-    //     onPress && onPress(task.idTask);
-    // }, [onPress, task]);
-
     const r = (v: any) => console.log("x", v);
 
     const gesture = useMemo(() => {
@@ -131,51 +136,56 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
         ),
     }));
 
-
-    const selectAnimation = useAnimatedStyle(() => ({
-        opacity: withTiming(selected.value ? 1 : 0, {
+    const selectContainerAnimation = useAnimatedStyle(() => ({
+        opacity: selected.value ? withTiming(1, {
             duration: 200,
-            easing: Easing.inOut(Easing.linear),
-        }),
+            easing: Easing.inOut(Easing.quad),
+        }) : 0,
         pointerEvents: selected.value ? "auto" : "none",
     }));
 
-    const textAnimation = useAnimatedStyle(() => ({
+    const indicatorAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateY: !selected.value ? "100%" : withSequence(
-                    withTiming(-20, {
-                        duration: 200,
-                        easing: Easing.inOut(Easing.quad),
-                    }),
-                    withTiming(20, {
-                        duration: 200,
-                        easing: Easing.inOut(Easing.quad),
-                    }),
-                    withTiming(0, {
-                        duration: 200,
-                        easing: Easing.inOut(Easing.quad),
-                    }),
-                ),
+                translateY: !selected.value ? "100%" : withSpring(0, {
+                    stiffness: 50,
+                    mass: 3,
+                    damping: 10,
+                })
             }
         ]
     }));
 
     useEffect(() => {
-        selection.value = tasksSelected.length > 0;
-    }, [tasksSelected]);
+        selection.value = selectMap.size > 0;
+        selected.value = selectMap.has(task.idTask);
+    }, [selectMap]);
+
+    const onPress = useCallback(() => {
+        if (!selectMap.has(task.idTask) && selectMap.size == 0) {
+            console.log("Press", task.idTask);
+        }
+        else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
+            setTasksSelected((prev) => [...prev, task]);
+        }
+        else if (selectMap.has(task.idTask)) {
+            setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
+        }
+    }, [selectMap, tasksSelected]);
+
+    const onLongPress = useCallback(() => {
+        if (!selectMap.has(task.idTask) && selectMap.size < SELECT_LIMIT) {
+            Vibration.vibrate(100);
+            setTasksSelected((prev) => [...prev, task]);
+        }
+    }, [selectMap, tasksSelected]);
 
     return (
         <GestureDetector gesture={gesture}>
             <Pressable
                 {...rest}
-                // onPress={handlePress}
-                onPress={() => {
-                    console.log("Press");
-                }}
-                onLongPress={() => {
-                    setTasksSelected((prev) => [...prev, task]);
-                }}
+                onPress={onPress}
+                onLongPress={onLongPress}
                 style={{
                     height,
                 }}
@@ -201,7 +211,7 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
 
                         <View className="w-full">
                             <TextAnimated
-                                numberOfLines={2}
+                                numberOfLines={task.title ? 2 : 3}
                                 className="text-lg dark:opacity-70 opacity-60"
                             >
                                 {task.content}
@@ -236,21 +246,20 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
                     </Animated.View>
                 </View>
 
-                {/* <Animated.View
-                    style={selectAnimation}
-                    className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
+                {/* Select View */}
+
+                <Animated.View
+                    style={selectContainerAnimation}
+                    className="absolute w-full h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/10 border-black/10 rounded-2xl"
                 >
-                    {
-                        index > 0 && (
-                            <TextAnimated
-                                style={textAnimation}
-                                className="absolute text-4xl"
-                            >
-                                {index}
-                            </TextAnimated>
-                        )
-                    }
-                </Animated.View> */}
+                    <Animated.View style={indicatorAnimation}>
+                        <MaterialIcons
+                            name="playlist-add-check"
+                            size={50}
+                            color={COLORS.emerald[500]}
+                        />
+                    </Animated.View>
+                </Animated.View>
             </Pressable>
         </GestureDetector>
     );

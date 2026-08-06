@@ -1,7 +1,6 @@
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
-import { TasksDataProvider } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -167,154 +166,152 @@ export default function Layout() {
     }));
 
     return (
-        <TasksDataProvider>
-            <Tabs
-                screenOptions={{
-                    headerShown: false,
-                    tabBarHideOnKeyboard: true,
-                }}
-                tabBar={() => (
-                    <Animated.View
-                        style={[
-                            navContainerAnimation,
-                        ]}
-                        className="absolute bottom-0 z-[9999]"
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarHideOnKeyboard: true,
+            }}
+            tabBar={() => (
+                <Animated.View
+                    style={[
+                        navContainerAnimation,
+                    ]}
+                    className="absolute bottom-0 z-[9999]"
+                >
+                    <PressableAnimated
+                        onPress={() => setMinimize(false)}
+                        style={{
+                            zIndex: minimize ? 1 : -1,
+                            opacity: minimize ? 1 : 0,
+                        }}
+                        className="absolute dark:bg-black bg-white rounded-full"
                     >
-                        <PressableAnimated
-                            onPress={() => setMinimize(false)}
-                            style={{
-                                zIndex: minimize ? 1 : -1,
-                                opacity: minimize ? 1 : 0,
-                            }}
-                            className="absolute dark:bg-black bg-white rounded-full"
-                        >
-                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full p-3">
-                                <Feather
-                                    name="maximize-2"
-                                    size={20}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .8)"}
-                                />
-                            </View>
-                        </PressableAnimated>
+                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full p-3">
+                            <Feather
+                                name="maximize-2"
+                                size={20}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .8)"}
+                            />
+                        </View>
+                    </PressableAnimated>
 
-                        <Animated.View
-                            onLayout={(e) => {
-                                navWidth.value = e.nativeEvent.layout.width;
-                                navHeight.value = e.nativeEvent.layout.height;
-                            }}
-                            style={[
-                                {
-                                    zIndex: minimize ? -1 : 1,
-                                },
-                                navAnimation,
-                            ]}
-                            className="absolute dark:bg-black bg-white rounded-[50px] shrink-0"
-                        >
-                            <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px] border dark:border-white/20 border-black/20">
-                                <Animated.View
-                                    style={[
-                                        {
-                                            transform: [
-                                                {
-                                                    translateY: 10,
-                                                }
-                                            ],
-                                            filter: "blur(5px)"
-                                        },
-                                        navShadowAnimation,
-                                    ]}
-                                    className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
-                                />
+                    <Animated.View
+                        onLayout={(e) => {
+                            navWidth.value = e.nativeEvent.layout.width;
+                            navHeight.value = e.nativeEvent.layout.height;
+                        }}
+                        style={[
+                            {
+                                zIndex: minimize ? -1 : 1,
+                            },
+                            navAnimation,
+                        ]}
+                        className="absolute dark:bg-black bg-white rounded-[50px] shrink-0"
+                    >
+                        <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px] border dark:border-white/20 border-black/20">
+                            <Animated.View
+                                style={[
+                                    {
+                                        transform: [
+                                            {
+                                                translateY: 10,
+                                            }
+                                        ],
+                                        filter: "blur(5px)"
+                                    },
+                                    navShadowAnimation,
+                                ]}
+                                className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
+                            />
 
-                                <NavButton
-                                    name={t("nav_tasks")}
-                                    focused={pathname == "/"}
-                                    icon={(
-                                        <FontAwesome6
-                                            name="list-check"
-                                            size={25}
-                                            color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => {
-                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
-                                        tabChangeTimeout.current = setTimeout(() => {
-                                            pathname != "/" && router.navigate("/");
-                                        }, 250);
-                                    }}
-                                />
+                            <NavButton
+                                name={t("nav_tasks")}
+                                focused={pathname == "/"}
+                                icon={(
+                                    <FontAwesome6
+                                        name="list-check"
+                                        size={25}
+                                        color={pathname == "/" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                    />
+                                )}
+                                onPress={() => {
+                                    tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                    tabChangeTimeout.current = setTimeout(() => {
+                                        pathname != "/" && router.navigate("/");
+                                    }, 250);
+                                }}
+                            />
 
-                                <NavButton
-                                    name={t("agenda")}
-                                    focused={pathname == "/agenda"}
-                                    icon={(
-                                        <Fontisto
-                                            name="calendar"
-                                            size={25}
-                                            color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => {
-                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
-                                        tabChangeTimeout.current = setTimeout(() => {
-                                            pathname != "/agenda" && router.navigate("/agenda");
-                                        }, 250);
-                                    }}
-                                />
+                            <NavButton
+                                name={t("agenda")}
+                                focused={pathname == "/agenda"}
+                                icon={(
+                                    <Fontisto
+                                        name="calendar"
+                                        size={25}
+                                        color={pathname == "/agenda" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                    />
+                                )}
+                                onPress={() => {
+                                    tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                    tabChangeTimeout.current = setTimeout(() => {
+                                        pathname != "/agenda" && router.navigate("/agenda");
+                                    }, 250);
+                                }}
+                            />
 
-                                <NavButton
-                                    name={t("notifications")}
-                                    focused={pathname == "/notifications"}
-                                    icon={(
-                                        <Entypo
-                                            name="bell"
-                                            size={25}
-                                            color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => {
-                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
-                                        tabChangeTimeout.current = setTimeout(() => {
-                                            pathname != "/notifications" && router.navigate("/notifications");
-                                        }, 250);
-                                    }}
-                                />
+                            <NavButton
+                                name={t("notifications")}
+                                focused={pathname == "/notifications"}
+                                icon={(
+                                    <Entypo
+                                        name="bell"
+                                        size={25}
+                                        color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                    />
+                                )}
+                                onPress={() => {
+                                    tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                    tabChangeTimeout.current = setTimeout(() => {
+                                        pathname != "/notifications" && router.navigate("/notifications");
+                                    }, 250);
+                                }}
+                            />
 
-                                <NavButton
-                                    name={t("settings")}
-                                    focused={pathname == "/settings"}
-                                    icon={(
-                                        <FontAwesome6
-                                            name="gears"
-                                            size={25}
-                                            color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                        />
-                                    )}
-                                    onPress={() => {
-                                        tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
-                                        tabChangeTimeout.current = setTimeout(() => {
-                                            pathname != "/settings" && router.navigate("/settings");
-                                        }, 250);
-                                    }}
-                                />
-                            </View>
-                        </Animated.View>
+                            <NavButton
+                                name={t("settings")}
+                                focused={pathname == "/settings"}
+                                icon={(
+                                    <FontAwesome6
+                                        name="gears"
+                                        size={25}
+                                        color={pathname == "/settings" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
+                                    />
+                                )}
+                                onPress={() => {
+                                    tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
+                                    tabChangeTimeout.current = setTimeout(() => {
+                                        pathname != "/settings" && router.navigate("/settings");
+                                    }, 250);
+                                }}
+                            />
+                        </View>
                     </Animated.View>
-                )}
-            >
-                <Tabs.Screen name="index" />
+                </Animated.View>
+            )}
+        >
+            <Tabs.Screen name="index" />
 
-                <Tabs.Screen
-                    name="agenda"
-                    options={{
-                        lazy: false,
-                    }}
-                />
+            <Tabs.Screen
+                name="agenda"
+                options={{
+                    lazy: false,
+                }}
+            />
 
-                <Tabs.Screen name="notifications" />
+            <Tabs.Screen name="notifications" />
 
-                <Tabs.Screen name="settings" />
-            </Tabs>
-        </TasksDataProvider>
+            <Tabs.Screen name="settings" />
+        </Tabs>
     )
 }

@@ -1,17 +1,20 @@
 import { COLORS } from "@/constants/colors";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
+import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Pressable, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
+
+export const SELECT_LIMIT = 50;
 
 export const TasksFooter = memo(() => {
     const { } = useTasksData();
@@ -21,7 +24,7 @@ export const TasksFooter = memo(() => {
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { tasksSelected, setTasksSelected } = useTasksData();
+    const { selectMap, setTasksSelected, tasksSelected, tasks } = useTasksData();
     const showAddTaskButton = useSharedValue<boolean>(true);
 
     const addTaskButtonAnimation = useAnimatedStyle(() => ({
@@ -80,10 +83,8 @@ export const TasksFooter = memo(() => {
     }, [screenWidth, screenHeight]);
 
     useEffect(() => {
-        console.log(tasksSelected.length);
-
         const onBackPress = () => {
-            if (tasksSelected.length > 0) {
+            if (selectMap.size > 0) {
                 setTasksSelected([]);
 
                 return true;
@@ -93,10 +94,29 @@ export const TasksFooter = memo(() => {
 
         const { remove } = BackHandler.addEventListener("hardwareBackPress", onBackPress);
 
-        areTasksSelected.value = tasksSelected.length > 0;
+        areTasksSelected.value = selectMap.size > 0;
 
         return () => remove();
-    }, [tasksSelected]);
+    }, [selectMap]);
+
+    const onCheckboxPress = useCallback(() => {
+        if (
+            (tasksSelected.length == tasks.length)
+            ||
+            (tasksSelected.length == SELECT_LIMIT)
+        ) {
+            setTasksSelected([]);
+        }
+        else {
+            const selected: TaskType[] = [];
+            const tab = [...tasks];
+
+            for (let i = 0; i < SELECT_LIMIT && i < tab.length; i++) {
+                selected.push(tab[i]);
+            }
+            setTasksSelected([...selected]);
+        }
+    }, [tasksSelected, tasks, selectMap]);
 
     return (
         <View className="w-full flex items-center">
@@ -130,16 +150,13 @@ export const TasksFooter = memo(() => {
                         </TextAnimated>
 
                         <TextAnimated className="text-lg font-bold">
-                            {/* ({tasksSelected.length}) */}
-                            ({0})
+                            ({selectMap.size})
                         </TextAnimated>
                     </View>
 
                     <Checkbox
-                        // checked={tasksSelected.length == selectLimit || tasksSelected.length == tasks.length}
-                        checked={false}
-                        // onPress={() => onCheckboxPress()}
-                        onPress={() => { }}
+                        checked={selectMap.size == SELECT_LIMIT || selectMap.size == tasks.length}
+                        onPress={() => onCheckboxPress()}
                     />
 
                     {/* <PressableAnimated onPress={() => handleArchive()}> */}

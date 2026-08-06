@@ -1,7 +1,7 @@
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { usePathname } from "expo-router";
-import { createContext, ReactNode, RefObject, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, ReactNode, RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
@@ -27,13 +27,15 @@ const Context = createContext<{
     setSearchSectionActive: ((value: boolean) => void);
     tasksSelected: TaskType[];
     setTasksSelected: ((value: (TaskType[] | ((prev: TaskType[]) => TaskType[]))) => void);
+    selectMap: Map<string, TaskType>;
+    setCurrentFilter: (value: 1 | 2 | 3) => void;
 } | null>(null);
 
 interface Props {
     children: ReactNode;
 }
 
-export const TasksDataProvider = ({ children }: Props) => {
+export const TasksDataProvider = memo(({ children }: Props) => {
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const scrollY = useSharedValue<number>(0);
@@ -54,12 +56,17 @@ export const TasksDataProvider = ({ children }: Props) => {
     const scrolling = useSharedValue<boolean>(false);
     const pager = useRef<FlatList>(null);
     const [searchSectionActive, setSearchSectionActive] = useState<boolean>(false);
-    const scroll = useMemo(() => scrollY, [scrollY]);
+    const scroll = useMemo(() => scrollY, []);
     const refreshTranslate = useMemo(() => refreshTranslateY, [refreshTranslateY]);
-    const isScrolling = useMemo(() => scrolling, [scrolling]);
+    const isScrolling = useMemo(() => scrolling, []);
     const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
     const tasksTmp = useRef<TaskType[]>([]);
     const tasksCountTmp = useRef<number>(0);
+    const selectMap = useMemo(() => {
+        return new Map(
+            tasksSelected.map((t, i) => [t.idTask, t])
+        );
+    }, [tasksSelected]);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -133,6 +140,36 @@ export const TasksDataProvider = ({ children }: Props) => {
         }
     }, [pathname]);
 
+    const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
+        const entry = tasksTmp.current.length > 0 ? tasksTmp.current : tasks;
+
+        if (value == 1) {
+            if (tasksTmp.current.length > 0) {
+                setTasks([...tasksTmp.current]);
+                tasksTmp.current = [];
+                setCurrentFilter(value);
+            }
+        }
+        else if (value == 2) {
+            if (tasksTmp.current.length == 0) {
+                tasksTmp.current = [...tasks];
+            }
+            const result = entry.filter(t => t.done);
+
+            setTasks(result);
+            setCurrentFilter(value);
+        }
+        else if (value == 3) {
+            if (tasksTmp.current.length == 0) {
+                tasksTmp.current = [...tasks];
+            }
+            const result = entry.filter(t => !t.done);
+
+            setTasks(result);
+            setCurrentFilter(value);
+        }
+    }, [tasks]);
+
     return (
         <Context.Provider value={{
             tasks,
@@ -153,11 +190,13 @@ export const TasksDataProvider = ({ children }: Props) => {
             setSearchSectionActive,
             tasksSelected,
             setTasksSelected,
+            selectMap,
+            setCurrentFilter: handleCurrentFilter,
         }}>
             {children}
         </Context.Provider>
     );
-}
+});
 
 export const useTasksData = () => {
     const ctx = useContext(Context);
