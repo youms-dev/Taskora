@@ -1,21 +1,21 @@
 import { COLORS } from "@/constants/colors";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
+import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 
 const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
 
@@ -56,7 +56,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 export const TasksHeader = memo(() => {
-    const { handleGetTasks, handleGetFolders, loading, tasks, folders, scrollY: scrollYShared, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive } = useTasksData();
+    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive } = useTasksData();
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -66,97 +66,6 @@ export const TasksHeader = memo(() => {
     const loadingShared = useSharedValue<boolean>(loading);
     const [left, setLeft] = useState<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
-
-    const fakeInputAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollYShared.value,
-                    [0, scrollCheckPoint],
-                    [50, -100],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-        opacity: interpolate(
-            scrollYShared.value,
-            [0, scrollCheckPoint],
-            [1, 0],
-            Extrapolation.CLAMP,
-        ),
-    }));
-
-    const stickyAnimation = useAnimatedStyle(() => ({
-        width: withSpring(scrollYShared.value >= scrollCheckPoint * .5 ? "95%" : "100%", {
-            stiffness: 500,
-            mass: 1,
-            damping: 10,
-        }),
-        backgroundColor: themeShared.value == "dark" ? "black" : "white",
-        borderRadius: scrollYShared.value >= scrollCheckPoint * .5 ? 20 : 0,
-    }));
-
-    const folderAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollYShared.value >= scrollCheckPoint * .5 ?
-            (themeShared.value == "dark" ? "rgba(255, 255, 255, .15)" : "rgba(0, 0, 0, .15)")
-            :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .06)")
-        ,
-        borderWidth: 1,
-        borderColor: scrollYShared.value >= scrollCheckPoint * .5 ?
-            (themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)")
-            :
-            (themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .03)")
-        ,
-        borderRadius: scrollYShared.value >= scrollCheckPoint * .5 ? 20 : 0,
-    }));
-
-    const filterAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateX: interpolate(
-                    scrollYShared.value,
-                    [0, scrollCheckPoint],
-                    [0, screenWidthShared.value],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-        opacity: (scrollYShared.value == 0) ? 1 : .3,
-        pointerEvents: (scrollYShared.value == 0) ? "auto" : "none",
-    }));
-
-    const headerContainerAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollYShared.value,
-                    [0, scrollCheckPoint],
-                    [0, -120],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ]
-    }));
-
-    const headerAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollYShared.value,
-                    [0, scrollCheckPoint],
-                    [0, 150],
-                    Extrapolation.CLAMP,
-                )
-            }
-        ],
-        opacity: interpolate(
-            scrollYShared.value,
-            [0, scrollCheckPoint],
-            [1, 0],
-            Extrapolation.CLAMP,
-        ),
-    }));
 
     // const folderDataMap = useMemo(() => {
     //     const map = new Map(
@@ -181,6 +90,7 @@ export const TasksHeader = memo(() => {
         // });
         pager.current?.scrollToIndex({
             index,
+            animated: false,
         });
 
         // if (contentsSize.current[index] < screenHeight) {
@@ -231,7 +141,7 @@ export const TasksHeader = memo(() => {
                 translateY: interpolate(
                     refreshTranslateY.value,
                     [0, 90],
-                    [160, 230],
+                    [185, 230],
                     Extrapolation.CLAMP,
                 ),
             }
@@ -274,47 +184,35 @@ export const TasksHeader = memo(() => {
         loadingShared.value = loading;
     }, [loading]);
 
-    const addFolderButtonBackgroundAnimation = useAnimatedStyle(() => ({
-        backgroundColor: scrollYShared.value >= scrollCheckPoint * .5 ?
-            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .15)"
-            :
-            themeShared.value == "dark" ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .06)"
-        ,
-    }));
-
     // return null;
 
     return (
-        <Animated.View
-            style={headerContainerAnimation}
-            className="absolute w-full h-[210px] z-[50]"
-        >
+        <View className="absolute w-full z-[50]">
             <LinearGradient
                 colors={theme == "dark" ?
-                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
                     :
                     ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                locations={[0, .8, 1]}
+                locations={theme == "dark" ? [0, .8, 1] : [0, .9, 1]}
                 className="w-full h-full"
             >
                 <LinearGradient
                     colors={theme == "dark" ?
-                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
                         :
                         ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, .2)"]
                     }
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
-                    locations={[0, .8, 1]}
-                    className="w-full h-full"
+                    locations={theme == "dark" ? [0, .8, 1] : [0, .9, 1]}
+                    className="w-full h-full flex items-center pb-10"
                 >
-                    <Animated.View
-                        style={headerAnimation}
-                        className="absolute left-0 top-0 w-full flex items-center"
-                    >
+                    {/* Header */}
+
+                    <View className="w-full flex items-center">
                         <PageTitle>
                             <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
                                 <FontAwesome6
@@ -330,23 +228,35 @@ export const TasksHeader = memo(() => {
                                 </Text>
                             </View>
                         </PageTitle>
-                    </Animated.View>
+                    </View>
 
-                    <Animated.View
-                        style={fakeInputAnimation}
-                        className="absolute left-0 w-full flex items-center px-3"
-                    >
+                    {/* Fake search input */}
+
+                    <View className="w-full flex items-center px-3">
                         <Pressable
                             onPress={() => {
                                 setSearchSectionActive(true);
                                 event.emit(HIDE_NAVBAR);
                             }}
-                            className="w-full h-16 flex flex-row items-center my-3 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
+                            className="w-full h-14 flex flex-row items-center mb-3 mt-2 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                         >
                             <TextAnimated className="opacity-40 text-lg">
                                 {t("tasks_search")}
                             </TextAnimated>
-                            <View className="absolute top-4 right-5 -z-[1] pointer-events-none">
+
+                            <View
+                                style={{
+                                    transform: [
+                                        {
+                                            translateX: -20,
+                                        },
+                                        {
+                                            translateY: 10,
+                                        },
+                                    ]
+                                }}
+                                className="absolute top-0 right-0 -z-[1] pointer-events-none"
+                            >
                                 <FontAwesome5
                                     name="search"
                                     size={24}
@@ -354,28 +264,15 @@ export const TasksHeader = memo(() => {
                                 />
                             </View>
                         </Pressable>
-                    </Animated.View>
+                    </View>
 
-                    <View
-                        style={{
-                            transform: [
-                                {
-                                    translateY: 130,
-                                }
-                            ]
-                        }}
-                        className="w-full flex items-center gap-1"
-                    >
+                    {/* Folders & filters */}
+
+                    <View className="w-full flex items-center gap-1">
                         {/* Folders */}
 
-                        <Animated.View
-                            style={stickyAnimation}
-                            className="flex items-center"
-                        >
-                            <Animated.View
-                                style={folderAnimation}
-                                className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden"
-                            >
+                        <View className="flex items-center">
+                            <View className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden">
                                 {
                                     loading && folders.length == 0 && (
                                         <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
@@ -408,10 +305,7 @@ export const TasksHeader = memo(() => {
                                             />
 
                                             <View className="absolute right-0 top-0 dark:bg-black bg-white z-[10]">
-                                                <Animated.View
-                                                    style={addFolderButtonBackgroundAnimation}
-                                                    className="w-full h-full flex justify-center items-center px-4 py-1"
-                                                >
+                                                <View className="w-full h-full flex justify-center items-center px-4 py-1">
                                                     <PressableAnimated>
                                                         <FontAwesome5
                                                             name="folder-plus"
@@ -419,20 +313,17 @@ export const TasksHeader = memo(() => {
                                                             color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                                                         />
                                                     </PressableAnimated>
-                                                </Animated.View>
+                                                </View>
                                             </View>
                                         </>
                                     )
                                 }
-                            </Animated.View>
-                        </Animated.View>
+                            </View>
+                        </View>
 
                         {/* Filters */}
 
-                        <Animated.View
-                            style={filterAnimation}
-                            className="w-full flex flex-row items-center gap-3 px-3 py-1"
-                        >
+                        <View className="w-full flex flex-row items-center gap-3 px-3 py-1">
                             {
                                 loading && tasks.length == 0 && (
                                     <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
@@ -554,7 +445,7 @@ export const TasksHeader = memo(() => {
                                     className="w-[50px] h-full"
                                 />
                             </LinearGradient>
-                        </Animated.View>
+                        </View>
                     </View>
                 </LinearGradient>
             </LinearGradient>
@@ -600,6 +491,6 @@ export const TasksHeader = memo(() => {
                     </Animated.View>
                 </View>
             </Animated.View>
-        </Animated.View>
+        </View>
     );
 });

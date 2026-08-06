@@ -8,11 +8,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { memo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import { scrollCheckPoint } from "./header";
 
 export const TasksFooter = memo(() => {
     const { } = useTasksData();
@@ -23,16 +22,7 @@ export const TasksFooter = memo(() => {
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
     const { scrollY } = useTasksData();
-    const showAddTaskButton = useSharedValue<boolean>(false);
-
-    useAnimatedReaction(
-        () => scrollY.value > scrollCheckPoint,
-        (current, prev) => {
-            if (current != prev) {
-                showAddTaskButton.value = current;
-            }
-        }
-    );
+    const showAddTaskButton = useSharedValue<boolean>(true);
 
     const addTaskButtonAnimation = useAnimatedStyle(() => ({
         transform: [

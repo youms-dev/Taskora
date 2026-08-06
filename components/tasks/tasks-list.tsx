@@ -1,8 +1,9 @@
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
+import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -11,7 +12,6 @@ import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { scrollCheckPoint } from "./header";
 import { TaskCard } from "./task-card";
-import { FolderType } from "@/types/folder";
 
 const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
@@ -27,12 +27,11 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const tasksGap = 20;
     const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, folders } = useTasksData();
     const nativeGesture = Gesture.Native();
-    const [thresholdReached, setThresholdReached] = useState<boolean>(false);
     const folderTasks = useMemo(() => {
-        // if (folderIndex == 0) return tasks;
-        // return tasks.filter((t) => t.idFolder == folder.idFolder);
-        return tasks;
+        if (folderIndex == 0) return tasks;
+        return tasks.filter((t) => t.idFolder == folder.idFolder);
     }, [tasks, folder, folderIndex]);
+    const [mounted, setMounted] = useState<boolean>(false);
 
     // const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
     const handleContentSize = useCallback((x: number, y: number) => { }, []);
@@ -75,7 +74,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                 .activeOffsetY([-5, 5])
                 .failOffsetX([-50, 50])
                 .onUpdate(({ translationY: y }) => {
-                    runOnJS(e)(y);
+                    // runOnJS(e)(y);
                     if (scrollY.value <= 0 && y > 0 && !scrolling.value) {
                         refreshTranslateY.value = y;
                     }
@@ -99,14 +98,16 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
 
     const gesture = Gesture.Simultaneous(nativeGesture, panGesture);
 
-    useAnimatedReaction(
-        () => scrollY.value >= scrollCheckPoint,
-        (current, prev) => {
-            if (current != prev) {
-                runOnJS(setThresholdReached)(current);
-            }
+    useEffect(() => {
+        if (!currentFolder) {
+            setMounted(true);
         }
-    );
+        else if (!mounted && currentFolder == folder.idFolder) {
+            setMounted(true);
+        }
+    }, [currentFolder]);
+
+    if (!mounted) return null;
 
     return (
         <View className="w-screen flex items-center shrink-0">
@@ -178,9 +179,8 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     className="w-full"
                     contentContainerStyle={{
                         gap: tasksGap,
-                        paddingTop: !currentFolder ? 220 : (thresholdReached ? 80 : 220),
                     }}
-                    contentContainerClassName="w-full flex flex-col items-center pb-[150px] px-3"
+                    contentContainerClassName="w-full flex flex-col items-center pt-[220px] pb-[80px] px-3"
                 />
             </GestureDetector>
         </View>
