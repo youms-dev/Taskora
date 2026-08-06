@@ -4,11 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { memo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, PressableProps, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { TextAnimated } from "../text-animated";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
@@ -24,7 +24,7 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     const [loading, setLoading] = useState<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
-    const { extraGesture } = useTasksData();
+    const { tasksSelected, setTasksSelected } = useTasksData();
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -83,46 +83,44 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     //     onPress && onPress(task.idTask);
     // }, [onPress, task]);
 
-    // const gesturesList = useMemo(() => Gesture.Race(
-    //     Gesture.LongPress()
-    //         .minDuration(150)
-    //         .onStart(() => {
-    //             runOnJS(handleLongPressLocal)();
-    //         }),
-    //     Gesture.Pan()
-    //         .activeOffsetX([-5, 5])
-    //         .failOffsetY([-10, 10])
-    //         .onUpdate(({ translationX: x }) => {
-    //             if (x >= -100 && x <= 100 && !loadingShared.value && !selected.value && !selection.value) translateX.value = x;
-    //         })
-    //         .onEnd(({ translationX: x }) => {
-    //             translateX.value = withSpring(0, {
-    //                 stiffness: 100,
-    //                 mass: 2,
-    //                 damping: 10,
-    //             });
-
-    //             if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
-
-    //             if (x <= -100) {
-    //                 runOnJS(handleArchive)();
-    //             }
-    //             else if (x >= 100) {
-    //                 runOnJS(handleDelete)();
-    //             }
-    //         })
-    // ), [handleLongPressLocal, handleArchive, handleDelete]);
-
     const r = (v: any) => console.log("x", v);
 
-    const gesturesList = Gesture.Race(
-        Gesture.Pan()
-            .activeOffsetX([-50, 50])
-            .failOffsetY(10)
-            .onUpdate(({ translationX: x }) => {
-                runOnJS(r)(x);
-            }),
-    )
+    const gesture = useMemo(() => {
+        return (
+            Gesture.Pan()
+                .activeOffsetX([-5, 5])
+                .failOffsetY([-10, 10])
+                .onUpdate(({ translationX: x }) => {
+                    runOnJS(r)(x);
+                    // if (x >= -100 && x <= 100 && !loadingShared.value && !selected.value && !selection.value) {
+                    // translateX.value = x;
+                    //}
+                    if (x >= -100 && x <= 100 && !selection.value) {
+                        translateX.value = x;
+                    }
+                })
+                .onEnd(({ translationX: x }) => {
+                    translateX.value = withSpring(0, {
+                        stiffness: 100,
+                        mass: 2,
+                        damping: 10,
+                    });
+
+                    if (selection.value) return;
+                    //             if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
+
+                    if (x <= -100) {
+                        //                 runOnJS(handleArchive)();
+                        runOnJS(r)("Archive");
+                    }
+                    else if (x >= 100) {
+                        //                 runOnJS(handleDelete)();
+                        runOnJS(r)("Delete");
+                    }
+                })
+        )
+    }, []);
+    // ), [handleLongPressLocal, handleArchive, handleDelete]);
 
     const opacityAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
@@ -133,11 +131,6 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
         ),
     }));
 
-    // useEffect(() => {
-    //     loadingShared.value = !!parentLoading || loading;
-    //     if (selected.value !== (index > 0)) selected.value = index > 0;
-    //     if (selection.value !== selecting) selection.value = selecting;
-    // }, [parentLoading, index, selecting, loading]);
 
     const selectAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(selected.value ? 1 : 0, {
@@ -168,11 +161,21 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
         ]
     }));
 
+    useEffect(() => {
+        selection.value = tasksSelected.length > 0;
+    }, [tasksSelected]);
+
     return (
-        <GestureDetector gesture={gesturesList}>
+        <GestureDetector gesture={gesture}>
             <Pressable
                 {...rest}
                 // onPress={handlePress}
+                onPress={() => {
+                    console.log("Press");
+                }}
+                onLongPress={() => {
+                    setTasksSelected((prev) => [...prev, task]);
+                }}
                 style={{
                     height,
                 }}

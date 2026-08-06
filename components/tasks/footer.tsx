@@ -7,7 +7,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { BackHandler, Pressable, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
@@ -17,17 +17,17 @@ export const TasksFooter = memo(() => {
     const { } = useTasksData();
     const { theme } = useTheme();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const tasksSelectedShared = useSharedValue<boolean>(false);
+    const areTasksSelected = useSharedValue<boolean>(false);
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { scrollY } = useTasksData();
+    const { tasksSelected, setTasksSelected } = useTasksData();
     const showAddTaskButton = useSharedValue<boolean>(true);
 
     const addTaskButtonAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateX: tasksSelectedShared.value ?
+                translateX: areTasksSelected.value ?
                     withTiming(100, {
                         duration: 200,
                         easing: Easing.inOut(Easing.quad),
@@ -61,7 +61,7 @@ export const TasksFooter = memo(() => {
                 translateX: -20,
             },
             {
-                translateY: withTiming(tasksSelectedShared.value ?
+                translateY: withTiming(areTasksSelected.value ?
                     -(screenHeightShared.value - (screenHeightShared.value * .9))
                     :
                     screenHeightShared.value * .5,
@@ -78,6 +78,25 @@ export const TasksFooter = memo(() => {
         screenWidthShared.value = screenWidth;
         screenHeightShared.value = screenHeight;
     }, [screenWidth, screenHeight]);
+
+    useEffect(() => {
+        console.log(tasksSelected.length);
+
+        const onBackPress = () => {
+            if (tasksSelected.length > 0) {
+                setTasksSelected([]);
+
+                return true;
+            }
+            return false;
+        }
+
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+        areTasksSelected.value = tasksSelected.length > 0;
+
+        return () => remove();
+    }, [tasksSelected]);
 
     return (
         <View className="w-full flex items-center">

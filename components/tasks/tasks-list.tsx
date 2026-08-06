@@ -7,7 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { scrollCheckPoint } from "./header";
@@ -25,13 +25,14 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, folders } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, tasksSelected } = useTasksData();
     const nativeGesture = Gesture.Native();
     const folderTasks = useMemo(() => {
         if (folderIndex == 0) return tasks;
         return tasks.filter((t) => t.idFolder == folder.idFolder);
     }, [tasks, folder, folderIndex]);
     const [mounted, setMounted] = useState<boolean>(false);
+    const areTasksSelected = useSharedValue<boolean>(false);
 
     // const handleContentSize = useCallback((x: number, y: number) => onContentSizeChange(x, y), [onContentSizeChange]);
     const handleContentSize = useCallback((x: number, y: number) => { }, []);
@@ -75,21 +76,27 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                 .failOffsetX([-50, 50])
                 .onUpdate(({ translationY: y }) => {
                     // runOnJS(e)(y);
-                    if (scrollY.value <= 0 && y > 0 && !scrolling.value) {
+                    if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value) {
                         refreshTranslateY.value = y;
                     }
                 })
                 .onEnd(() => {
                     // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
                     if (scrollY.value > 0 || refreshTranslateY.value < 90) {
-                        refreshTranslateY.value = 0;
+                        refreshTranslateY.value = withTiming(0, {
+                            duration: 200,
+                            easing: Easing.inOut(Easing.quad),
+                        });
                     }
                     else if (refreshTranslateY.value >= 90) {
                         // refreshTranslateY.value = withTiming(180, {
                         //     duration: 300,
                         //     easing: Easing.inOut(Easing.quad),
                         // });
-                        refreshTranslateY.value = 0;
+                        refreshTranslateY.value = withTiming(0, {
+                            duration: 200,
+                            easing: Easing.inOut(Easing.quad),
+                        });
                         // runOnJS(handleGetTasks)(true);
                     };
                 })
@@ -106,6 +113,10 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
             setMounted(true);
         }
     }, [currentFolder]);
+
+    useEffect(() => {
+        areTasksSelected.value = tasksSelected.length > 0;
+    }, [tasksSelected]);
 
     if (!mounted) return null;
 

@@ -25,6 +25,8 @@ const Context = createContext<{
     pager: RefObject<FlatList | null>;
     searchSectionActive: boolean;
     setSearchSectionActive: ((value: boolean) => void);
+    tasksSelected: TaskType[];
+    setTasksSelected: ((value: (TaskType[] | ((prev: TaskType[]) => TaskType[]))) => void);
 } | null>(null);
 
 interface Props {
@@ -55,6 +57,9 @@ export const TasksDataProvider = ({ children }: Props) => {
     const scroll = useMemo(() => scrollY, [scrollY]);
     const refreshTranslate = useMemo(() => refreshTranslateY, [refreshTranslateY]);
     const isScrolling = useMemo(() => scrolling, [scrolling]);
+    const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
+    const tasksTmp = useRef<TaskType[]>([]);
+    const tasksCountTmp = useRef<number>(0);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -146,6 +151,8 @@ export const TasksDataProvider = ({ children }: Props) => {
             pager,
             searchSectionActive,
             setSearchSectionActive,
+            tasksSelected,
+            setTasksSelected,
         }}>
             {children}
         </Context.Provider>
