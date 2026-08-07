@@ -281,41 +281,6 @@ export default function Tasks() {
     //     }
     // }
 
-    // const handleDelete = async (init: boolean = true) => {
-    //     if (tasksSelected.length == 0 || processing || loading) return;
-    //     setProcessing(true);
-    //     const tab = [...tasksSelected];
-
-    //     if (init) {
-    //         tasksTmp.current = tasks;
-    //         setTasks(prev => [...prev.filter(t => !tab.find(e => e.idTask == t.idTask))]);
-    //         setTasksSelected([]);
-    //         setCount(prev => prev - tab.length);
-    //         setDismiss(
-    //             () => handleDelete(false),
-    //             () => {
-    //                 setCount(prev => prev + tab.length);
-    //                 tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
-    //                 tasksTmp.current = [];
-    //                 setProcessing(false);
-    //             });
-    //         return;
-    //     }
-    //     try {
-    //         await deleteTasks([...tab.map(t => t.idTask)]);
-    //         setProcessing(false);
-    //         handleGetTasks(true);
-    //     }
-    //     catch (e) {
-    //         console.log(e);
-    //         setProcessing(false);
-    //         setCount(prev => prev + tab.length);
-    //         tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
-    //         tasksTmp.current = [];
-    //         setToast("Une erreur s'est produite", "error");
-    //     }
-    // }
-
     // useEffect(() => {
     //     const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
     //         if ((tasksTmp.current.length > 0 && countTmp > 0) || selectMap.size > 0) {
@@ -404,10 +369,6 @@ export default function Tasks() {
     //         });
     //     }
     // }, [folders, height, currentFolder]);
-
-    // useEffect(() => {
-    //     tasksSelectedShared.value = selectMap.size > 0;
-    // }, [selectMap]);
 
     return (
         <Container centerX>

@@ -54,7 +54,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 export const TasksHeader = memo(() => {
-    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive, setCurrentFilter } = useTasksData();
+    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive, setCurrentFilter, setTasksSelected } = useTasksData();
     const { theme, themeShared } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -187,11 +187,16 @@ export const TasksHeader = memo(() => {
     }, [loading]);
 
     const onFilterButtonPress = useCallback((value: typeof currentFilter) => {
+        if (tasks.length == 0) return;
         setCurrentFilter(value);
+        setTasksSelected([]);
+    }, [setCurrentFilter, tasks]);
+
+    useEffect(() => {
         filterScrollViewRef.current?.scrollTo({
-            x: (value - 1) * (100 + 10),
+            x: (currentFilter - 1) * (100 + 10),
         });
-    }, [setCurrentFilter]);
+    }, [currentFilter]);
 
     return (
         <View className="absolute w-full z-[50]">
@@ -314,7 +319,7 @@ export const TasksHeader = memo(() => {
                                             />
 
                                             <View className="absolute right-0 top-0 dark:bg-black bg-white z-[10]">
-                                                <View className="w-full h-full flex justify-center items-center px-4 py-1">
+                                                <View className="w-full h-full flex justify-center items-center px-4 py-1 dark:bg-black bg-[rgba(0,0,0,.06)]">
                                                     <PressableAnimated>
                                                         <FontAwesome5
                                                             name="folder-plus"
@@ -398,7 +403,7 @@ export const TasksHeader = memo(() => {
                                                 <PressableAnimated
                                                     key={i}
                                                     scale={.95}
-                                                    onPress={() => onFilterButtonPress(i as 1 | 2 | 3)}
+                                                    onPress={() => currentFilter != (i + 1) && onFilterButtonPress((i + 1) as 1 | 2 | 3)}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
                                                             (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")

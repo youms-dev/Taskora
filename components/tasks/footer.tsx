@@ -6,7 +6,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Pressable, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
@@ -24,8 +24,13 @@ export const TasksFooter = memo(() => {
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { selectMap, setTasksSelected, tasksSelected, tasks } = useTasksData();
+    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, loading } = useTasksData();
     const showAddTaskButton = useSharedValue<boolean>(true);
+    const selectMap = useMemo(() => {
+        return new Map(
+            tasksSelected.map(t => [t.idTask, t])
+        )
+    }, [tasksSelected]);
 
     const addTaskButtonAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -159,8 +164,7 @@ export const TasksFooter = memo(() => {
                         onPress={() => onCheckboxPress()}
                     />
 
-                    {/* <PressableAnimated onPress={() => handleArchive()}> */}
-                    <PressableAnimated onPress={() => { }}>
+                    <PressableAnimated onPress={handleArchiveTasks}>
                         <MaterialIcons
                             name="archive"
                             size={30}
@@ -168,8 +172,7 @@ export const TasksFooter = memo(() => {
                         />
                     </PressableAnimated>
 
-                    {/* <PressableAnimated onPress={() => handleDelete()}> */}
-                    <PressableAnimated onPress={() => { }}>
+                    <PressableAnimated onPress={handleDeleteTasks}>
                         <FontAwesome6
                             name="trash-alt"
                             size={25}
@@ -199,13 +202,8 @@ export const TasksFooter = memo(() => {
 
                 <Pressable
                     onPress={() => {
-                        // if (tasks.length > 0) {
-                        //     setTasks([]);
-                        //     tasksTmp.current = [];
-                        //     setCount(0);
-                        //     setCountTmp(0);
-                        // }
-                        // else getTasks();
+                        console.log("Tasks length :", tasks.length);
+                        console.log("Loading :", loading);
                     }}
                     android_ripple={{
                         color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",

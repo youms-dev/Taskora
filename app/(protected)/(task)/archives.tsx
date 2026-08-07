@@ -3,9 +3,11 @@ import { Container } from "@/components/container";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
+import { COLORS } from "@/constants/colors";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -79,6 +81,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setToast(t("archives_unarchive_item"), "default", 2000);
             setLoading(false);
             onRefresh();
+            event.emit(TASKS_UNARCHIVED);
         }
         catch (e) {
             onRefresh(true);
@@ -87,15 +90,20 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         }
     }, [onUnArchive, task, loading, onRefresh]);
 
-    const handleLongPressLocal = useCallback(() => {
+    const handleLongPressLocal = useCallback((vibrate: boolean = true) => {
         if (!loading) {
             onLongPress && onLongPress(task);
-            Vibration.vibrate(100);
+            vibrate && Vibration.vibrate(100);
         }
     }, [onLongPress, task]);
 
     const handlePress = useCallback(() => {
-        onPress && onPress(task.idTask);
+        if (selecting) {
+            handleLongPressLocal(false);
+        }
+        else {
+            onPress(task.idTask);
+        }
     }, [onPress, task]);
 
     const gesturesList = useMemo(() => Gesture.Race(
@@ -143,7 +151,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         if (selection.value !== selecting) selection.value = selecting;
     }, [parentLoading, index, selecting, loading]);
 
-    const selectAnimation = useAnimatedStyle(() => ({
+    const selectContainerAnimation = useAnimatedStyle(() => ({
         opacity: withTiming(selected.value ? 1 : 0, {
             duration: 200,
             easing: Easing.inOut(Easing.linear),
@@ -151,7 +159,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         pointerEvents: selected.value ? "auto" : "none",
     }));
 
-    const textAnimation = useAnimatedStyle(() => ({
+    const indicatorAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 translateY: !selected.value ? "100%" : withSequence(
@@ -238,17 +246,21 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 </View>
 
                 <Animated.View
-                    style={selectAnimation}
-                    className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-white/20 border-black/20 rounded-2xl"
+                    style={selectContainerAnimation}
+                    className="absolute w-full h-[100%] flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-black border-black/10 rounded-2xl"
                 >
                     {
                         index > 0 && (
-                            <TextAnimated
-                                style={textAnimation}
-                                className="absolute text-4xl"
+                            <Animated.View
+                                style={indicatorAnimation}
+                                className="absolute"
                             >
-                                {index}
-                            </TextAnimated>
+                                <MaterialIcons
+                                    name="playlist-add-check"
+                                    size={40}
+                                    color={COLORS.emerald[500]}
+                                />
+                            </Animated.View>
                         )
                     }
                 </Animated.View>
@@ -300,7 +312,7 @@ export default function Archives() {
     ), [tasksSelected]);
 
     const onLongPressTask = useCallback((task: TaskType) => {
-        const exist = selectMap.get(task.idTask);
+        const exist = selectMap.has(task.idTask);
 
         if (exist) setTasksSelected(prev => [...prev.filter(t => t.idTask != task.idTask)]);
         else setTasksSelected(prev => [...prev, task]);
@@ -328,13 +340,13 @@ export default function Archives() {
         setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
     }, [tasks, processing]);
 
-    const renderItem = useCallback((task: TaskType) => (
+    const renderItem = useCallback(({ item: task }: { item: unknown }) => (
         <TaskCard
-            task={task}
+            task={task as TaskType}
             height={taskHeight}
             loading={taskLoading}
             selection={selectMap.size > 0}
-            selectedIndex={selectMap.get(task.idTask)}
+            selectedIndex={selectMap.get((task as TaskType).idTask)}
             onRefresh={onRefreshTask}
             onPress={onPressTask}
             onLongPress={onLongPressTask}
@@ -486,6 +498,7 @@ export default function Archives() {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], false);
             setProcessing(false);
             handleGetTasks(true);
+            event.emit(TASKS_UNARCHIVED);
         }
         catch (e) {
             console.log(e);
@@ -623,13 +636,13 @@ export default function Archives() {
             <FlatListAnimated
                 horizontal={false}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
+                initialNumToRender={limit}
+                maxToRenderPerBatch={Math.round(tasks.length / 2)}
                 removeClippedSubviews
-                windowSize={5}
+                windowSize={limit}
                 data={tasks}
                 keyExtractor={(item) => (item as TaskType).idTask}
-                renderItem={({ item }) => renderItem(item as TaskType)}
+                renderItem={renderItem}
                 scrollEventThrottle={16}
                 onScroll={onScroll}
                 onEndReachedThreshold={.1}
@@ -697,7 +710,7 @@ export default function Archives() {
                     className="absolute bottom-0 w-full h-full bg-black/30 -z-[1] rounded-[50px]"
                 />
 
-                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-white/20 bg-white rounded-2xl px-3 py-1 border dark:border-white/10 border-black/20">
+                <View className="w-full h-full flex flex-row items-center gap-5 dark:bg-white/15 bg-white rounded-2xl px-3 py-1 border dark:border-white/10 border-black/20">
                     <View className="flex flex-row items-center gap-3">
                         <TextAnimated className="text-lg font-bold">
                             {t("tasks_selected")}

@@ -1,6 +1,6 @@
+import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
-import { usePathname } from "expo-router";
 import { createContext, memo, ReactNode, RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
@@ -27,13 +27,18 @@ const Context = createContext<{
     setSearchSectionActive: ((value: boolean) => void);
     tasksSelected: TaskType[];
     setTasksSelected: ((value: (TaskType[] | ((prev: TaskType[]) => TaskType[]))) => void);
-    selectMap: Map<string, TaskType>;
     setCurrentFilter: (value: 1 | 2 | 3) => void;
+    handleArchiveTasks: () => void;
+    handleDeleteTasks: () => void;
+    handleArchiveTask: (task: TaskType) => void;
+    handleDeleteTask: (task: TaskType) => void;
 } | null>(null);
 
 interface Props {
     children: ReactNode;
 }
+
+export const LIMIT = 10;
 
 export const TasksDataProvider = memo(({ children }: Props) => {
     const [tasks, setTasks] = useState<TaskType[]>([]);
@@ -41,15 +46,13 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const scrollY = useSharedValue<number>(0);
     const [currentFilter, setCurrentFilter] = useState<1 | 2 | 3>(1);
     const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-    const { getTasks, syncTasks, getTasksCount } = useTasks();
+    const { getTasks, syncTasks, getTasksCount, toggleArchiveTasks, deleteTasks } = useTasks();
     const loadingRef = useRef<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
-    const { setToast } = useToast();
-    const limit = 10;
+    const { setToast, setDismiss } = useToast();
     const synced = useRef<boolean>(false);
     const syncLoading = useRef<boolean>(false);
     const { getFolders, getFoldersCount } = useFolders();
-    const pathname = usePathname();
     const [tasksCount, setTasksCount] = useState<number>(0);
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
@@ -62,11 +65,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const [tasksSelected, setTasksSelected] = useState<TaskType[]>([]);
     const tasksTmp = useRef<TaskType[]>([]);
     const tasksCountTmp = useRef<number>(0);
-    const selectMap = useMemo(() => {
-        return new Map(
-            tasksSelected.map((t, i) => [t.idTask, t])
-        );
-    }, [tasksSelected]);
+    const selectMap = useRef<Map<string, TaskType>>(null);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -84,45 +83,49 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         }
     };
 
-    const handleGetTasks = async (refresh: boolean = false) => {
+    const handleGetTasks = useCallback(async (refresh: boolean = false) => {
         if (loadingRef.current) return;
 
-        // setTasksSelected([]);
-        // setCountTmp(0);
-        // tasksTmp.current = [];
-        // setValue("");
+        setTasksSelected([]);
+        setCurrentFilter(1);
+        tasksCountTmp.current = 0;
+        tasksTmp.current = [];
 
         setLoading(true);
         try {
-            const data = await getTasks(limit, refresh ? 0 : tasks.length) as TaskType[];
+            const data = await getTasks(refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length) as TaskType[];
 
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
             if (!synced.current) syncData(data.length);
-            // refreshTranslateY.value = withTiming(0, {
-            //     duration: 200,
-            //     easing: Easing.inOut(Easing.quad),
-            // });
-            // quietProcessing.value = false;
             setLoading(false);
         }
         catch (e) {
-            // refreshTranslateY.value = withTiming(0, {
-            //     duration: 200,
-            //     easing: Easing.inOut(Easing.quad),
-            // });
             setLoading(false);
             setToast("Aucune connexion internet", "error");
             console.log(e);
         }
-    };
+    }, [tasks]);
+
+    const handleGetTasksCount = useCallback(async () => {
+        try {
+            const count = await getTasksCount() as number;
+
+            setTasksCount(count);
+        }
+        catch (e) {
+            console.log(e);
+            setLoading(false);
+            setToast("Aucune connexion internet", "error");
+        }
+    }, []);
 
     useEffect(() => {
         loadingRef.current = loading;
     }, [loading]);
 
-    const handleGetFolders = async () => {
+    const handleGetFolders = useCallback(async () => {
         try {
             const data = await getFolders() as FolderType[];
 
@@ -131,16 +134,28 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         catch (e) {
             console.log(e);
         }
-    };
+    }, []);
+
+    const handleGetFoldersCount = useCallback(async () => {
+        try {
+            const count = await getFoldersCount() as number;
+
+            setFoldersCount(count);
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }, []);
 
     useEffect(() => {
-        if (pathname == "/") {
-            handleGetTasks();
-            handleGetFolders();
-        }
-    }, [pathname]);
+        handleGetTasksCount();
+        handleGetFoldersCount();
+        handleGetTasks();
+        handleGetFolders();
+    }, []);
 
     const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
+        if (loadingRef.current) return;
         const entry = tasksTmp.current.length > 0 ? tasksTmp.current : tasks;
 
         if (value == 1) {
@@ -170,6 +185,188 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         }
     }, [tasks]);
 
+    const handleArchiveTasks = useCallback(async () => {
+        if (!selectMap.current || selectMap.current.size == 0 || loadingRef.current) return;
+        setLoading(true);
+        const selected = [...tasksSelected];
+
+        tasksTmp.current = tasks;
+        setTasks(prev => [...prev.filter(t => !selectMap.current?.has(t.idTask))]);
+        setTasksSelected([]);
+        setTasksCount(prev => prev - selected.length);
+
+        try {
+            await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
+            setToast("Tâches archivées", "default", 2500);
+            if (tasks.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            console.log(e);
+            setLoading(false);
+            setTasksCount(prev => prev + selected.length);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+            tasksTmp.current = [];
+            setToast("Une erreur s'est produite", "error");
+        }
+    }, [tasksSelected, tasks, tasksCount]);
+
+    const handleArchiveTask = useCallback(async (task: TaskType) => {
+        if (loadingRef.current) return;
+        setLoading(true);
+        setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
+        setTasksCount(prev => prev - 1);
+
+        try {
+            await toggleArchiveTasks([task.idTask], true);
+            setToast("Tâche archivée", "success", 2500);
+            if (tasks.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            console.log(e);
+            setTasksCount(prev => prev + 1);
+            handleGetTasks(true);
+            setToast("Une erreur s'est produite", "error");
+        }
+    }, [tasks, tasksCount]);
+
+    useEffect(() => {
+        if (tasksSelected.length > 0) {
+            selectMap.current = new Map(
+                tasksSelected.map(t => [t.idTask, t])
+            );
+        }
+        else {
+            selectMap.current = null;
+        }
+    }, [tasksSelected]);
+
+    useEffect(() => {
+        const onTaskUnArchived = () => {
+            handleGetTasksCount();
+            handleGetTasks(true);
+        }
+
+        event.addListener(TASKS_UNARCHIVED, onTaskUnArchived);
+
+        return () => {
+            event.removeListener(TASKS_UNARCHIVED);
+        }
+    }, []);
+
+    const handleDeleteTasks = useCallback(async (init: boolean = true, data: TaskType[] | null = null) => {
+        if (loadingRef.current && !data) return;
+
+        setLoading(true);
+
+        if (init) {
+            const select = [...tasksSelected];
+
+            tasksTmp.current = [...tasks];
+            setTasks(prev => [...prev.filter(t => !selectMap.current?.has(t.idTask))]);
+            setTasksSelected([]);
+            setTasksCount(prev => prev - select.length);
+            setDismiss(
+                () => handleDeleteTasks(false, select),
+                () => {
+                    setTasksCount(prev => prev + select.length);
+                    tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    tasksTmp.current = [];
+                    setLoading(false);
+                });
+            return;
+        }
+
+        if (!data) {
+            tasksTmp.current = [];
+            handleGetTasksCount();
+            handleGetTasks(true);
+
+            return;
+        }
+
+        try {
+            await deleteTasks([...data.map(t => t.idTask)]);
+            tasksTmp.current = [];
+            if (tasks.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            console.log(e);
+            setLoading(false);
+            setTasksCount(prev => prev + data.length);
+            tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+            tasksTmp.current = [];
+            setToast("Une erreur s'est produite", "error");
+        }
+    }, [tasksSelected, tasks, tasksCount]);
+
+    const handleDeleteTask = useCallback(async (task: TaskType, init: boolean = true, data: TaskType | null = null) => {
+        if (loadingRef.current && !data) return;
+
+        setLoading(true);
+        tasksTmp.current = [...tasks];
+
+        if (init) {
+            setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
+            setTasksCount(prev => prev - 1);
+            setDismiss(
+                () => handleDeleteTask(task, false, task),
+                () => {
+                    setTasksCount(prev => prev + 1);
+                    tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    setLoading(false);
+                });
+            return;
+        }
+
+        if (!data) {
+            handleGetTasksCount();
+            handleGetTasks(true);
+
+            return;
+        }
+
+        try {
+            await deleteTasks([data.idTask]);
+            tasksTmp.current = [];
+            if (tasks.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            console.log(e);
+            setTasksCount(prev => prev + 1);
+            tasksTmp.current = [];
+            setLoading(false);
+            setToast("Une erreur s'est produite", "error");
+        }
+    }, [tasks, tasksCount]);
+
     return (
         <Context.Provider value={{
             tasks,
@@ -190,8 +387,11 @@ export const TasksDataProvider = memo(({ children }: Props) => {
             setSearchSectionActive,
             tasksSelected,
             setTasksSelected,
-            selectMap,
             setCurrentFilter: handleCurrentFilter,
+            handleArchiveTasks,
+            handleDeleteTasks,
+            handleArchiveTask,
+            handleDeleteTask,
         }}>
             {children}
         </Context.Provider>

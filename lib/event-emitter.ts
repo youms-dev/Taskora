@@ -9,3 +9,5 @@ export const SHOW_NAVBAR =  "show-navbar";
 export const MINIMIZE_NAVBAR =  "minimize-navbar";
 
 export const EXPAND_NAVBAR =  "expand-navbar";
+
+export const TASKS_UNARCHIVED =  "tasks-unarchived";

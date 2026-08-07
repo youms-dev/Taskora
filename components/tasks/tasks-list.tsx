@@ -1,4 +1,4 @@
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { LIMIT, useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
@@ -24,7 +24,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, selectMap, handleGetTasks } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected } = useTasksData();
     const nativeGesture = Gesture.Native();
     const folderTasks = useMemo(() => {
         if (folderIndex == 0) return tasks;
@@ -32,6 +32,12 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     }, [tasks, folder, folderIndex]);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
+    const selectMap = useMemo(() => {
+        return new Map(
+            tasksSelected.map(t => [t.idTask, t])
+        )
+    }, [tasksSelected]);
+    const loadingShared = useSharedValue<boolean>(false);
 
     const renderItem = useCallback(({ item: task }: { item: unknown }) => (
         <TaskCard task={task as TaskType} />
@@ -49,36 +55,18 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         }
     });
 
-    // const checkScroll = useCallback((index: number = 0, y: number) => {
-    //     scrollTimeout.current && clearTimeout(scrollTimeout.current);
-    //     scrollTimeout.current = setTimeout(() => {
-    //         if (y >= (scrollCheckPoint * .3) && y <= scrollCheckPoint + 50) flatListsRef.current[index]?.value.scrollToOffset({
-    //             offset: scrollCheckPoint + 50,
-    //             animated: true,
-    //         });
-    //         else if (y < (scrollCheckPoint * .3)) flatListsRef.current[index]?.value.scrollToOffset({
-    //             offset: 0,
-    //             animated: true,
-    //         });
-    //     }, 100);
-    // }, [folders, tasks]);
-
-    const e = (v: any) => console.log(v);
-
     const panGesture = useMemo(() => {
         return (
             Gesture.Pan()
                 .activeOffsetY([-5, 5])
                 .failOffsetX([-50, 50])
                 .onUpdate(({ translationY: y }) => {
-                    // runOnJS(e)(y);
-                    if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value) {
+                    if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value && !loadingShared.value) {
                         refreshTranslateY.value = y;
                     }
                 })
                 .onEnd(() => {
-                    // if (scrollY.value > 0 || loadingShared.value || refreshTranslateY.value < 90) {
-                    if (scrollY.value > 0 || refreshTranslateY.value < 90) {
+                    if (scrollY.value > 0 || refreshTranslateY.value < 90 || loadingShared.value) {
                         refreshTranslateY.value = withTiming(0, {
                             duration: 200,
                             easing: Easing.inOut(Easing.quad),
@@ -110,25 +98,27 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         areTasksSelected.value = selectMap.size > 0;
     }, [selectMap]);
 
+    useEffect(() => {
+        loadingShared.value = loading;
+    }, [loading]);
+
     if (!mounted) return null;
 
     return (
         <View className="w-screen flex items-center shrink-0">
             <GestureDetector gesture={gesture}>
                 <FlatListAnimated
-                    // ref={handleRef}
                     nestedScrollEnabled
                     scrollEnabled
                     horizontal={false}
-                    initialNumToRender={10}
-                    maxToRenderPerBatch={20}
-                    windowSize={10}
+                    initialNumToRender={LIMIT}
+                    maxToRenderPerBatch={Math.round(tasks.length / 2)}
+                    windowSize={LIMIT}
                     removeClippedSubviews
                     showsVerticalScrollIndicator={false}
                     data={folderTasks}
                     keyExtractor={(item) => String((item as TaskType).idTask)}
                     renderItem={renderItem}
-                    // renderItem={({ item }) => <></>}
                     onEndReachedThreshold={.1}
                     scrollEventThrottle={16}
                     onScroll={handleScroll}
@@ -163,7 +153,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                         }
                     }}
                     ListFooterComponent={() => {
-                        if (loading) return (
+                        if (loading && selectMap.size == 0) return (
                             <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
                                 {
                                     Array(3).fill(0).map((_, i) => (

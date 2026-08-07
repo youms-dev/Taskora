@@ -248,7 +248,7 @@ export const TasksSearch = memo(() => {
             searchTimeout.current && clearTimeout(searchTimeout.current);
         };
     }, [searchSectionActive]);
-
+    
     return (
         <Animated.View
             style={searchSectionAnimation}
