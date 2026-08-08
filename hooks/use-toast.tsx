@@ -8,7 +8,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BackHandler, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { useTheme } from "./use-theme";
 
 type ToastType = "success" | "error" | "warning" | "default";
@@ -86,19 +86,14 @@ export const ToastProvider = ({ children }: Props) => {
 
     const toastAnimation = useAnimatedStyle(() => ({
         left: toastPosition.value,
-        // transform: [
-        //     {
-        //         translateY: interpolate(
-        //             translateY.value,
-        //             [0, -100],
-        //             [0, -100],
-        //             Extrapolation.CLAMP,
-        //         ),
-        //     }
-        // ]
         transform: [
             {
-                translateY: 0,
+                translateY: interpolate(
+                    translateY.value,
+                    [0, -100],
+                    [0, -100],
+                    Extrapolation.CLAMP,
+                ),
             }
         ]
     }));
@@ -235,51 +230,85 @@ export const ToastProvider = ({ children }: Props) => {
         transform: [
             {
                 scale: typeShared.value == "success" ?
-                    withSequence(
-                        withTiming(0, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(1.4, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(.6, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
-                        withTiming(1, {
-                            duration: 200,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
+                    withDelay(
+                        500,
+                        withSequence(
+                            withTiming(0, {
+                                duration: 200,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                            withTiming(1.4, {
+                                duration: 200,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                            withTiming(.6, {
+                                duration: 200,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                            withTiming(1, {
+                                duration: 200,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                        )
                     )
                     :
                     1,
             },
             {
-                translateX: (typeShared.value == "error" || typeShared.value == "warning") ?
-                    withSequence(
-                        withRepeat(
-                            withSequence(
-                                withTiming(-10, {
-                                    duration: 100,
-                                    easing: Easing.inOut(Easing.quad),
-                                }),
-                                withTiming(10, {
-                                    duration: 100,
-                                    easing: Easing.inOut(Easing.quad),
-                                }),
+                translateX: typeShared.value == "error" ?
+                    withDelay(
+                        500,
+                        withSequence(
+                            withRepeat(
+                                withSequence(
+                                    withTiming(-10, {
+                                        duration: 100,
+                                        easing: Easing.inOut(Easing.quad),
+                                    }),
+                                    withTiming(10, {
+                                        duration: 100,
+                                        easing: Easing.inOut(Easing.quad),
+                                    }),
+                                ),
+                                3,
+                                true
                             ),
-                            3,
-                            true
-                        ),
-                        withTiming(0, {
-                            duration: 100,
-                            easing: Easing.inOut(Easing.quad),
-                        }),
+                            withTiming(0, {
+                                duration: 100,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                        )
                     )
                     :
                     0,
+            },
+            {
+                rotate: typeShared.value == "warning" ?
+                    withDelay(
+                        500,
+                        withSequence(
+                            withRepeat(
+                                withSequence(
+                                    withTiming("20deg", {
+                                        duration: 100,
+                                        easing: Easing.inOut(Easing.quad),
+                                    }),
+                                    withTiming("-20deg", {
+                                        duration: 100,
+                                        easing: Easing.inOut(Easing.quad),
+                                    }),
+                                ),
+                                4,
+                                true
+                            ),
+                            withTiming("0deg", {
+                                duration: 100,
+                                easing: Easing.inOut(Easing.quad),
+                            }),
+                        )
+                    )
+                    :
+                    "0deg",
             }
         ]
     }));
@@ -294,7 +323,7 @@ export const ToastProvider = ({ children }: Props) => {
             setToast,
             setDismiss,
         }}>
-            {/* {children} */}
+            {children}
 
             {/* Toast */}
 
@@ -310,9 +339,11 @@ export const ToastProvider = ({ children }: Props) => {
                             zIndex: 500,
                         },
                     ]}
-                    className="absolute top-10 w-11/12 sm:w-[500px] flex flex-row gap-2"
+                    className="absolute top-10 w-11/12 sm:w-[400px] flex flex-row gap-2"
                 >
-                    <View className="size-[45px] shrink-0 dark:bg-black bg-white rounded-full">
+                    <Pressable onPress={() => {
+                        setType("error");
+                    }} className="size-[45px] shrink-0 dark:bg-black bg-white rounded-full">
                         <View
                             style={{
                                 transform: [
@@ -334,24 +365,20 @@ export const ToastProvider = ({ children }: Props) => {
                                 }}
                             />
                         </View>
-                    </View>
+                    </Pressable>
 
                     <View className={clsx(
-                        "w-[70%] rounded-2xl mt-1",
-                        type == "default" && "dark:bg-black bg-white",
-                        type == "error" && "bg-red-500",
-                        type == "warning" && "bg-amber-500",
-                        type == "success" && "bg-emerald-500",
+                        "rounded-2xl dark:bg-black bg-white",
+                        type == "default" ? "w-[85%]" : "w-[70%]",
                     )}>
                         <View className={clsx(
-                            "w-full h-full flex flex-row px-3 py-2 rounded-2xl",
-                            type == "default" && "dark:bg-white/10 bg-black/60 border dark:border-white/5 border-white/5",
-                            type == "error" && "dark:bg-black/90 bg-black/75 border dark:border-red-500/20 border-red-500/80",
-                            type == "warning" && "dark:bg-black/90 bg-black/80 border dark:border-amber-500/10 border-amber-500/80",
-                            type == "success" && "dark:bg-black/90 bg-black/80 border dark:border-emerald-500/10 border-emerald-500/80",
+                            "w-full h-full flex flex-row px-3 py-[11px] rounded-2xl border",
+                            type == "default" && "dark:bg-white/10 bg-white dark:border-white/5 border-black/10",
+                            type == "error" && "dark:bg-red-500/5 bg-red-500/5 dark:border-red-500/20 border-red-500/20",
+                            type == "warning" && "dark:bg-yellow-500/10 bg-yellow-500/5 dark:border-yellow-500/10 border-yellow-500/20",
+                            type == "success" && "dark:bg-emerald-500/10 bg-emerald-500/5 dark:border-emerald-500/10 border-emerald-500/20",
                         )}>
-
-                            <View className="">
+                            <View>
                                 <TextAnimated
                                     dark={(() => {
                                         if (type == "success") return COLORS.emerald[500];
@@ -362,78 +389,80 @@ export const ToastProvider = ({ children }: Props) => {
                                     light={(() => {
                                         if (type == "success") return COLORS.emerald[500];
                                         else if (type == "error") return COLORS.red[500];
-                                        else if (type == "warning") return COLORS.amber[400];
-                                        else return "rgba(255, 255, 255, .8)";
+                                        else if (type == "warning") return "#eab308";
+                                        else return "rgba(0, 0, 0, .8)";
                                     })()}
-                                    className="text-xl"
+                                    className="text-xl tracking-[1px]"
                                 >
-                                    {text}
+                                    {text} Utilisateur inexistant
                                 </TextAnimated>
                             </View>
                         </View>
                     </View>
 
-                    <View className="size-[45px] rounded-full">
-                        <View
-                            style={{
-                                transform: [
-                                    {
-                                        translateY: 5,
-                                    },
-                                ],
-                                filter: "blur(5px)",
-                            }}
-                            className="absolute left-0 top-0 size-full rounded-full bg-black/30"
-                        />
+                    {
+                        type != "default" && (
+                            <View className="size-[45px] rounded-full">
+                                <View
+                                    style={{
+                                        transform: [
+                                            {
+                                                translateY: 5,
+                                            },
+                                        ],
+                                        filter: "blur(5px)",
+                                    }}
+                                    className="absolute left-0 top-0 size-full rounded-full bg-black/30"
+                                />
 
-                        <View className="size-full shrink-0 dark:bg-black bg-white rounded-full">
-                            <View className={clsx(
-                                "size-full flex justify-center items-center rounded-full border dark:border-white/5 border-black/10",
-                                // type == "error" && "dark:bg-red-500/10 bg-red-500/10",
-                                // type == "warning" && "dark:bg-yellow-500/15 bg-yellow-500/10",
-                                // type == "success" && "dark:bg-emerald-500/10 bg-emerald-500/10",
-                                "dark:bg-emerald-500/10 bg-emerald-500/10",
-                            )}>
-                                <Animated.View style={indicatorAnimation}>
-                                    {
-                                        // type == "error" && (
-                                        (
-                                            <AntDesign
-                                                name="check"
-                                                size={25}
-                                                color={COLORS.emerald[500]}
-                                            />
-                                        )
-                                    }
+                                <View className="size-full shrink-0 dark:bg-black bg-white rounded-full">
+                                    <View className={clsx(
+                                        "size-full flex justify-center items-center rounded-full border dark:border-white/5 border-black/10",
+                                        type == "error" && "dark:bg-red-500/10 bg-red-500/10",
+                                        type == "warning" && "dark:bg-yellow-500/15 bg-yellow-500/10",
+                                        type == "success" && "dark:bg-emerald-500/10 bg-emerald-500/10",
+                                    )}>
+                                        <Animated.View style={indicatorAnimation}>
+                                            {
+                                                type == "success" && (
+                                                    <AntDesign
+                                                        name="check"
+                                                        size={25}
+                                                        color={COLORS.emerald[500]}
+                                                    />
+                                                )
+                                            }
 
-                                    {
-                                        type == "error" && (
-                                            <View className="dark:opacity-70 opacity-100">
-                                                <Entypo
-                                                    name="cross"
-                                                    size={35}
-                                                    color="red"
-                                                />
-                                            </View>
-                                        )
-                                    }
+                                            {
+                                                type == "error" && (
+                                                    <View className="dark:opacity-70 opacity-100">
+                                                        <Entypo
+                                                            name="cross"
+                                                            size={35}
+                                                            color="red"
+                                                        />
+                                                    </View>
+                                                )
+                                            }
 
-                                    {
-                                        type == "warning" && (
-                                            <View className="dark:opacity-70 opacity-100">
-                                                <Entypo
-                                                    name="warning"
-                                                    size={25}
-                                                    color={COLORS.amber[400]}
-                                                />
-                                            </View>
-                                        )
-                                    }
+                                            {
+                                                type == "warning" && (
+                                                    <View className="dark:opacity-70 opacity-100">
+                                                        <Entypo
+                                                            name="warning"
+                                                            size={25}
+                                                            color={COLORS.amber[400]}
+                                                        />
+                                                    </View>
+                                                )
+                                            }
 
-                                </Animated.View>
+                                        </Animated.View>
+                                    </View>
+                                </View>
                             </View>
-                        </View>
-                    </View>
+                        )
+                    }
                 </Animated.View>
             </GestureDetector>
 

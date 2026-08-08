@@ -24,5 +24,9 @@ export const COLORS = {
     },
     amber: {
         400: "#fbbf24",
-    }
+    },
+    yellow: {
+        500: "#eab308",
+        600: "#ca8a04",
+    },
 }
