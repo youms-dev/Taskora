@@ -110,7 +110,7 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     const onPress = useCallback(() => {
         if (loading) return;
         if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-            console.log("Press", task.idTask);
+            
         }
         else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
             setTasksSelected((prev) => [...prev, task]);

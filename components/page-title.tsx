@@ -12,6 +12,7 @@ import { decode } from "base64-arraybuffer";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { ReactNode, useState } from "react";
 import { useWindowDimensions, View, ViewProps } from "react-native";
@@ -123,56 +124,89 @@ export const PageTitle = ({ children, ...rest }: Props) => {
                 )
             }
 
-            <View className="absolute right-0 h-full flex flex-row justify-end items-center gap-6 px-3 z-[1]">
-                {
-                    !["/settings"].includes(pathname) && (
-                        <>
-                            <PressableAnimated>
-                                <FontAwesome6
-                                    name="plus"
-                                    size={25}
-                                    color={COLORS.emerald[500]}
-                                />
-                            </PressableAnimated>
-
-                            <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
-                                <Entypo
-                                    name="archive"
-                                    size={25}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </PressableAnimated>
-                        </>
-                    )
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
                 }
-
-                <PressableAnimated
-                    className="size-[50px] rounded-full p-1"
-                    onPress={() => router.navigate("/(protected)/(user)/profile")}
+                start={!["/settings"].includes(pathname) ? { x: 1, y: 0 } : { x: 0, y: 0 }}
+                end={!["/settings"].includes(pathname) ? { x: 0, y: 0 } : { x: 0, y: 1 }}
+                locations={[0, .6, 1]}
+                className="absolute right-0 z-[1]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                        :
+                        (
+                            !["/settings"].includes(pathname) ?
+                                ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(255, 255, 255, 0)"]
+                                :
+                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        )
+                    }
+                    start={!["/settings"].includes(pathname) ? { x: 1, y: 0 } : { x: 0, y: 0 }}
+                    end={!["/settings"].includes(pathname) ? { x: 0, y: 0 } : { x: 0, y: 1 }}
+                    locations={[0, .6, 1]}
+                    className="w-full"
                 >
-                    {
-                        user && !user.user_metadata.photoUrl && (
-                            <Avatar
-                                name={user.user_metadata.name}
-                                size={50}
-                            />
-                        )
-                    }
-                    {
-                        user && user.user_metadata.photoUrl && (
-                            <Image
-                                source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    borderRadius: 9999,
-                                }}
-                                contentFit="cover"
-                            />
-                        )
-                    }
-                </PressableAnimated>
-            </View>
+                    <View className="size-full flex flex-row justify-end items-center gap-6 px-3 pl-6">
+                        {
+                            !["/settings"].includes(pathname) && (
+                                <>
+                                    {
+                                        !["/"].includes(pathname) && (
+                                            <PressableAnimated>
+                                                <FontAwesome6
+                                                    name="plus"
+                                                    size={25}
+                                                    color={COLORS.emerald[500]}
+                                                />
+                                            </PressableAnimated>
+                                        )
+                                    }
+
+                                    <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
+                                        <Entypo
+                                            name="archive"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                    </PressableAnimated>
+                                </>
+                            )
+                        }
+
+                        <PressableAnimated
+                            className="size-[50px] rounded-full p-1"
+                            onPress={() => router.navigate("/(protected)/(user)/profile")}
+                        >
+                            {
+                                user && !user.user_metadata.photoUrl && (
+                                    <Avatar
+                                        name={user.user_metadata.name}
+                                        size={50}
+                                    />
+                                )
+                            }
+                            {
+                                user && user.user_metadata.photoUrl && (
+                                    <Image
+                                        source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            borderRadius: 9999,
+                                        }}
+                                        contentFit="cover"
+                                    />
+                                )
+                            }
+                        </PressableAnimated>
+                    </View>
+                </LinearGradient>
+            </LinearGradient>
         </View>
     );
 } 

@@ -237,10 +237,23 @@ export default function Settings() {
 
                             <Animated.View className="w-full h-full flex justify-center items-center gap-12 overflow-hidden z-[1]">
                                 <Animated.View style={avatarAnimation}>
-                                    <Avatar
-                                        size={130}
-                                        name="Youmbi Le-duc"
+                                    <View
+                                        style={{
+                                            transform: [
+                                                {
+                                                    translateY: 8,
+                                                }
+                                            ],
+                                            filter: "blur(5px)",
+                                        }}
+                                        className="absolute size-[130px] dark:bg-black/60 bg-black/40 rounded-full"
                                     />
+                                    <View className="z-[1]">
+                                        <Avatar
+                                            size={130}
+                                            name="Youmbi Le-duc"
+                                        />
+                                    </View>
                                 </Animated.View>
 
                                 <Animated.View style={usernameAnimation}>

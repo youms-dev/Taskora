@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { View } from "react-native";
 import { TextAnimated } from "./text-animated";
 
@@ -20,7 +21,7 @@ interface Props {
  * @returns Avatar component
  */
 
-export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
+export const Avatar = memo(({ size = 100, scale = 1, name }: Props) => {
     return (
         <View
             style={{
@@ -30,17 +31,19 @@ export const Avatar = ({ size = 100, scale = 1, name }: Props) => {
                     scale
                 }],
             }}
-            className="flex shrink-0 justify-center items-center dark:bg-white/20 bg-white rounded-full border dark:border-white/20 border-black/10"
+            className="shrink-0 rounded-full dark:bg-black bg-white"
         >
-            <TextAnimated
-                numberOfLines={1}
-                style={{
-                    fontSize: size * .5,
-                }}
-                className="font-bold"
-            >
-                {name.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
-            </TextAnimated>
+            <View className="size-full flex justify-center items-center rounded-full border dark:border-white/10 border-black/10 dark:bg-white/20 bg-black/5">
+                <TextAnimated
+                    numberOfLines={1}
+                    style={{
+                        fontSize: size * .5,
+                    }}
+                    className="font-bold"
+                >
+                    {name.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
+                </TextAnimated>
+            </View>
         </View>
     );
-}
+})

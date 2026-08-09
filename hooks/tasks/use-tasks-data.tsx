@@ -80,7 +80,6 @@ export const TasksDataProvider = memo(({ children }: Props) => {
             await syncTasks(position);
             synced.current = true;
             syncLoading.current = false;
-            console.log("synced");
         }
         catch (e) {
             syncLoading.current = false;
