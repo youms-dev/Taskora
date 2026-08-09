@@ -202,8 +202,7 @@ export const TasksFooter = memo(() => {
 
                 <Pressable
                     onPress={() => {
-                        console.log("Tasks length :", tasks.length);
-                        console.log("Loading :", loading);
+                        
                     }}
                     android_ripple={{
                         color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",

@@ -187,10 +187,9 @@ export const TasksHeader = memo(() => {
     }, [loading]);
 
     const onFilterButtonPress = useCallback((value: typeof currentFilter) => {
-        if (tasks.length == 0) return;
         setCurrentFilter(value);
         setTasksSelected([]);
-    }, [setCurrentFilter, tasks]);
+    }, []);
 
     useEffect(() => {
         filterScrollViewRef.current?.scrollTo({

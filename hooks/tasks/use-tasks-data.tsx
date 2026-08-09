@@ -16,7 +16,7 @@ const Context = createContext<{
     currentFilter: 1 | 2 | 3;
     scrollY: SharedValue<number>;
     loading: boolean;
-    handleGetTasks: (refresh: boolean) => Promise<void>;
+    handleGetTasks: (refresh?: boolean) => Promise<void>;
     handleGetFolders: (refresh: boolean) => Promise<void>;
     tasksCount: number;
     foldersCount: number;
@@ -68,6 +68,12 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const tasksCountTmp = useRef<number>(0);
     const selectMap = useRef<Map<string, TaskType>>(null);
     const { t, i18n } = useTranslation();
+
+    const displayedTasks = useMemo(() => {
+        if (currentFilter === 2) return tasks.filter(t => t.done);
+        if (currentFilter === 3) return tasks.filter(t => !t.done);
+        return tasks;
+    }, [tasks, currentFilter]);
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -158,34 +164,8 @@ export const TasksDataProvider = memo(({ children }: Props) => {
 
     const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
         if (loadingRef.current) return;
-        const entry = tasksTmp.current.length > 0 ? tasksTmp.current : tasks;
-
-        if (value == 1) {
-            if (tasksTmp.current.length > 0) {
-                setTasks([...tasksTmp.current]);
-                tasksTmp.current = [];
-                setCurrentFilter(value);
-            }
-        }
-        else if (value == 2) {
-            if (tasksTmp.current.length == 0) {
-                tasksTmp.current = [...tasks];
-            }
-            const result = entry.filter(t => t.done);
-
-            setTasks(result);
-            setCurrentFilter(value);
-        }
-        else if (value == 3) {
-            if (tasksTmp.current.length == 0) {
-                tasksTmp.current = [...tasks];
-            }
-            const result = entry.filter(t => !t.done);
-
-            setTasks(result);
-            setCurrentFilter(value);
-        }
-    }, [tasks]);
+        setCurrentFilter(value);
+    }, []);
 
     const handleArchiveTasks = useCallback(async () => {
         if (!selectMap.current || selectMap.current.size == 0 || loadingRef.current) return;
@@ -194,12 +174,13 @@ export const TasksDataProvider = memo(({ children }: Props) => {
 
         tasksTmp.current = tasks;
         setTasks(prev => [...prev.filter(t => !selectMap.current?.has(t.idTask))]);
-        setTasksSelected([]);
         setTasksCount(prev => prev - selected.length);
+        setTasksSelected([]);
 
         try {
             await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
             setToast(t("archives_unarchive_tasks", { many: selected.length > 1 ? "s" : "" }));
+            tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;
@@ -222,12 +203,14 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const handleArchiveTask = useCallback(async (task: TaskType) => {
         if (loadingRef.current) return;
         setLoading(true);
+        tasksTmp.current = [...tasks];
         setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
         setTasksCount(prev => prev - 1);
 
         try {
             await toggleArchiveTasks([task.idTask], true);
             setToast(t("tasks_archived"));
+            tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;
@@ -239,8 +222,9 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         }
         catch (e) {
             console.log(e);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+            tasksTmp.current = [];
             setTasksCount(prev => prev + 1);
-            handleGetTasks(true);
             setToast("Une erreur s'est produite", "error");
         }
     }, [tasks, tasksCount]);
@@ -285,7 +269,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
                 () => handleDeleteTasks(false, select),
                 () => {
                     setTasksCount(prev => prev + select.length);
-                    tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
                     tasksTmp.current = [];
                     setLoading(false);
                 });
@@ -336,6 +320,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
                 () => {
                     setTasksCount(prev => prev + 1);
                     tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
+                    tasksTmp.current = [];
                     setLoading(false);
                 });
             return;
@@ -362,6 +347,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         }
         catch (e) {
             console.log(e);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
             setTasksCount(prev => prev + 1);
             tasksTmp.current = [];
             setLoading(false);
@@ -371,7 +357,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
 
     return (
         <Context.Provider value={{
-            tasks,
+            tasks: displayedTasks,
             folders,
             currentFolder,
             currentFilter,

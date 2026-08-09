@@ -22,7 +22,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter } = useTasksData();
     const nativeGesture = useMemo(() => Gesture.Native(), []);
     const folderTasks = useMemo(() => {
         if (folderIndex == 0) return tasks;
@@ -36,6 +36,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         )
     }, [tasksSelected]);
     const loadingShared = useSharedValue<boolean>(false);
+    const filtering = useSharedValue<boolean>(false);
 
     const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
         <Animated.View
@@ -74,12 +75,12 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                 .activeOffsetY([-5, 5])
                 .failOffsetX([-50, 50])
                 .onUpdate(({ translationY: y }) => {
-                    if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value && !loadingShared.value) {
+                    if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value && !loadingShared.value && !filtering.value) {
                         refreshTranslateY.value = y;
                     }
                 })
                 .onEnd(() => {
-                    if (scrollY.value > 0 || refreshTranslateY.value < 90 || loadingShared.value) {
+                    if (scrollY.value > 0 || refreshTranslateY.value < 90 || loadingShared.value || filtering.value) {
                         refreshTranslateY.value = withTiming(0, {
                             duration: 200,
                             easing: Easing.inOut(Easing.quad),
@@ -173,15 +174,29 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         return null;
     }, [loading, i18n.language]);
 
+    const onEndReached = useCallback(() => {
+        if (loading || tasks.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0) return;
+        handleGetTasks();
+    }, [loading, selectMap, currentFilter, folderIndex]);
+
+    const getItemLayout = useCallback((data: any, index: number) => ({
+        length: (taskHeight + tasksGap),
+        offset: index * (taskHeight + tasksGap),
+        index: index,
+    }), [taskHeight, tasksGap]);
+
+    const onMomentumScrollEnd = useCallback(() => {
+        if (scrolling.value) scrolling.value = false;
+    }, []);
+
+    useEffect(() => {
+        filtering.value = currentFilter != 1;
+    }, [currentFilter]);
+
     if (!mounted) return null;
 
     return (
-        <Animated.View
-            entering={FadeIn
-                .duration(2000)
-                .easing(Easing.inOut(Easing.quad))
-            }
-            className="w-screen flex items-center shrink-0">
+        <View className="w-screen flex items-center shrink-0">
             <GestureDetector gesture={gesture}>
                 <Animated.FlatList
                     nestedScrollEnabled
@@ -198,16 +213,9 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     onEndReachedThreshold={.1}
                     scrollEventThrottle={16}
                     onScroll={handleScroll}
-                    onMomentumScrollEnd={() => {
-                        if (scrolling.value) scrolling.value = false;
-                    }}
-                    // onEndReached={onEndReached}
-                    onEndReached={() => { }}
-                    getItemLayout={(_, index) => ({
-                        length: (taskHeight + tasksGap),
-                        offset: index * (taskHeight + tasksGap),
-                        index: index,
-                    })}
+                    onMomentumScrollEnd={onMomentumScrollEnd}
+                    onEndReached={onEndReached}
+                    getItemLayout={getItemLayout}
                     ListEmptyComponent={listEmptyComponent}
                     ListFooterComponent={listFooterComponent}
                     className="w-full"
@@ -217,6 +225,6 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     contentContainerClassName="w-full flex flex-col items-center pt-[215px] pb-[80px] px-3"
                 />
             </GestureDetector>
-        </Animated.View>
+        </View>
     );
 });
