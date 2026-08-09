@@ -12,13 +12,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { usePathname } from "expo-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-
-const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -26,9 +24,6 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
 }
 
 const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
-    const { setToast } = useToast();
-    const { t } = useTranslation();
-
     return (
         <Pressable
             {...rest}
@@ -57,7 +52,7 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
 
                     <View className="w-full">
                         <TextAnimated
-                            numberOfLines={2}
+                            numberOfLines={task.title ? 2 : 3}
                             className="text-lg dark:opacity-70 opacity-60"
                         >
                             {task.content}
@@ -263,7 +258,7 @@ export const TasksSearch = memo(() => {
             );
         }
         return null;
-    }, [loading, i18n.language, value]);
+    }, [loading, i18n.language, value, theme]);
 
     useEffect(() => {
         const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -305,7 +300,7 @@ export const TasksSearch = memo(() => {
             event.emit(SHOW_NAVBAR);
         }
         else {
-            // textInputRef.current?.focus();
+            textInputRef.current?.focus();
         }
 
         return () => {
@@ -331,6 +326,17 @@ export const TasksSearch = memo(() => {
         }
     }));
 
+    const getItemLayout = useCallback((data: any, index: number) => ({
+        length: (taskHeight + tasksGap),
+        offset: index * (taskHeight + tasksGap),
+        index,
+    }), [taskHeight, tasksGap]);
+
+    const onEndReached = useCallback(() => {
+        if (tasks.length < count && !loading) {
+            handleSearch(value, true);
+        }
+    }, [tasks, count, loading]);
 
     return (
         <Animated.View
@@ -428,11 +434,7 @@ export const TasksSearch = memo(() => {
                     removeClippedSubviews
                     initialNumToRender={limit}
                     maxToRenderPerBatch={Math.round(tasks.length / 2)}
-                    getItemLayout={(_, index) => ({
-                        length: (taskHeight + tasksGap),
-                        offset: index * (taskHeight + tasksGap),
-                        index,
-                    })}
+                    getItemLayout={getItemLayout}
                     data={tasks}
                     keyExtractor={(task) => (task as TaskType).idTask}
                     renderItem={renderItem}
@@ -440,7 +442,7 @@ export const TasksSearch = memo(() => {
                     onScroll={onSearchScroll}
                     animatedProps={onMomentumScrollEnd}
                     onEndReachedThreshold={.1}
-                    onEndReached={() => tasks.length < count && !loading && handleSearch(value, true)}
+                    onEndReached={onEndReached}
                     ListEmptyComponent={listEmptyComponent}
                     ListFooterComponent={listFooterComponent}
                     className="w-full"

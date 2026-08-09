@@ -73,7 +73,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         return (
             Gesture.Pan()
                 .activeOffsetY([-5, 5])
-                .failOffsetX([-50, 50])
+                .failOffsetX([-10, 10])
                 .onUpdate(({ translationY: y }) => {
                     if (scrollY.value <= 0 && y > 0 && !scrolling.value && !areTasksSelected.value && !loadingShared.value && !filtering.value) {
                         refreshTranslateY.value = y;
@@ -172,7 +172,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
             );
         }
         return null;
-    }, [loading, i18n.language]);
+    }, [loading, i18n.language, theme]);
 
     const onEndReached = useCallback(() => {
         if (loading || tasks.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0) return;

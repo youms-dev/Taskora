@@ -210,7 +210,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
 
                         <View className="w-full">
                             <TextAnimated
-                                numberOfLines={2}
+                                numberOfLines={task.title ? 2 : 3}
                                 className="text-lg dark:opacity-70 opacity-60"
                             >
                                 {task.content}
@@ -370,7 +370,7 @@ export default function Archives() {
                 onDelete={onDeleteTask}
             />
         </Animated.View>
-    ), [tasks, onLongPressTask, onPressTask, onRefreshTask, taskLoading, selectMap]);
+    ), [tasks, onLongPressTask, onPressTask, taskLoading, selectMap]);
 
     const onScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -624,7 +624,18 @@ export default function Archives() {
             </View>
         )
         return null;
-    }, [loading, i18n.language]);
+    }, [loading, i18n.language, theme]);
+
+    const getItemLayout = useCallback((data: any, index: number) => ({
+        length: taskHeight + tasksGap,
+        offset: index * (taskHeight + tasksGap),
+        index,
+    }), [taskHeight, tasksGap]);
+
+    const onEndReached = useCallback(() => {
+        if (loading || tasks.length >= count || selectMap.size > 0) return;
+        handleGetTasks();
+    }, [loading, tasks, count, selectMap]);
 
     return (
         <Container centerX>
@@ -723,15 +734,8 @@ export default function Archives() {
                 scrollEventThrottle={16}
                 onScroll={onScroll}
                 onEndReachedThreshold={.1}
-                onEndReached={() => {
-                    if (loading || tasks.length >= count || selectMap.size > 0) return;
-                    handleGetTasks();
-                }}
-                getItemLayout={(_, index) => ({
-                    length: taskHeight + tasksGap,
-                    offset: index * (taskHeight + tasksGap),
-                    index,
-                })}
+                onEndReached={onEndReached}
+                getItemLayout={getItemLayout}
                 ListFooterComponent={listFooterComponent}
                 ListEmptyComponent={listEmptyComponent}
                 className="w-full"

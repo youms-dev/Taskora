@@ -26,9 +26,8 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
     const { theme } = useTheme();
 
     return (
-        <PressableAnimated
+        <Pressable
             {...rest}
-            scale={.95}
             style={{
                 backgroundColor: active ?
                     (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
@@ -47,7 +46,7 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
             >
                 {children}
             </TextAnimated>
-        </PressableAnimated>
+        </Pressable>
     );
 });
 
@@ -65,44 +64,16 @@ export const TasksHeader = memo(() => {
     const refreshPosition = useSharedValue<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
 
-    // const folderDataMap = useMemo(() => {
-    //     const map = new Map(
-    //         folders.map(folder => [folder.idFolder, tasks.filter(t => t.idFolder == folder.idFolder)]),
-    //     );
-
-    //     return map;
-    // }, [tasks, folders]);
-
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
-        setCurrentFolder(index == 0 ? null : folder.idFolder);
-        foldersFlatListRef.current?.scrollToOffset({
-            offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
-        });
-        // setTasksSelected([]);
-        // pager.current.forEach(item => {
-        //     item.value.scrollToOffset({
-        //         offset: 0,
-        //         animated: false,
-        //     });
+        // setCurrentFolder(index == 0 ? null : folder.idFolder);
+        // foldersFlatListRef.current?.scrollToOffset({
+        //     offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
         // });
         pager.current?.scrollToIndex({
-            index,
+            index: index + 1,
             animated: false,
         });
-
-        // if (contentsSize.current[index] < screenHeight) {
-        //     flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
-        //         offset: 0,
-        //         animated: true,
-        //     });
-        // }
-        // else {
-        //     flatListsRef.current && flatListsRef.current[index]?.value.scrollToOffset({
-        //         offset: scrollCheckPoint,
-        //         animated: true,
-        //     });
-        // }
     }, [folders, currentFolder]);
 
     const foldersRenderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
@@ -283,7 +254,7 @@ export const TasksHeader = memo(() => {
                         {/* Folders */}
 
                         <View className="flex items-center">
-                            <View className="w-full flex flex-row items-center gap-5 px-3 py-1 overflow-hidden">
+                            <View className="w-full flex flex-row items-center gap-5 px-3 py-1">
                                 {
                                     loading && folders.length == 0 && (
                                         <View className="w-full">
@@ -314,11 +285,31 @@ export const TasksHeader = memo(() => {
                                                 keyExtractor={(folder) => folder.idFolder}
                                                 renderItem={foldersRenderItem}
                                                 className="w-[90%]"
-                                                contentContainerClassName="flex flex-row items-center gap-[10px] pr-[50px]"
+                                                contentContainerClassName="flex flex-row items-center gap-[10px] pr-[40px]"
                                             />
 
-                                            <View className="absolute right-0 top-0 dark:bg-black bg-white z-[10]">
-                                                <View className="w-full h-full flex justify-center items-center px-4 py-1 dark:bg-black bg-[rgba(0,0,0,.06)]">
+                                            <LinearGradient
+                                                colors={theme == "dark" ?
+                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                    :
+                                                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                }
+                                                start={{ x: 1, y: 0 }}
+                                                end={{ x: 0, y: 0 }}
+                                                locations={[0, .6, 1]}
+                                                className="absolute right-0 top-0 z-[10]"
+                                            >
+                                                <LinearGradient
+                                                    colors={theme == "dark" ?
+                                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                        :
+                                                        ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
+                                                    }
+                                                    start={{ x: 1, y: 0 }}
+                                                    end={{ x: 0, y: 0 }}
+                                                    locations={[0, .6, 1]}
+                                                    className="w-full h-full flex justify-center items-center pr-3 pl-6 py-1"
+                                                >
                                                     <PressableAnimated>
                                                         <FontAwesome5
                                                             name="folder-plus"
@@ -326,8 +317,8 @@ export const TasksHeader = memo(() => {
                                                             color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                                                         />
                                                     </PressableAnimated>
-                                                </View>
-                                            </View>
+                                                </LinearGradient>
+                                            </LinearGradient>
                                         </>
                                     )
                                 }
@@ -399,9 +390,8 @@ export const TasksHeader = memo(() => {
                                                 t("tasks_filter_done"),
                                                 t("tasks_filter_not_done"),
                                             ].map((item, i) => (
-                                                <PressableAnimated
+                                                <Pressable
                                                     key={i}
-                                                    scale={.95}
                                                     onPress={() => currentFilter != (i + 1) && onFilterButtonPress((i + 1) as 1 | 2 | 3)}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
@@ -421,7 +411,7 @@ export const TasksHeader = memo(() => {
                                                     >
                                                         {item}
                                                     </TextAnimated>
-                                                </PressableAnimated>
+                                                </Pressable>
                                             ))
                                         }
                                     </ScrollView>
