@@ -99,10 +99,13 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), []);
 
     useEffect(() => {
-        if (!currentFolder) {
-            setMounted(true);
-        }
-        else if (!mounted && currentFolder == folder.idFolder) {
+        if (mounted) return;
+
+        const isActive = currentFolder == null
+            ? folderIndex === 0
+            : currentFolder === folder.idFolder;
+
+        if (isActive) {
             setMounted(true);
         }
     }, [currentFolder]);
