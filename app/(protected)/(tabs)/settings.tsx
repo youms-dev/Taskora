@@ -19,12 +19,10 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedProps, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
-
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
@@ -38,7 +36,7 @@ export default function Settings() {
     const [change, setChange] = useState<boolean>(false);
     const [currentLanguage, setCurrentLanguage] = useState<string | null>(null);
     const [locales] = useLocales();
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
@@ -160,7 +158,7 @@ export default function Settings() {
         })();
     }, []);
 
-    const onScrollEnd = useAnimatedProps(() => ({
+    const onMomentumScrollEnd = useAnimatedProps(() => ({
         onMomentumScrollEnd: () => {
             if (scrollY.value >= (headerHeight - minHeaderHeight) * .6) {
                 runOnJS(setChange)(true);
@@ -279,10 +277,10 @@ export default function Settings() {
                     </LinearGradient>
                 </Animated.View>
 
-                <AnimatedScrollView
+                <Animated.ScrollView
                     ref={scrollViewRef}
                     onScroll={scrollHandler}
-                    animatedProps={onScrollEnd}
+                    animatedProps={onMomentumScrollEnd}
                     scrollEventThrottle={16}
                     showsVerticalScrollIndicator={false}
                     className="flex-1"
@@ -587,7 +585,7 @@ export default function Settings() {
                             </PressableAnimated>
                         </View>
                     </View>
-                </AnimatedScrollView>
+                </Animated.ScrollView>
             </View>
 
             <LinearGradient

@@ -5,14 +5,12 @@ import { TaskType } from "@/types/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, View } from "react-native";
+import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, runOnJS, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInUp, FadeOutUp, runOnJS, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { TaskCard } from "./task-card";
-
-const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
 interface Props {
     folder: FolderType;
@@ -20,12 +18,12 @@ interface Props {
 }
 
 export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
     const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected } = useTasksData();
-    const nativeGesture = Gesture.Native();
+    const nativeGesture = useMemo(() => Gesture.Native(), []);
     const folderTasks = useMemo(() => {
         if (folderIndex == 0) return tasks;
         return tasks.filter((t) => t.idFolder == folder.idFolder);
@@ -39,9 +37,24 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     }, [tasksSelected]);
     const loadingShared = useSharedValue<boolean>(false);
 
-    const renderItem = useCallback(({ item: task }: { item: unknown }) => (
-        <TaskCard task={task as TaskType} />
-    ), [tasks]);
+    const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
+        <Animated.View
+            entering={FadeInUp
+                .delay(index * 100)
+                .springify()
+                .stiffness(100)
+                .damping(5)
+                .mass(1)
+            }
+            exiting={FadeOutUp
+                .duration(500)
+                .easing(Easing.inOut(Easing.quad))
+            }
+            className="w-full"
+        >
+            <TaskCard task={task as TaskType} />
+        </Animated.View>
+    ), []);
 
     const handleScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -83,7 +96,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         );
     }, []);
 
-    const gesture = Gesture.Simultaneous(nativeGesture, panGesture);
+    const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), []);
 
     useEffect(() => {
         if (!currentFolder) {
@@ -102,17 +115,77 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         loadingShared.value = loading;
     }, [loading]);
 
+    const listFooterComponent = useCallback(() => {
+        if (loading && selectMap.size == 0) {
+            return (
+                <View
+                    style={{
+                        gap: tasksGap,
+                    }}
+                    className="w-screen flex items-center px-3"
+                >
+                    {
+                        Array(3).fill(0).map((_, i) => (
+                            <Animated.View
+                                key={i}
+                                entering={FadeIn
+                                    .delay(i * 100)
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                style={{
+                                    height: taskHeight
+                                }}
+                                className="w-full rounded-2xl overflow-hidden"
+                            >
+                                <Skeleton delay={i * 200} />
+                            </Animated.View>
+                        ))
+                    }
+                </View>
+            );
+        }
+        return null;
+    }, [loading, selectMap]);
+
+    const listEmptyComponent = useCallback(() => {
+        if (!loading) {
+            return (
+                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                    <MaterialIcons
+                        name="playlist-remove"
+                        size={120}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                    />
+                    <TextAnimated
+                        dark="rgba(255, 255, 255, .5)"
+                        light="rgba(0, 0, 0, .5)"
+                        className="font-bold text-lg tracking-wider"
+                    >
+                        {t("tasks_no_tasks")}
+                    </TextAnimated>
+                </View>
+            );
+        }
+        return null;
+    }, [loading, i18n.language]);
+
     if (!mounted) return null;
 
     return (
-        <View className="w-screen flex items-center shrink-0">
+        <Animated.View
+            entering={FadeIn
+                .duration(2000)
+                .easing(Easing.inOut(Easing.quad))
+            }
+            className="w-screen flex items-center shrink-0">
             <GestureDetector gesture={gesture}>
-                <FlatListAnimated
+                <Animated.FlatList
                     nestedScrollEnabled
                     scrollEnabled
                     horizontal={false}
                     initialNumToRender={LIMIT}
-                    maxToRenderPerBatch={Math.round(tasks.length / 2)}
+                    maxToRenderPerBatch={Math.round(folderTasks.length / 2)}
                     windowSize={LIMIT}
                     removeClippedSubviews
                     showsVerticalScrollIndicator={false}
@@ -132,42 +205,8 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                         offset: index * (taskHeight + tasksGap),
                         index: index,
                     })}
-                    ListEmptyComponent={() => {
-                        if (!loading) {
-                            return (
-                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                    <MaterialIcons
-                                        name="playlist-remove"
-                                        size={120}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                    />
-                                    <TextAnimated
-                                        dark="rgba(255, 255, 255, .5)"
-                                        light="rgba(0, 0, 0, .5)"
-                                        className="font-bold text-lg tracking-wider"
-                                    >
-                                        {t("tasks_no_tasks")}
-                                    </TextAnimated>
-                                </View>
-                            );
-                        }
-                    }}
-                    ListFooterComponent={() => {
-                        if (loading && selectMap.size == 0) return (
-                            <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                                {
-                                    Array(3).fill(0).map((_, i) => (
-                                        <View
-                                            key={i}
-                                            className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                        >
-                                            <Skeleton />
-                                        </View>
-                                    ))
-                                }
-                            </View>
-                        );
-                    }}
+                    ListEmptyComponent={listEmptyComponent}
+                    ListFooterComponent={listFooterComponent}
                     className="w-full"
                     contentContainerStyle={{
                         gap: tasksGap,
@@ -175,6 +214,6 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     contentContainerClassName="w-full flex flex-col items-center pt-[215px] pb-[80px] px-3"
                 />
             </GestureDetector>
-        </View>
+        </Animated.View>
     );
 });

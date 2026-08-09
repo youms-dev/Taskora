@@ -231,7 +231,7 @@ export const ToastProvider = ({ children }: Props) => {
             {
                 scale: typeShared.value == "success" ?
                     withDelay(
-                        500,
+                        100,
                         withSequence(
                             withTiming(0, {
                                 duration: 200,
@@ -257,7 +257,7 @@ export const ToastProvider = ({ children }: Props) => {
             {
                 translateX: typeShared.value == "error" ?
                     withDelay(
-                        500,
+                        100,
                         withSequence(
                             withRepeat(
                                 withSequence(
@@ -341,9 +341,7 @@ export const ToastProvider = ({ children }: Props) => {
                     ]}
                     className="absolute top-10 w-11/12 sm:w-[400px] flex flex-row gap-2"
                 >
-                    <Pressable onPress={() => {
-                        setType("error");
-                    }} className="size-[45px] shrink-0 dark:bg-black bg-white rounded-full">
+                    <View className="size-[45px] shrink-0 dark:bg-black bg-white rounded-full">
                         <View
                             style={{
                                 transform: [
@@ -365,7 +363,7 @@ export const ToastProvider = ({ children }: Props) => {
                                 }}
                             />
                         </View>
-                    </Pressable>
+                    </View>
 
                     <View className={clsx(
                         "rounded-2xl dark:bg-black bg-white",
@@ -394,7 +392,7 @@ export const ToastProvider = ({ children }: Props) => {
                                     })()}
                                     className="text-xl tracking-[1px]"
                                 >
-                                    {text} Utilisateur inexistant
+                                    {text}
                                 </TextAnimated>
                             </View>
                         </View>

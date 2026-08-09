@@ -19,7 +19,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Pressable, PressableProps, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -78,7 +78,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         try {
             setLoading(true);
             await toggleArchiveTasks([task.idTask]);
-            setToast(t("archives_unarchive_item"), "default", 2000);
+            setToast(t("archives_unarchive_tasks"), "default", 2000);
             setLoading(false);
             onRefresh();
             event.emit(TASKS_UNARCHIVED);
@@ -275,7 +275,7 @@ const LinearGradientAnimated = Animated.createAnimatedComponent(LinearGradient);
 
 export default function Archives() {
     const { theme } = useTheme();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
     const loadingRef = useRef<boolean>(false);
@@ -297,6 +297,7 @@ export default function Archives() {
     const dismissTranslateY = 60;
     const tasksTmp = useRef<TaskType[]>([]);
     const taskHeight = 100;
+    const tasksGap = 20;
 
     const onRefreshTask = useCallback((e: boolean = false) => {
         if (e) {
@@ -340,19 +341,35 @@ export default function Archives() {
         setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
     }, [tasks, processing]);
 
-    const renderItem = useCallback(({ item: task }: { item: unknown }) => (
-        <TaskCard
-            task={task as TaskType}
-            height={taskHeight}
-            loading={taskLoading}
-            selection={selectMap.size > 0}
-            selectedIndex={selectMap.get((task as TaskType).idTask)}
-            onRefresh={onRefreshTask}
-            onPress={onPressTask}
-            onLongPress={onLongPressTask}
-            onUnArchive={onUnArchiveTask}
-            onDelete={onDeleteTask}
-        />
+    const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
+        <Animated.View
+            entering={FadeInUp
+                .delay(index * 100)
+                .springify()
+                .stiffness(100)
+                .damping(5)
+                .mass(1)
+            }
+            exiting={FadeOutUp
+                .delay(index * 100)
+                .duration(200)
+                .easing(Easing.inOut(Easing.quad))
+            }
+            className="w-full"
+        >
+            <TaskCard
+                task={task as TaskType}
+                height={taskHeight}
+                loading={taskLoading}
+                selection={selectMap.size > 0}
+                selectedIndex={selectMap.get((task as TaskType).idTask)}
+                onRefresh={onRefreshTask}
+                onPress={onPressTask}
+                onLongPress={onLongPressTask}
+                onUnArchive={onUnArchiveTask}
+                onDelete={onDeleteTask}
+            />
+        </Animated.View>
     ), [tasks, onLongPressTask, onPressTask, onRefreshTask, taskLoading, selectMap]);
 
     const onScroll = useAnimatedScrollHandler({
@@ -499,6 +516,7 @@ export default function Archives() {
             setProcessing(false);
             handleGetTasks(true);
             event.emit(TASKS_UNARCHIVED);
+            setToast(t("archives_unarchive_tasks", { many: tab.length > 1 ? "s" : "" }));
         }
         catch (e) {
             console.log(e);
@@ -555,6 +573,59 @@ export default function Archives() {
         }
     }, [pathname]);
 
+    const listFooterComponent = useCallback(() => {
+        if (loading) {
+            return (
+                <View
+                    style={{
+                        gap: tasksGap,
+                    }}
+                    className="w-screen flex items-center px-3"
+                >
+                    {
+                        Array(limit).fill(0).map((_, i) => (
+                            <Animated.View
+                                key={i}
+                                entering={FadeIn
+                                    .delay(i * 100)
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                style={{
+                                    height: taskHeight
+                                }}
+                                className="w-full rounded-2xl overflow-hidden"
+                            >
+                                <Skeleton delay={i * 200} />
+                            </Animated.View>
+                        ))
+                    }
+                </View>
+            );
+        }
+        return null;
+    }, [loading]);
+
+    const listEmptyComponent = useCallback(() => {
+        if (!loading) return (
+            <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                <MaterialCommunityIcons
+                    name="archive-remove-outline"
+                    size={120}
+                    color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+                />
+                <TextAnimated
+                    dark="rgba(255, 255, 255, .5)"
+                    light="rgba(0, 0, 0, .5)"
+                    className="font-bold text-lg tracking-wider"
+                >
+                    {t("archives_no_archives")}
+                </TextAnimated>
+            </View>
+        )
+        return null;
+    }, [loading, i18n.language]);
+
     return (
         <Container centerX>
             <LinearGradient
@@ -602,8 +673,14 @@ export default function Archives() {
                         className="absolute left-0 h-[50px] dark:bg-white/10 bg-white rounded-[50px] -z-[10]"
                     />
 
-                    <PressableAnimated
+                    <Pressable
                         onPress={() => router.back()}
+                        android_ripple={{
+                            color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
+                            foreground: true,
+                            borderless: true,
+                            radius: 25,
+                        }}
                         className="size-[50px] flex dark:bg-white bg-white rounded-full"
                     >
                         <View className="w-full h-full flex justify-center items-center dark:bg-black/90 bg-white rounded-full border dark:border-0 border-black/20">
@@ -613,7 +690,7 @@ export default function Archives() {
                                 color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                             />
                         </View>
-                    </PressableAnimated>
+                    </Pressable>
 
                     <View className="h-full flex justify-center rounded-[50px]">
                         <TextAnimated className="text-xl tracking-widest">
@@ -650,40 +727,13 @@ export default function Archives() {
                     if (loading || tasks.length >= count || selectMap.size > 0) return;
                     handleGetTasks();
                 }}
-                ListFooterComponent={() => {
-                    if (loading) return (
-                        <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                            {
-                                Array(3).fill(0).map((_, i) => (
-                                    <View
-                                        key={i}
-                                        className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                    >
-                                        <Skeleton />
-                                    </View>
-                                ))
-                            }
-                        </View>
-                    )
-                }}
-                ListEmptyComponent={() => {
-                    if (!loading) return (
-                        <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                            <MaterialCommunityIcons
-                                name="archive-remove-outline"
-                                size={120}
-                                color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                            />
-                            <TextAnimated
-                                dark="rgba(255, 255, 255, .5)"
-                                light="rgba(0, 0, 0, .5)"
-                                className="font-bold text-lg tracking-wider"
-                            >
-                                {t("archives_no_archives")}
-                            </TextAnimated>
-                        </View>
-                    )
-                }}
+                getItemLayout={(_, index) => ({
+                    length: taskHeight + tasksGap,
+                    offset: index * (taskHeight + tasksGap),
+                    index,
+                })}
+                ListFooterComponent={listFooterComponent}
+                ListEmptyComponent={listEmptyComponent}
                 className="w-full"
                 contentContainerClassName="w-full flex items-center gap-5 px-3 pt-[200px] pb-[50px]"
             />

@@ -2,6 +2,7 @@ import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { createContext, memo, ReactNode, RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList } from "react-native";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
@@ -66,6 +67,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const tasksTmp = useRef<TaskType[]>([]);
     const tasksCountTmp = useRef<number>(0);
     const selectMap = useRef<Map<string, TaskType>>(null);
+    const { t, i18n } = useTranslation();
 
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
@@ -197,7 +199,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
 
         try {
             await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
-            setToast("Tâches archivées", "default", 2500);
+            setToast(t("archives_unarchive_tasks", { many: selected.length > 1 ? "s" : "" }));
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;
@@ -215,7 +217,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
             tasksTmp.current = [];
             setToast("Une erreur s'est produite", "error");
         }
-    }, [tasksSelected, tasks, tasksCount]);
+    }, [tasksSelected, tasks, tasksCount, i18n.language]);
 
     const handleArchiveTask = useCallback(async (task: TaskType) => {
         if (loadingRef.current) return;
@@ -225,7 +227,7 @@ export const TasksDataProvider = memo(({ children }: Props) => {
 
         try {
             await toggleArchiveTasks([task.idTask], true);
-            setToast("Tâche archivée", "success", 2500);
+            setToast(t("tasks_archived"));
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;

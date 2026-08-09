@@ -32,14 +32,12 @@
     "tasks_search_tasks_empty": "Aucune tâche ou évènement trouvé",
     "tasks_selected": "Sélectionnées",
     "tasks_page_title": "Évènements",
-    "tasks_archived": "Évènement{{many}} archivé{{many}}",
+    "tasks_archived": "Archivé{{many}}",
     "tasks_all_folders": "Tout",
-    "tasks_archived_item": "Archivé",
     "archives_description": "Tous les évènements que vous archiverez se trouveront ici et ne vous seront pas notifiés",
     "archives_title": "Archives",
-    "archives_no_archives": "Rien n'a été archivé pour l'instant",
-    "archives_unarchive_item": "Désarchivé",
-    "archives_unarchive_tasks": "Évènement{{many}} désarchivé{{many}}",
+    "archives_no_archives": "Aucun élément archivé pour l'instant",
+    "archives_unarchive_tasks": "Désarchivé{{many}}",
     "not-found_title": "Oups vous semblez être sur une page qui n'existe pas",
     "not-found_go_back_home": "Accueil",
     "native-intent_title": "Oups vous semblez être sur une page qui n'existe pas",
@@ -57,5 +55,6 @@
     "register_no_account_question": "Vous avez déjà un compte ?",
     "register_sign_in_link": "Connectez-vous",
     "login_form_counter": "Compteur",
-    "agenda_page_title": "Agenda"
+    "agenda_page_title": "Agenda",
+    "error": "Vous n'êtes pas connecté à internet"
 }

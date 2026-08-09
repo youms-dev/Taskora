@@ -13,7 +13,7 @@ import { usePathname } from "expo-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
@@ -22,18 +22,17 @@ const FlatListAnimated = Animated.createAnimatedComponent(FlatList);
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
-    onPress: (id: TaskType["idTask"]) => void;
     height: number;
 }
 
-const TaskCard = memo(({ task, onPress, height, ...rest }: TaskCardProps) => {
+const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
     const { setToast } = useToast();
     const { t } = useTranslation();
 
     return (
         <Pressable
             {...rest}
-            onPress={() => onPress(task.idTask)}
+            onPress={() => { }}
             style={{
                 height,
             }}
@@ -74,7 +73,7 @@ export const TasksSearch = memo(() => {
     const { searchSectionActive, setSearchSectionActive } = useTasksData();
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);
-    const flatListRef = useRef<FlatList>(null);
+    const flatListRef = useAnimatedRef<Animated.FlatList>();
     const scrollCheckPoint = 100;
     const { width: screenWidth } = useWindowDimensions();
     const screenWidthShared = useSharedValue<typeof screenWidth>(0);
@@ -90,9 +89,10 @@ export const TasksSearch = memo(() => {
     const [count, setCount] = useState<number>(0);
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const pathname = usePathname();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const taskHeight = 100;
     const tasksGap = 20;
+    const textInputWidth = useSharedValue<number>(0);
 
     const onSearchScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -106,7 +106,7 @@ export const TasksSearch = memo(() => {
         width: interpolate(
             scrollY.value,
             [0, scrollCheckPoint],
-            [screenWidthShared.value, screenWidthShared.value * .8],
+            [screenWidthShared.value * .95, screenWidthShared.value * .8],
             Extrapolation.CLAMP,
         ),
         transform: [
@@ -114,7 +114,7 @@ export const TasksSearch = memo(() => {
                 translateX: interpolate(
                     scrollY.value,
                     [0, scrollCheckPoint],
-                    [0, -5],
+                    [-((screenWidthShared.value / 2) - (textInputWidth.value / 2)), -5],
                     Extrapolation.CLAMP,
                 )
             },
@@ -192,13 +192,78 @@ export const TasksSearch = memo(() => {
         }, 100);
     }, [pathname, tasks]);
 
-    const renderItem = useCallback((task: TaskType) => (
-        <TaskCard
-            height={taskHeight}
-            task={task}
-            onPress={() => { }}
-        />
+    const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
+        <Animated.View
+            entering={FadeInUp
+                .delay(index * 100)
+                .springify()
+                .stiffness(100)
+                .damping(5)
+                .mass(1)
+            }
+            exiting={FadeOut
+                .duration(500)
+                .easing(Easing.inOut(Easing.quad))
+            }
+            className="w-full"
+        >
+            <TaskCard
+                height={taskHeight}
+                task={task as TaskType}
+            />
+        </Animated.View>
     ), [tasks, taskHeight]);
+
+    const listFooterComponent = useCallback(() => {
+        if (loading) {
+            return (
+                <View
+                    style={{
+                        gap: tasksGap,
+                    }}
+                    className="w-screen flex items-center px-3"
+                >
+                    {
+                        Array(3).fill(0).map((_, i) => (
+                            <Animated.View
+                                key={i}
+                                entering={FadeIn
+                                    .delay(i * 100)
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                style={{
+                                    height: taskHeight
+                                }}
+                                className="w-full rounded-2xl overflow-hidden"
+                            >
+                                <Skeleton delay={i * 200} />
+                            </Animated.View>
+                        ))
+                    }
+                </View>
+            );
+        }
+        return null;
+    }, [loading]);
+
+    const listEmptyComponent = useCallback(() => {
+        if (!loading && value.trim().length > 0) {
+            return (
+                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                    <MaterialIcons
+                        name="playlist-remove"
+                        size={120}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)"}
+                    />
+                    <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                        {t("tasks_search_tasks_empty")}
+                    </Text>
+                </View>
+            );
+        }
+        return null;
+    }, [loading, i18n.language, value]);
 
     useEffect(() => {
         const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -240,7 +305,7 @@ export const TasksSearch = memo(() => {
             event.emit(SHOW_NAVBAR);
         }
         else {
-            textInputRef.current?.focus();
+            // textInputRef.current?.focus();
         }
 
         return () => {
@@ -248,7 +313,25 @@ export const TasksSearch = memo(() => {
             searchTimeout.current && clearTimeout(searchTimeout.current);
         };
     }, [searchSectionActive]);
-    
+
+    const onMomentumScrollEnd = useAnimatedProps(() => ({
+        onMomentumScrollEnd: () => {
+            if (scrollY.value > 0 && scrollY.value < (scrollCheckPoint * .5)) {
+                flatListRef.current?.scrollToOffset({
+                    offset: 0,
+                    animated: true,
+                });
+            }
+            else if (scrollY.value >= (scrollCheckPoint * .5) && scrollY.value < scrollCheckPoint) {
+                flatListRef.current?.scrollToOffset({
+                    offset: scrollCheckPoint,
+                    animated: true,
+                });
+            }
+        }
+    }));
+
+
     return (
         <Animated.View
             style={searchSectionAnimation}
@@ -277,23 +360,30 @@ export const TasksSearch = memo(() => {
                         locations={[.5, .6, 1]}
                         className="w-full flex flex-row justify-between px-3 pt-2 pb-8"
                     >
-                        <PressableAnimated
+                        <Pressable
                             onPress={() => {
                                 setSearchSectionActive(false);
                                 event.emit(SHOW_NAVBAR);
                             }}
-                            className="border dark:border-white/15 border-black/20 dark:bg-black bg-white rounded-full"
+                            android_ripple={{
+                                color: theme == "dark" ? "rgba(255, 255, 255, .2))" : "rgba(0, 0, 0, .1)",
+                                foreground: true,
+                                borderless: true,
+                                radius: 25,
+                            }}
+                            className="dark:bg-black bg-white rounded-full"
                         >
-                            <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full">
+                            <View className="flex flex-row gap-3 p-3 dark:bg-white/10 bg-white rounded-full border  dark:border-white/10 border-black/10">
                                 <Entypo
                                     name="chevron-left"
                                     size={30}
                                     color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                 />
                             </View>
-                        </PressableAnimated>
+                        </Pressable>
 
                         <Animated.View
+                            onLayout={(e) => textInputWidth.value = e.nativeEvent.layout.width}
                             style={textInputAnimation}
                             className="absolute right-0 top-0 w-[80%] flex items-center overflow-hidden"
                         >
@@ -312,12 +402,12 @@ export const TasksSearch = memo(() => {
                                         handleSearch(e);
                                     }}
                                     onSubmitEditing={() => handleSearch(value)}
-                                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-12 border-b dark:border-white/20 border-black/20"
+                                    className="w-full h-16 text-xl dark:text-white/90 text-black dark:bg-white/10 bg-white rounded-2xl pl-6 pr-14 border-b dark:border-white/20 border-black/20"
                                 />
 
                                 <PressableAnimated
                                     onPress={() => value.trim().length == 0 ? textInputRef.current?.focus() : handleSearch(value)}
-                                    className="absolute top-4 right-5 z-[1]"
+                                    className="absolute top-4 right-6 z-[1]"
                                 >
                                     <FontAwesome5
                                         name="search"
@@ -330,14 +420,14 @@ export const TasksSearch = memo(() => {
                     </LinearGradient>
                 </LinearGradient>
 
-                <FlatListAnimated
+                <Animated.FlatList
                     ref={flatListRef}
                     horizontal={false}
                     showsVerticalScrollIndicator={false}
                     windowSize={limit}
                     removeClippedSubviews
                     initialNumToRender={limit}
-                    maxToRenderPerBatch={limit * 2}
+                    maxToRenderPerBatch={Math.round(tasks.length / 2)}
                     getItemLayout={(_, index) => ({
                         length: (taskHeight + tasksGap),
                         offset: index * (taskHeight + tasksGap),
@@ -345,51 +435,14 @@ export const TasksSearch = memo(() => {
                     })}
                     data={tasks}
                     keyExtractor={(task) => (task as TaskType).idTask}
-                    renderItem={({ item }) => renderItem(item as TaskType)}
+                    renderItem={renderItem}
                     scrollEventThrottle={16}
                     onScroll={onSearchScroll}
-                    onMomentumScrollEnd={() => {
-                        if (scrollY.value > 0 && scrollY.value < (scrollCheckPoint * .5)) flatListRef.current?.scrollToOffset({
-                            offset: 0,
-                            animated: true,
-                        });
-                        else if (scrollY.value >= (scrollCheckPoint * .5) && scrollY.value < scrollCheckPoint) flatListRef.current?.scrollToOffset({
-                            offset: scrollCheckPoint,
-                            animated: true,
-                        });
-                    }}
+                    animatedProps={onMomentumScrollEnd}
                     onEndReachedThreshold={.1}
                     onEndReached={() => tasks.length < count && !loading && handleSearch(value, true)}
-                    ListEmptyComponent={() => {
-                        if (!loading && value.trim().length > 0) {
-                            return (
-                                <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                                    <MaterialIcons
-                                        name="playlist-remove"
-                                        size={120}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
-                                    />
-                                    <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                                        {t("tasks_search_tasks_empty")}
-                                    </Text>
-                                </View>
-                            );
-                        }
-                    }}
-                    ListFooterComponent={loading ? (
-                        <View className="w-screen flex gap-6 px-3 overflow-hidden pt-5">
-                            {
-                                Array(3).fill(0).map((_, i) => (
-                                    <View
-                                        key={i}
-                                        className="w-full h-[100px] rounded-2xl overflow-hidden"
-                                    >
-                                        <Skeleton />
-                                    </View>
-                                ))
-                            }
-                        </View>
-                    ) : null}
+                    ListEmptyComponent={listEmptyComponent}
+                    ListFooterComponent={listFooterComponent}
                     className="w-full"
                     contentContainerStyle={{
                         gap: tasksGap,
@@ -399,7 +452,7 @@ export const TasksSearch = memo(() => {
 
                 <LinearGradient
                     colors={theme == "dark" ?
-                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
                         :
                         ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
                     }
@@ -409,7 +462,7 @@ export const TasksSearch = memo(() => {
                     style={{
                         transform: [
                             {
-                                translateY: -10,
+                                translateY: -35,
                             }
                         ]
                     }}
@@ -417,14 +470,14 @@ export const TasksSearch = memo(() => {
                 >
                     <LinearGradient
                         colors={theme == "dark" ?
-                            ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                            ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, .6)", "rgba(0, 0, 0, 0)"]
                             :
                             ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
                         }
                         locations={[.5, .6, 1]}
                         start={{ x: 0, y: 1 }}
                         end={{ x: 0, y: 0 }}
-                        className="w-full h-[100px]"
+                        className="w-full h-[50px]"
                     />
                 </LinearGradient>
             </View>

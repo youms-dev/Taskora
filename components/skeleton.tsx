@@ -1,62 +1,102 @@
 import { useTheme } from "@/hooks/use-theme";
 import { LinearGradient } from "expo-linear-gradient";
+import { memo, useEffect } from "react";
 import { View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+interface Props {
+    delay?: number;
+}
 
-export const Skeleton = () => {
-    const { theme } = useTheme();
+export const Skeleton = memo(({ delay = 0 }: Props) => {
+    const { theme, themeShared } = useTheme();
+    const width = useSharedValue<number>(0);
+    const animationDelay = useSharedValue<number>(0);
 
-    const linearAnimation = useAnimatedStyle(() => ({
-        left: withRepeat(
-            withSequence(
-                withTiming("-150%", {
-                    duration: 1,
-                }),
-                withTiming("150%", {
-                    duration: 3000,
-                    easing: Easing.inOut(Easing.quad)
-                }),
-            ),
-            Infinity,
-        ),
+    const slideAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: withSequence(
+                    withTiming(-width.value, {
+                        duration: 0,
+                    }),
+                    withDelay(
+                        animationDelay.value,
+                        withRepeat(
+                            withSequence(
+                                withTiming(width.value * 2.5, {
+                                    duration: 5000,
+                                    easing: Easing.inOut(Easing.quad)
+                                }),
+                                withTiming(-width.value, {
+                                    duration: 0,
+                                }),
+                            ),
+                            Infinity,
+                        ),
+                    ),
+                )
+            },
+            {
+                translateY: "-20%",
+            },
+            {
+                skewY: "20deg"
+            }
+        ]
     }));
 
-    const animation = useAnimatedStyle(() => ({
-        opacity: withRepeat(
-            withSequence(
-                withTiming(.5, {
-                    duration: 1000,
-                    easing: Easing.inOut(Easing.linear),
-                }),
-                withDelay(
-                    500,
+    const opacityAnimation = useAnimatedStyle(() => ({
+        opacity: withDelay(
+            animationDelay.value,
+            withRepeat(
+                withSequence(
                     withTiming(1, {
                         duration: 1000,
                         easing: Easing.inOut(Easing.linear),
                     }),
-                )
+                    withDelay(
+                        1000,
+                        withTiming(themeShared.value == "dark" ? .5 : .05, {
+                            duration: 1000,
+                            easing: Easing.inOut(Easing.linear),
+                        }),
+                    ),
+                ),
+                Infinity,
+                true,
             ),
-            Infinity,
-            true,
-        )
+        ),
     }));
+
+    useEffect(() => {
+        animationDelay.value = delay;
+    }, [delay]);
 
     return (
         <Animated.View
-            style={animation}
-            className="w-full h-full dark:bg-white/20 bg-black/20 overflow-hidden"
+            style={opacityAnimation}
+            onLayout={(e) => width.value = e.nativeEvent.layout.width}
+            className="w-full h-full dark:bg-black bg-white overflow-hidden"
         >
-            <AnimatedLinearGradient
-                colors={["rgba(255, 255, 255, 0)", theme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.8)", "rgba(255, 255, 255, 0)"]}
-                start={{ x: 0, y: 1 }}
-                end={{ x: 1, y: 1 }}
-                locations={[0, 0.5, 1]}
-                style={linearAnimation}
-                className="absolute top-[-50%] w-[50px] h-[200%] skew-y-[30deg]"
-            >
-            </AnimatedLinearGradient>
+            <View className="size-full dark:bg-white/10 bg-white">
+                <Animated.View
+                    style={slideAnimation}
+                    className="absolute left-0 top-0 w-[60px] h-[200%]"
+                >
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, .2)", "rgba(255, 255, 255, 0)"]
+                            :
+                            ["rgba(0, 0, 0, .02)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .02)"]
+                        }
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 1, y: 1 }}
+                        locations={[0, 0.5, 1]}
+                        className="size-full"
+                    />
+                </Animated.View>
+            </View>
         </Animated.View>
     );
-}
+});
