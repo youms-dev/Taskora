@@ -26,8 +26,9 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
     const { theme } = useTheme();
 
     return (
-        <Pressable
+        <PressableAnimated
             {...rest}
+            scale={.95}
             style={{
                 backgroundColor: active ?
                     (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
@@ -46,18 +47,18 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
             >
                 {children}
             </TextAnimated>
-        </Pressable>
+        </PressableAnimated>
     );
 });
 
 export const scrollCheckPoint = 100;
 
 export const TasksHeader = memo(() => {
-    const { handleGetTasks, handleGetFolders, loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, pager, setSearchSectionActive, setCurrentFilter, setTasksSelected } = useTasksData();
-    const { theme, themeShared } = useTheme();
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected } = useTasksData();
+    const { theme } = useTheme();
     const { t } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const { width: screenWidth } = useWindowDimensions();
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const filterScrollViewRef = useRef<ScrollView>(null);
     const loadingShared = useSharedValue<boolean>(loading);
@@ -66,13 +67,9 @@ export const TasksHeader = memo(() => {
 
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
-        // setCurrentFolder(index == 0 ? null : folder.idFolder);
-        // foldersFlatListRef.current?.scrollToOffset({
-        //     offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
-        // });
-        pager.current?.scrollToIndex({
-            index: index + 1,
-            animated: false,
+        setCurrentFolder(index == 0 ? null : folder.idFolder);
+        foldersFlatListRef.current?.scrollToOffset({
+            offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
         });
     }, [folders, currentFolder]);
 
@@ -390,8 +387,9 @@ export const TasksHeader = memo(() => {
                                                 t("tasks_filter_done"),
                                                 t("tasks_filter_not_done"),
                                             ].map((item, i) => (
-                                                <Pressable
+                                                <PressableAnimated
                                                     key={i}
+                                                    scale={.95}
                                                     onPress={() => currentFilter != (i + 1) && onFilterButtonPress((i + 1) as 1 | 2 | 3)}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
@@ -411,7 +409,7 @@ export const TasksHeader = memo(() => {
                                                     >
                                                         {item}
                                                     </TextAnimated>
-                                                </Pressable>
+                                                </PressableAnimated>
                                             ))
                                         }
                                     </ScrollView>

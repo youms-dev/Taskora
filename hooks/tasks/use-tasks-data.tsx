@@ -23,7 +23,6 @@ const Context = createContext<{
     refreshTranslateY: SharedValue<number>;
     scrolling: SharedValue<boolean>;
     setCurrentFolder: ((value: string | null) => void);
-    pager: RefObject<FlatList | null>;
     searchSectionActive: boolean;
     setSearchSectionActive: ((value: boolean) => void);
     tasksSelected: TaskType[];
@@ -58,7 +57,6 @@ export const TasksDataProvider = memo(({ children }: Props) => {
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
     const scrolling = useSharedValue<boolean>(false);
-    const pager = useRef<FlatList>(null);
     const [searchSectionActive, setSearchSectionActive] = useState<boolean>(false);
     const scroll = useMemo(() => scrollY, []);
     const refreshTranslate = useMemo(() => refreshTranslateY, [refreshTranslateY]);
@@ -370,7 +368,6 @@ export const TasksDataProvider = memo(({ children }: Props) => {
             refreshTranslateY: refreshTranslate,
             scrolling: isScrolling,
             setCurrentFolder,
-            pager,
             searchSectionActive,
             setSearchSectionActive,
             tasksSelected,
