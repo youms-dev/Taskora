@@ -8,7 +8,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -16,6 +16,7 @@ import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import { DEFAULT_FOLDER } from "./pager";
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -56,7 +57,7 @@ export const scrollCheckPoint = 100;
 export const TasksHeader = memo(() => {
     const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected } = useTasksData();
     const { theme } = useTheme();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
     const { width: screenWidth } = useWindowDimensions();
     const screenWidthShared = useSharedValue<number>(screenWidth);
@@ -86,7 +87,7 @@ export const TasksHeader = memo(() => {
                 {index == 0 ? t("tasks_all_folders") : folder.title}
             </FolderButton>
         );
-    }, [folders, currentFolder, onFolderPress]);
+    }, [folders, currentFolder, onFolderPress, i18n.language]);
 
     useEffect(() => {
         screenWidthShared.value = screenWidth;
@@ -155,15 +156,33 @@ export const TasksHeader = memo(() => {
     }, [loading]);
 
     const onFilterButtonPress = useCallback((value: typeof currentFilter) => {
-        setCurrentFilter(value);
-        setTasksSelected([]);
-    }, []);
+        if (currentFilter != value) {
+            setCurrentFilter(value);
+            setTasksSelected([]);
+        }
+    }, [currentFilter]);
 
     useEffect(() => {
         filterScrollViewRef.current?.scrollTo({
             x: (currentFilter - 1) * (100 + 10),
         });
     }, [currentFilter]);
+
+    const displayedFolders = useMemo(() => {
+        return [
+            DEFAULT_FOLDER,
+            ...folders,
+        ];
+    }, [folders]);
+
+    const displayedFilters = useMemo(() => {
+        return ([
+            t("tasks_filter_all"),
+            t("tasks_filter_done"),
+            t("tasks_filter_not_done"),
+        ]);
+    }, [i18n.language]);
+
 
     return (
         <View className="absolute w-full z-[50]">
@@ -270,24 +289,20 @@ export const TasksHeader = memo(() => {
                                                 horizontal
                                                 showsHorizontalScrollIndicator={false}
                                                 nestedScrollEnabled
-                                                data={[
-                                                    {
-                                                        idFolder: "all_folders",
-                                                        title: "all",
-                                                        createdAt: new Date(),
-                                                        updatedAt: new Date(),
-                                                    } as FolderType,
-                                                    ...folders,
-                                                ]}
+                                                data={displayedFolders}
                                                 keyExtractor={(folder) => folder.idFolder}
                                                 renderItem={foldersRenderItem}
-                                                className="w-[90%]"
+                                                scrollEventThrottle={16}
+                                                initialNumToRender={3}
+                                                maxToRenderPerBatch={Math.ceil(displayedFolders.length / 2)}
+                                                removeClippedSubviews={false}
+                                                className="w-full"
                                                 contentContainerClassName="flex flex-row items-center gap-[10px] pr-[40px]"
                                             />
 
                                             <LinearGradient
                                                 colors={theme == "dark" ?
-                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
                                                     :
                                                     ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
                                                 }
@@ -298,7 +313,7 @@ export const TasksHeader = memo(() => {
                                             >
                                                 <LinearGradient
                                                     colors={theme == "dark" ?
-                                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
                                                         :
                                                         ["rgba(0, 0, 0, .06)", "rgba(0, 0, 0, .06)", "rgba(0, 0, 0, 0)"]
                                                     }
@@ -382,15 +397,11 @@ export const TasksHeader = memo(() => {
                                         contentContainerClassName="flex flex-row items-center gap-[10px] pl-[85px] pr-[30px]"
                                     >
                                         {
-                                            [
-                                                t("tasks_filter_all"),
-                                                t("tasks_filter_done"),
-                                                t("tasks_filter_not_done"),
-                                            ].map((item, i) => (
+                                            displayedFilters.map((item, i) => (
                                                 <PressableAnimated
                                                     key={i}
                                                     scale={.95}
-                                                    onPress={() => currentFilter != (i + 1) && onFilterButtonPress((i + 1) as 1 | 2 | 3)}
+                                                    onPress={() => onFilterButtonPress((i + 1) as 1 | 2 | 3)}
                                                     style={{
                                                         backgroundColor: currentFilter == (i + 1) ?
                                                             (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")

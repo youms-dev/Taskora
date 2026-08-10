@@ -24,19 +24,21 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
     const tasksGap = 20;
     const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter } = useTasksData();
     const nativeGesture = useMemo(() => Gesture.Native(), []);
-    const folderTasks = useMemo(() => {
-        if (folderIndex == 0) return tasks;
-        return tasks.filter((t) => t.idFolder == folder.idFolder);
-    }, [tasks, folder, folderIndex]);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
+    const loadingShared = useSharedValue<boolean>(false);
+    const filtering = useSharedValue<boolean>(false);
+
     const selectMap = useMemo(() => {
         return new Map(
             tasksSelected.map(t => [t.idTask, t])
         )
     }, [tasksSelected]);
-    const loadingShared = useSharedValue<boolean>(false);
-    const filtering = useSharedValue<boolean>(false);
+
+    const folderTasks = useMemo(() => {
+        if (folderIndex == 0) return tasks;
+        return tasks.filter((t) => t.idFolder == folder.idFolder);
+    }, [tasks, folder, folderIndex]);
 
     const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
         <Animated.View
@@ -99,17 +101,6 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
 
     const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), []);
 
-    useEffect(() => {
-        if (mounted) return;
-
-        const isActive = currentFolder == null
-            ? folderIndex === 0
-            : currentFolder === folder.idFolder;
-
-        if (isActive) {
-            setMounted(true);
-        }
-    }, [currentFolder]);
 
     useEffect(() => {
         areTasksSelected.value = selectMap.size > 0;
@@ -193,6 +184,14 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
         filtering.value = currentFilter != 1;
     }, [currentFilter]);
 
+    const isActive = currentFolder == null
+        ? folderIndex === 0
+        : currentFolder === folder.idFolder;
+
+    if (isActive && !mounted) {
+        setMounted(true);
+    }
+
     if (!mounted) return null;
 
     return (
@@ -222,6 +221,7 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
                     contentContainerStyle={{
                         gap: tasksGap,
                     }}
+                    extraData={mounted}
                     contentContainerClassName="w-full flex flex-col items-center pt-[215px] pb-[80px] px-3"
                 />
             </GestureDetector>
