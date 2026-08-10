@@ -1,6 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
-import { ReactNode, useEffect, useState } from "react";
+import { memo, ReactNode, useEffect, useState } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
@@ -8,6 +8,9 @@ interface Props {
     children?: ReactNode;
     open?: boolean;
     header: ReactNode;
+    chevronColor?: string;
+    duration?: number;
+    rotationDuration?: number;
 }
 
 /**
@@ -19,14 +22,23 @@ interface Props {
  * 
  * @param header Define the header of the select
  * 
+ * @param chevronColor
+ * 
+ * @param duration Animation duration
+ * 
+ * @param rotationDuration
+ * 
  * @returns 
  */
 
-export const Select = ({ open: selectOpen = false, children, header }: Props) => {
+export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200 }: Props) => {
     const active = useSharedValue(!!selectOpen);
     const contentHeight = useSharedValue(0);
     const [measuredHeight, setMeasuredHeight] = useState(0);
     const { theme } = useTheme();
+    const duration = useSharedValue<number>(durationProps);
+    const rotationDuration = useSharedValue<number>(rotationDurationProps);
+    const chevronWidth = useSharedValue<number>(0);
 
     useEffect(() => {
         active.value = selectOpen;
@@ -36,13 +48,13 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
         contentHeight.value = measuredHeight;
     }, [measuredHeight]);
 
-    const iconAnimation = useAnimatedStyle(() => ({
+    const rotationAnimation = useAnimatedStyle(() => ({
         transform: [
             {
                 rotate: withTiming(
                     active.value ? "90deg" : "0deg",
                     {
-                        duration: 200,
+                        duration: rotationDuration.value,
                         easing: Easing.inOut(Easing.quad),
                     }
                 ),
@@ -52,7 +64,7 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
 
     const contentAnimation = useAnimatedStyle(() => ({
         height: withTiming(active.value ? contentHeight.value : 0, {
-            duration: 200,
+            duration: duration.value,
             easing: Easing.inOut(Easing.quad),
         }),
         overflow: "hidden",
@@ -61,6 +73,11 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
     const onLayout = (e: LayoutChangeEvent) => {
         setMeasuredHeight(e.nativeEvent.layout.height);
     };
+
+    useEffect(() => {
+        duration.value = durationProps;
+        rotationDuration.value = rotationDurationProps;
+    }, [durationProps, rotationDurationProps]);
 
     return (
         <View className="w-full items-center">
@@ -74,12 +91,15 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
                     {header}
                 </View>
 
-                <View className="w-[20%] flex-row justify-end">
-                    <Animated.View style={iconAnimation}>
+                <View className="w-[20%] h-full flex-row justify-end">
+                    <Animated.View
+                        onLayout={(e) => chevronWidth.value = e.nativeEvent.layout.width}
+                        style={rotationAnimation}
+                    >
                         <Entypo
                             name="chevron-right"
                             size={30}
-                            color={theme == "dark" ? "rgba(255,255,255,.5)" : "rgba(0, 0, 0, .5)"}
+                            color={chevronColor ? chevronColor : (theme == "dark" ? "rgba(255,255,255,.5)" : "rgba(0, 0, 0, .5)")}
                         />
                     </Animated.View>
                 </View>
@@ -98,4 +118,4 @@ export const Select = ({ open: selectOpen = false, children, header }: Props) =>
             </Animated.View>
         </View>
     );
-};
+});

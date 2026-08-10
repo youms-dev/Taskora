@@ -685,7 +685,7 @@ export default function Archives() {
                     />
 
                     <Pressable
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.navigate("/(protected)/(tabs)/")}
                         android_ripple={{
                             color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
                             foreground: true,

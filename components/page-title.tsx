@@ -157,7 +157,7 @@ export const PageTitle = ({ children, ...rest }: Props) => {
                                 <>
                                     {
                                         !["/"].includes(pathname) && (
-                                            <PressableAnimated>
+                                            <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/create")}>
                                                 <FontAwesome6
                                                     name="plus"
                                                     size={25}

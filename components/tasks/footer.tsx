@@ -6,6 +6,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Pressable, useWindowDimensions, View } from "react-native";
@@ -26,6 +27,8 @@ export const TasksFooter = memo(() => {
     const { t } = useTranslation();
     const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, loading } = useTasksData();
     const showAddTaskButton = useSharedValue<boolean>(true);
+    const router = useRouter();
+
     const selectMap = useMemo(() => {
         return new Map(
             tasksSelected.map(t => [t.idTask, t])
@@ -201,9 +204,7 @@ export const TasksFooter = memo(() => {
                 />
 
                 <Pressable
-                    onPress={() => {
-                        
-                    }}
+                    onPress={() => router.navigate("/(protected)/(task)/create")}
                     android_ripple={{
                         color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
                         borderless: true,

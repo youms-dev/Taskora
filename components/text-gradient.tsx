@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ColorValue, Text, TextProps, View } from "react-native";
+import { memo, useEffect, useState } from "react";
+import { ColorValue, Text, View } from "react-native";
 
 interface Props {
     children: string | number;
@@ -18,21 +18,19 @@ interface Props {
  * @returns 
  */
 
-export const TextGradient = ({ children, className, colors: textColors }: Props) => {
+export const TextGradient = memo(({ children, className, colors: textColors }: Props) => {
     const [text, setText] = useState<typeof children>(children);
     const [count, setCount] = useState<number>(0);
-    const [colors, setColors] = useState<typeof textColors>([]);
 
     useEffect(() => {
         setText(children);
-        setCount(String(children).length / colors.length);
-        setColors([...textColors]);
-    }, [textColors, children]);
+        setCount(String(children).length / textColors.length);
+    }, [textColors, children, textColors]);
 
     return (
         <View className="flex-row items-center">
             {
-                colors.map((color, i) => {
+                textColors.map((color, i) => {
                     const start = i * count;
                     const end = start + count;
 
@@ -51,4 +49,4 @@ export const TextGradient = ({ children, className, colors: textColors }: Props)
             }
         </View>
     );
-};
+});

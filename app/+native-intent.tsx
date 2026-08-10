@@ -31,7 +31,7 @@ export default function NativeIntent() {
         <Button
           scale={.95}
           loaderSize={25}
-          onPress={() => router.replace("/tasks")}
+          onPress={() => router.replace("/(protected)/(tabs)/")}
         >
           <FontAwesome
             name="arrow-left"

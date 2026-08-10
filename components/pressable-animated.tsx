@@ -29,22 +29,22 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  */
 
 
-export const PressableAnimated = memo(({ children, style, scale = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
+export const PressableAnimated = memo(({ children, style, scale: scaleProps = .9, onPressIn, onPressOut, ...rest }: PressableAnimatedProps) => {
     const pressed = useSharedValue<boolean>(false);
-    const scaleValue = useSharedValue<number>(1);
+    const scale = useSharedValue<number>(1);
 
     useEffect(() => {
-        scaleValue.value = scale;
-    }, [scale]);
+        scale.value = scaleProps;
+    }, [scaleProps]);
 
     const animation = useAnimatedStyle(() => ({
         transform: [{
-            scale: withTiming(pressed.value ? scaleValue.value : 1, {
+            scale: withTiming(pressed.value ? scale.value : 1, {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad)
             }),
         }]
-    }))
+    }));
 
     return (
         <AnimatedPressable
