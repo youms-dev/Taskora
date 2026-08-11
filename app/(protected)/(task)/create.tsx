@@ -6,6 +6,8 @@ import { COLORS } from "@/constants/colors";
 import { getIcons } from "@/constants/icons";
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import clsx from "clsx";
 import { useRouter } from "expo-router";
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
@@ -18,29 +20,36 @@ interface Props extends TextInputProps {
     onBlur?: (e?: FocusEvent) => void;
     value?: string;
     ref?: RefObject<TextInput>;
+    label?: string;
+    rounded?: number;
+    multiline?: boolean;
 }
 
-const Input = ({ onFocus, onBlur, value = "", ref: inputRef, ...rest }: Props) => {
-    const { theme } = useTheme();
-    const { t } = useTranslation();
+const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded = 16, multiline = false, ...rest }: Props) => {
+    const { theme, themeShared } = useTheme();
     const ref = useRef<TextInput>(inputRef?.current);
     const focus = useSharedValue<boolean>(false);
+    const valueShared = useSharedValue<string>("");
 
-    const titleAnimation = useAnimatedStyle(() => ({
+    const labelAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateX: withTiming(focus.value ? 0 : 16, {
+                translateX: withTiming((focus.value || valueShared.value.trim().length > 0) ? 0 : 16, {
                     duration: 200,
                     easing: Easing.inOut(Easing.quad),
                 }),
             },
             {
-                translateY: withTiming(focus.value ? -25 : 14, {
+                translateY: withTiming((focus.value || valueShared.value.trim().length > 0) ? -25 : 10, {
                     duration: 200,
                     easing: Easing.inOut(Easing.quad),
                 }),
             },
-        ]
+        ],
+        opacity: withTiming((focus.value || valueShared.value.trim().length > 0) ? .5 : 1, {
+            duration: 200,
+            easing: Easing.inOut(Easing.quad),
+        }),
     }));
 
     useEffect(() => {
@@ -52,8 +61,28 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, ...rest }: Props) =
         return () => remove();
     }, []);
 
+    const focusAnimation = useAnimatedStyle(() => ({
+        borderWidth: 1,
+        borderColor: focus.value ?
+            (themeShared.value == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .2)")
+            :
+            "rgba(0, 0, 0, 0)"
+    }));
+
+    useEffect(() => {
+        valueShared.value = value;
+    }, [value]);
+
     return (
-        <View className="w-full">
+        <Animated.View
+            style={[
+                {
+                    borderRadius: rounded,
+                },
+                focusAnimation,
+            ]}
+            className="w-full"
+        >
             <TextInput
                 {...rest}
                 ref={(e) => {
@@ -74,16 +103,27 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, ...rest }: Props) =
                 }}
                 value={value}
                 cursorColor={theme == "dark" ? "rgba(255, 255, 255, .5)" : COLORS.emerald[500]}
-                className="w-full h-[50px] dark:bg-white/10 bg-white rounded-2xl dark:text-white/80 text-black/80 text-xl px-5"
+                textAlignVertical="top"
+                multiline={multiline}
+                style={{
+                    minHeight: multiline ? 80 : 40,
+                    maxHeight: 200,
+                    borderRadius: rounded,
+                }}
+                className="w-full dark:text-white/80 text-black/80 text-xl px-5"
             />
 
-            <TextAnimated
-                style={titleAnimation}
-                className="absolute text-xl tracking-widest"
-            >
-                {t("create_form_title")}
-            </TextAnimated>
-        </View>
+            {
+                label && (
+                    <TextAnimated
+                        style={labelAnimation}
+                        className="absolute text-xl tracking-wide"
+                    >
+                        {label}
+                    </TextAnimated>
+                )
+            }
+        </Animated.View>
     );
 };
 
@@ -95,6 +135,12 @@ export default function CreateTaskPage() {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { theme } = useTheme();
     const router = useRouter();
+    const initialInputsValues = {
+        title: "",
+        desc: "",
+        icon: "",
+    }
+    const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -157,6 +203,8 @@ export default function CreateTaskPage() {
                 </Pressable>
             </View>
 
+            {/* Header */}
+
             <View
                 onLayout={(e) => parentWidth.value = e.nativeEvent.layout.width}
                 className="w-full h-[50px] flex flex-row justify-center items-center gap-3 px-3 py-2"
@@ -203,6 +251,8 @@ export default function CreateTaskPage() {
                 </View>
             </View>
 
+            {/* Form */}
+
             <View
                 style={{
                     height: screenHeight - 110,
@@ -212,53 +262,170 @@ export default function CreateTaskPage() {
                         }
                     ]
                 }}
-                className="absolute left-0 top-0 w-full dark:bg-black bg-white rounded-t-[30px]"
+                className="absolute left-0 top-0 w-full"
             >
                 <ScrollView
                     horizontal={false}
                     showsVerticalScrollIndicator={false}
-                    className="w-full h-full dark:bg-black bg-[rgba(0,0,0,.06)] rounded-t-[30px]"
-                    contentContainerClassName="w-full flex items-center px-5 pt-12 pb-[100px]"
+                    className="w-full h-full"
+                    contentContainerClassName="w-full flex items-center gap-6 pb-[100px] px-3"
                 >
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS == "android" ? "height" : "padding"}
-                        className="w-full"
-                    >
-                        <Input />
-                    </KeyboardAvoidingView>
-
-                    <View className="w-full mt-6">
-                        <Select
-                            open
-                            duration={500}
-                            header={(
-                                <View className="w-full flex gap-3 pt-[3px]">
-                                    <TextAnimated className="text-xl tracking-widest">
-                                        {t("create_form_icon")}
-                                    </TextAnimated>
+                    <View className="w-full dark:bg-black bg-white rounded-2xl">
+                        <View className="w-full dark:bg-black bg-black/5 p-5 pt-10 rounded-2xl">
+                            <KeyboardAvoidingView
+                                behavior={Platform.OS == "android" ? "height" : "padding"}
+                                className="w-full flex items-center gap-10"
+                            >
+                                <View className="w-full">
+                                    <View className="dark:bg-white/10 bg-white rounded-2xl">
+                                        <Input
+                                            label={t(`create_form_${target}_title`)}
+                                            value={inputsValues.title}
+                                            onChangeText={(e) => setInputsValues({
+                                                ...inputsValues,
+                                                title: e,
+                                            })}
+                                        />
+                                    </View>
                                 </View>
-                            )}
-                        >
-                            <View className="w-full flex flex-row flex-wrap gap-5 pt-5">
-                                {
-                                    icons.map((Icon, i) => {
-                                        return (
-                                            <PressableAnimated
-                                                key={i}
-                                                className={clsx(
-                                                    "size-[45px] flex justify-center items-center border rounded-full dark:bg-white/10 bg-white",
-                                                    i == 0 ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
-                                                )}
-                                            >
-                                                <Icon color={i == 0 ? COLORS.emerald[500] : undefined} />
-                                            </PressableAnimated>
-                                        )
-                                    })
-                                }
+
+                                <View className="w-full">
+                                    <View className="dark:bg-white/10 bg-white rounded-2xl">
+                                        <Input
+                                            label={t("create_form_description")}
+                                            multiline
+                                            value={inputsValues.desc}
+                                            onChangeText={(e) => setInputsValues({
+                                                ...inputsValues,
+                                                desc: e,
+                                            })}
+                                        />
+                                    </View>
+                                </View>
+                            </KeyboardAvoidingView>
+
+                            <View className="w-full mt-6">
+                                <Select
+                                    open
+                                    duration={500}
+                                    header={(
+                                        <View className="w-full flex gap-3 pt-[3px]">
+                                            <TextAnimated className="text-xl tracking-widest">
+                                                {t("create_form_icon")}
+                                            </TextAnimated>
+                                        </View>
+                                    )}
+                                >
+                                    <View className="w-full flex flex-row flex-wrap gap-5 pt-5">
+                                        {
+                                            icons.map((Icon, i) => {
+                                                return (
+                                                    <PressableAnimated
+                                                        key={i}
+                                                        className={clsx(
+                                                            "size-[45px] flex justify-center items-center border rounded-full dark:bg-white/10 bg-white",
+                                                            i == 0 ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
+                                                        )}
+                                                    >
+                                                        <Icon color={i == 0 ? COLORS.emerald[500] : undefined} />
+                                                    </PressableAnimated>
+                                                )
+                                            })
+                                        }
+                                    </View>
+                                </Select>
                             </View>
-                        </Select>
+                        </View>
                     </View>
 
+                    <View className="w-full dark:bg-black bg-white rounded-2xl">
+                        <View className="w-full flex items-center gap-5 dark:bg-black bg-black/5 p-5 rounded-2xl">
+                            <View className="w-full flex flex-row items-center gap-2">
+                                <FontAwesome6
+                                    name="calendar-day"
+                                    size={22}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                />
+
+                                <Pressable
+                                    onPress={() => {
+
+                                    }}
+                                    className="w-[92%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
+                                >
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        dark={inputsValues.title.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
+                                        light={inputsValues.title.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
+                                        className={clsx(
+                                            "text-xl",
+                                            inputsValues.title.trim().length > 0 && "tracking-[4px]",
+                                        )}
+                                    >
+                                        {inputsValues.title.trim().length == 0 ? t("create_form_date") : inputsValues.title}
+                                    </TextAnimated>
+                                </Pressable>
+                            </View>
+
+                            <View className="w-full flex flex-row items-center gap-2">
+                                <View className="w-1/2 flex flex-row gap-2 items-center">
+                                    <View className="w-[15%]">
+                                        <Ionicons
+                                            name="time-sharp"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                    </View>
+
+                                    <Pressable
+                                        onPress={() => {
+
+                                        }}
+                                        className="w-[80%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
+                                    >
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            dark={inputsValues.desc.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
+                                            light={inputsValues.desc.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
+                                            className={clsx(
+                                                "text-xl",
+                                                inputsValues.desc.trim().length > 0 && "tracking-[4px]",
+                                            )}
+                                        >
+                                            {inputsValues.desc.trim().length == 0 ? t("create_form_time") : inputsValues.desc}
+                                        </TextAnimated>
+                                    </Pressable>
+                                </View>
+
+                                <View className="w-1/2 flex flex-row gap-2 items-center">
+                                    <FontAwesome6
+                                        name="calendar-day"
+                                        size={22}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                    />
+
+                                    <Pressable
+                                        onPress={() => {
+
+                                        }}
+                                        className="w-[80%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
+                                    >
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            dark={inputsValues.desc.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
+                                            light={inputsValues.desc.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
+                                            className={clsx(
+                                                "text-xl",
+                                                inputsValues.desc.trim().length > 0 && "tracking-[4px]",
+                                            )}
+                                        >
+                                            {inputsValues.desc.trim().length == 0 ? t("create_form_time") : inputsValues.desc}
+                                        </TextAnimated>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
                 </ScrollView>
             </View>
         </Container>
