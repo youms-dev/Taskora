@@ -14,19 +14,19 @@ interface Props extends PressableProps {
 
 /**
  * 
- * @param children Button children
- * @param loaderSize ActivityIndicator size
+ * @param children
+ * @param loaderSize
  * @default 20
  * 
- * @param loading Whether the button is loading
+ * @param loading
  * @default false
  * 
- * @param Width Button width
+ * @param Width
  * @default 250
  * 
- * @param Height Button height
+ * @param Height
  * 
- * @param scale Button scale
+ * @param scale How the button scale when it's pressed
  * @default 1
  * 
  * @returns Button component

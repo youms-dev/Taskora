@@ -11,6 +11,12 @@ interface Props {
     chevronColor?: string;
     duration?: number;
     rotationDuration?: number;
+    chevronPadding?: number | {
+        paddingLeft?: number;
+        paddingRight?: number;
+        paddingTop?: number;
+        paddingBottom?: number;
+    };
 }
 
 /**
@@ -28,10 +34,12 @@ interface Props {
  * 
  * @param rotationDuration
  * 
+ * @param chevronPadding
+ * 
  * @returns 
  */
 
-export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200 }: Props) => {
+export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200, chevronPadding = 0 }: Props) => {
     const active = useSharedValue(!!selectOpen);
     const contentHeight = useSharedValue(0);
     const [measuredHeight, setMeasuredHeight] = useState(0);
@@ -94,7 +102,16 @@ export const Select = memo(({ open: selectOpen = false, children, header, chevro
                 <View className="w-[20%] h-full flex-row justify-end">
                     <Animated.View
                         onLayout={(e) => chevronWidth.value = e.nativeEvent.layout.width}
-                        style={rotationAnimation}
+                        style={[
+                            rotationAnimation,
+                            {
+                                padding: typeof chevronPadding == "number" ? chevronPadding : null,
+                                paddingLeft: typeof chevronPadding == "object" ? chevronPadding?.paddingLeft : null,
+                                paddingRight: typeof chevronPadding == "object" ? chevronPadding?.paddingRight : null,
+                                paddingBottom: typeof chevronPadding == "object" ? chevronPadding?.paddingBottom : null,
+                                paddingTop: typeof chevronPadding == "object" ? chevronPadding?.paddingTop : null,
+                            },
+                        ]}
                     >
                         <Entypo
                             name="chevron-right"

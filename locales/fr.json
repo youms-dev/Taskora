@@ -65,5 +65,6 @@
     "create_form_description": "Description",
     "create_form_date": "Sélectionnez une date",
     "create_form_time": "À quelle heure",
-    "create_form_time_before": "{{time}} minutes avant"
+    "create_form_time_before": "{{time}} mins avant",
+    "create_form_submit": "Créer"
 }

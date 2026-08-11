@@ -10,6 +10,8 @@ interface Props extends Pick<PressableProps, "onPress"> {
     checked?: boolean;
     size?: DimensionValue;
     borderColor?: ColorValue;
+    borderRadius?: number;
+    borderWidth?: number;
 }
 
 /**
@@ -17,13 +19,20 @@ interface Props extends Pick<PressableProps, "onPress"> {
  * @param checked
  * 
  * @param size
+ * @default 35
  * 
  * @param borderColor
+ * 
+ * @param borderRadius
+ * @default 12
+ * 
+ * @param borderWidth
+ * @default 1
  * 
  * @returns 
  */
 
-export const Checkbox = ({ checked, size = 35, borderColor, ...rest }: Props) => {
+export const Checkbox = ({ checked, size = 35, borderColor, borderRadius = 12, borderWidth = 2, ...rest }: Props) => {
     const { theme } = useTheme();
     const isChecked = useSharedValue<boolean>(false);
 
@@ -57,9 +66,11 @@ export const Checkbox = ({ checked, size = 35, borderColor, ...rest }: Props) =>
             style={{
                 width: size,
                 height: size,
-                borderColor: borderColor ? borderColor : theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"
+                borderWidth,
+                borderColor: borderColor ? borderColor : theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)",
+                borderRadius,
             }}
-            className="flex justify-center items-center border-2 rounded-xl"
+            className="flex justify-center items-center"
         >
             <Animated.View style={checkAnimation}>
                 <AntDesign
