@@ -28,3 +28,24 @@ export const monthsTranslation: Record<string, Array<string>> = {
         "Décembre",
     ],
 }
+
+export const daysTranslation: Record<string, Array<string>> = {
+    "en": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ],
+    "fr": [
+        "Lundi",
+        "Mardi",
+        "Mercredi",
+        "Jeudi",
+        "Vendredi",
+        "Samedi",
+        "Dimanche",
+    ],
+}

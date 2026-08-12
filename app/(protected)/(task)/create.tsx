@@ -1,9 +1,10 @@
-import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
+import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
 import { TextAnimated } from "@/components/text-animated";
+import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { getIcons } from "@/constants/icons";
 import { useTheme } from "@/hooks/use-theme";
@@ -12,11 +13,12 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import clsx from "clsx";
+import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
@@ -31,7 +33,7 @@ interface Props extends TextInputProps {
 
 const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded = 16, multiline = false, ...rest }: Props) => {
     const { theme, themeShared } = useTheme();
-    const ref = useRef<TextInput>(inputRef?.current);
+    const ref = useRef<TextInput>(null);
     const focus = useSharedValue<boolean>(false);
     const valueShared = useSharedValue<string>("");
 
@@ -141,16 +143,27 @@ export default function CreateTaskPage() {
     const router = useRouter();
     const date = useMemo(() => new Date(), []);
     const initialInputsValues = {
-        title: "",
+        title: null,
         desc: "",
         icon: "",
         date,
-        startAt: `${date.getHours() + 1} : ${date.getMinutes()}`,
-        endAt: `${date.getHours() + 2} : ${date.getMinutes()}`,
+        startAt: `${String(date.getHours() + 1).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
+        endAt: `${String(date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
     }
-    const [inputsValues, setInputsValues] = useState<Omit<typeof initialInputsValues, "endAt"> & { endAt: string | null }>(initialInputsValues);
+    const [inputsValues, setInputsValues] = useState<
+        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore">
+        &
+        {
+            title: string | null;
+            remindBefore: number | null;
+            endAt: string | null;
+        }
+    >(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
+    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(false);
+    const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
+    const targetTime = useRef<"start" | "end">("start");
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -312,7 +325,7 @@ export default function CreateTaskPage() {
                                 <View className="dark:bg-white/10 bg-white rounded-2xl">
                                     <Input
                                         label={t(`create_form_${target}_title`)}
-                                        value={inputsValues.title}
+                                        value={inputsValues.title ?? undefined}
                                         onChangeText={(e) => setInputsValues({
                                             ...inputsValues,
                                             title: e,
@@ -338,7 +351,7 @@ export default function CreateTaskPage() {
 
                         <View className="w-full mt-6">
                             <Select
-                                open
+                                // open
                                 duration={500}
                                 header={(
                                     <View className="w-full flex gap-3 pt-[2px]">
@@ -383,27 +396,37 @@ export default function CreateTaskPage() {
 
                             <Pressable
                                 onPress={() => {
-
                                 }}
                                 className="w-[88%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                             >
                                 <TextAnimated
                                     numberOfLines={1}
-                                    dark={inputsValues.title.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
-                                    light={inputsValues.title.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
                                     className={clsx(
                                         "text-xl",
-                                        inputsValues.title.trim().length > 0 && "tracking-[4px]",
+                                        String(inputsValues.date).trim().length > 0 ? "tracking-wide" : "opacity-50",
                                     )}
                                 >
-                                    {inputsValues.title.trim().length == 0 ? t("create_form_date") : inputsValues.title}
+                                    {
+                                        String(inputsValues.date).trim().length == 0 ?
+                                            t("create_form_date")
+                                            :
+                                            `${daysTranslation[i18n.language][inputsValues.date.getDay()]},  ${format(inputsValues.date, i18n.language == "en" ? "M / dd / yyyy" : "dd / MM / yyyy")}`
+                                    }
                                 </TextAnimated>
                             </Pressable>
                         </View>
 
-                        <View className="w-full flex flex-row items-center gap-[10px]">
-                            <View className="w-1/2 flex flex-row gap-2 items-center">
-                                <View className="w-[20%]">
+                        <View className={clsx(
+                            "w-full flex flex-row items-center",
+                            target == "task" ? "gap-5" : "gap-[10px]",
+                        )}>
+                            <View className={clsx(
+                                "flex flex-row gap-2 items-center",
+                                target == "task" ? "w-full" : "w-1/2",
+                            )}>
+                                <View className={clsx(
+                                    target == "task" ? "w-[10%]" : "w-[20%]",
+                                )}>
                                     <View style={{
                                         transform: [
                                             {
@@ -421,120 +444,132 @@ export default function CreateTaskPage() {
 
                                 <Pressable
                                     onPress={() => {
-
+                                        setTimeModalOpened(true);
+                                        targetTime.current = "start";
                                     }}
-                                    className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
-                                >
-                                    <TextAnimated
-                                        numberOfLines={1}
-                                        dark={inputsValues.desc.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
-                                        light={inputsValues.desc.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
-                                        className={clsx(
-                                            "text-xl",
-                                            inputsValues.desc.trim().length > 0 && "tracking-[4px]",
-                                        )}
-                                    >
-                                        {inputsValues.desc.trim().length == 0 ? t("create_form_time") : inputsValues.desc}
-                                    </TextAnimated>
-                                </Pressable>
-                            </View>
-
-                            <View className="w-1/2 flex flex-row gap-2 items-center">
-                                <View className="w-[20%]">
-                                    <FontAwesome6
-                                        name="arrow-right"
-                                        size={24}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                    />
-                                </View>
-
-                                <Pressable
-                                    onPress={() => {
-
-                                    }}
-                                    className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
-                                >
-                                    <TextAnimated
-                                        numberOfLines={1}
-                                        dark={inputsValues.desc.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
-                                        light={inputsValues.desc.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
-                                        className={clsx(
-                                            "text-xl",
-                                            inputsValues.desc.trim().length > 0 && "tracking-[4px]",
-                                        )}
-                                    >
-                                        {inputsValues.desc.trim().length == 0 ? t("create_form_time") : inputsValues.desc}
-                                    </TextAnimated>
-                                </Pressable>
-                            </View>
-                        </View>
-
-                        <View className="w-full flex flex-row gap-2">
-                            <View className="w-[10%] pt-[10px]">
-                                <MaterialCommunityIcons
-                                    name="bell-ring"
-                                    size={24}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </View>
-
-                            <View className="w-[88%] dark:bg-white/10 bg-white rounded-2xl">
-                                <Select
-                                    chevronPadding={{
-                                        paddingTop: 8,
-                                        paddingRight: 5,
-                                    }}
-                                    header={(
-                                        <View className="w-full px-5 py-3 rounded-2xl">
-                                            <TextAnimated
-                                                numberOfLines={1}
-                                                dark={inputsValues.title.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
-                                                light={inputsValues.title.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
-                                                className={clsx(
-                                                    "text-xl",
-                                                    inputsValues.title.trim().length > 0 && "tracking-[4px]",
-                                                )}
-                                            >
-                                                {inputsValues.title.trim().length == 0 ? t("create_form_time_before") : inputsValues.title}
-                                            </TextAnimated>
-                                        </View>
+                                    className={clsx(
+                                        "dark:bg-white/10 bg-white rounded-2xl px-5 py-3",
+                                        target == "task" ? "w-[88%]" : "w-[70%]",
                                     )}
                                 >
-                                    <View className="w-full flex items-center gap-6 dark:bg-black bg-white px-5 py-3 rounded-2xl mt-1">
-                                        {
-                                            repeatRange.map((val, i) => (
-                                                <Pressable
-                                                    key={i}
-                                                    className="w-full flex flex-row justify-between items-center"
-                                                >
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="text-xl"
+                                    >
+                                        {inputsValues.startAt}
+                                    </TextAnimated>
+                                </Pressable>
+                            </View>
+
+                            {
+                                target == "event" && (
+                                    <View className="w-1/2 flex flex-row gap-2 items-center">
+                                        <View className="w-[20%]">
+                                            <FontAwesome6
+                                                name="arrow-right"
+                                                size={24}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <Pressable
+                                            onPress={() => {
+                                                setTimeModalOpened(true);
+                                                targetTime.current = "end";
+                                            }}
+                                            className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
+                                        >
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                className="text-xl"
+                                            >
+                                                {!inputsValues.endAt ? t("create_form_time") : inputsValues.endAt}
+                                            </TextAnimated>
+                                        </Pressable>
+                                    </View>
+                                )
+                            }
+                        </View>
+
+                        {
+                            target == "event" && (
+                                <View className="w-full flex flex-row gap-2">
+                                    <View className="w-[10%] pt-[10px]">
+                                        <MaterialCommunityIcons
+                                            name="bell-ring"
+                                            size={24}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                    </View>
+
+                                    <View className="w-[88%] dark:bg-white/10 bg-white rounded-2xl">
+                                        <Select
+                                            chevronPadding={{
+                                                paddingTop: 8,
+                                                paddingRight: 5,
+                                            }}
+                                            header={(
+                                                <View className="w-full px-5 py-3 rounded-2xl">
                                                     <TextAnimated
                                                         numberOfLines={1}
-                                                        dark={inputsValues.title.trim().length > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
-                                                        light={inputsValues.title.trim().length > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
-                                                        className={clsx(
-                                                            "text-xl",
-                                                            inputsValues.title.trim().length > 0 && "tracking-[4px]",
-                                                        )}
+                                                        dark={inputsValues.remindBefore && inputsValues.remindBefore > 0 ? "rgba(255, 255, 255, .8)" : "rgba(255, 255, 255, .4)"}
+                                                        light={inputsValues.remindBefore && inputsValues.remindBefore > 0 ? "rgba(0, 0, 0, .8)" : "rgba(0, 0, 0, .4)"}
+                                                        className="text-xl tracking-widest"
                                                     >
-                                                        {t(`create_form_time_before`, { time: val })}
+                                                        {
+                                                            !inputsValues.remindBefore ?
+                                                                t("create_form_time_before")
+                                                                :
+                                                                t(`create_form_time_before`, { time: inputsValues.remindBefore })
+                                                        }
                                                     </TextAnimated>
+                                                </View>
+                                            )}
+                                        >
+                                            <View className="w-full flex items-center gap-6 dark:bg-black bg-white px-5 py-3 rounded-2xl">
+                                                {
+                                                    repeatRange.map((val, i) => (
+                                                        <Pressable
+                                                            key={i}
+                                                            onPress={() => setInputsValues({
+                                                                ...inputsValues,
+                                                                remindBefore: val,
+                                                            })}
+                                                            className="w-full flex flex-row justify-between items-center"
+                                                        >
+                                                            <TextAnimated
+                                                                numberOfLines={1}
+                                                                dark="rgba(255, 255, 255, .8)"
+                                                                light="rgba(0, 0, 0, .8)"
+                                                                className="text-xl"
+                                                            >
+                                                                {t(`create_form_time_before`, { time: val })}
+                                                            </TextAnimated>
 
-                                                    <Checkbox
-                                                        size={25}
-                                                        borderWidth={1}
-                                                        borderRadius={5}
-                                                        checked
-                                                    />
-                                                </Pressable>
-                                            ))
-                                        }
+                                                            <Checkbox
+                                                                size={25}
+                                                                borderWidth={1}
+                                                                borderRadius={5}
+                                                                checked={inputsValues.remindBefore == val}
+                                                                onPress={() => setInputsValues({
+                                                                    ...inputsValues,
+                                                                    remindBefore: val,
+                                                                })}
+                                                            />
+                                                        </Pressable>
+                                                    ))
+                                                }
+                                            </View>
+                                        </Select>
                                     </View>
-                                </Select>
-                            </View>
-                        </View>
+                                </View>
+                            )
+                        }
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Form submit button */}
 
             <LinearGradient
                 colors={theme == "dark" ?
@@ -565,18 +600,67 @@ export default function CreateTaskPage() {
                     locations={[0, .3, 1]}
                     className="size-full flex justify-center items-center"
                 >
-                    <Button
-                        loading={loading}
-                        width={150}
-                        loaderSize={25}
+                    <PressableAnimated
                         scale={.95}
+                        disabled={loading}
+                        className={clsx(
+                            "w-[80%] sm:w-[300px] h-[50px] dark:bg-black bg-white rounded-3xl",
+                            loading && "opacity-50",
+                        )}
                     >
-                        <Text className="text-2xl text-black font-bold">
-                            {t("create_form_submit")}
-                        </Text>
-                    </Button>
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    }
+                                ],
+                                filter: "blur(5px)",
+                            }}
+                            className={clsx(
+                                "size-full rounded-3xl",
+                                loading ? "dark:bg-black/50 bg-black/10" : "dark:bg-back/50 bg-black/30",
+                            )}
+                        />
+
+                        <View className="absolute w-full h-full dark:bg-black bg-white rounded-3xl z-[1]">
+                            <View className="size-full flex flex-row justify-center items-center px-3 py-2 rounded-3xl border dark:border-white/5 border-black/10 dark:bg-black bg-white">
+                                {
+                                    loading ?
+                                        (
+                                            <ActivityIndicator
+                                                size={30}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
+                                            />
+                                        )
+                                        :
+                                        (
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                dark="rgba(255, 255, 255, .9)"
+                                                light="rgba(0, 0, 0, .9)"
+                                                className="text-2xl font-bold"
+                                            >
+                                                {t("create_form_submit")}
+                                            </TextAnimated>
+                                        )
+                                }
+                            </View>
+                        </View>
+                    </PressableAnimated>
                 </LinearGradient>
             </LinearGradient>
+
+            {/* Time modal */}
+
+            <Modal
+                active={timeModalOpened}
+                animationDuration={300}
+                // closeAnimationDuration={300}
+                onClose={() => setTimeModalOpened(false)}
+            >
+                <></>
+            </Modal>
         </Container>
-    );
+    )
 }

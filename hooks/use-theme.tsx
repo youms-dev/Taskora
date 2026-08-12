@@ -13,12 +13,7 @@ type ContextType = {
     themeShared: SharedValue<ThemeType>;
 };
 
-const Context = createContext<ContextType>({
-    theme: "dark",
-    target: "dark",
-    setTheme: () => { },
-    themeShared: useSharedValue<ThemeType>("dark"),
-});
+const Context = createContext<ContextType | null>(null);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const { colorScheme, setColorScheme } = useColorScheme();
@@ -79,4 +74,12 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     );
 }
 
-export const useTheme = () => useContext(Context);
+export const useTheme = () => {
+    const ctx = useContext(Context);
+
+    if (!ctx) {
+        throw new Error("useTheme must be used within a ThemeProvider");
+    }
+    
+    return ctx;
+};
