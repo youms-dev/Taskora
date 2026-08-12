@@ -145,17 +145,18 @@ export default function CreateTaskPage() {
     const initialInputsValues = {
         title: null,
         desc: "",
-        icon: "",
+        icon: null,
         date,
         startAt: `${String(date.getHours() + 1).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         endAt: `${String(date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
     }
     const [inputsValues, setInputsValues] = useState<
-        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore">
+        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore" | "icon">
         &
         {
             title: string | null;
+            icon: string | null;
             remindBefore: number | null;
             endAt: string | null;
         }
@@ -351,7 +352,7 @@ export default function CreateTaskPage() {
 
                         <View className="w-full mt-6">
                             <Select
-                                // open
+                                open
                                 duration={500}
                                 header={(
                                     <View className="w-full flex gap-3 pt-[2px]">
@@ -363,16 +364,34 @@ export default function CreateTaskPage() {
                             >
                                 <View className="w-full flex flex-row flex-wrap gap-5 pt-5">
                                     {
-                                        icons.map((Icon, i) => {
+                                        icons.map((item, i) => {
+                                            const [data] = Object.entries(item);
+                                            const [key, Icon] = data;
+
                                             return (
                                                 <PressableAnimated
-                                                    key={i}
+                                                    key={String(key + i)}
+                                                    scale={.95}
+                                                    onPress={() => {
+                                                        if (inputsValues.icon && inputsValues.icon == key) {
+                                                            setInputsValues({
+                                                                ...inputsValues,
+                                                                icon: null,
+                                                            });
+                                                        }
+                                                        else {
+                                                            setInputsValues({
+                                                                ...inputsValues,
+                                                                icon: key,
+                                                            });
+                                                        }
+                                                    }}
                                                     className={clsx(
                                                         "size-[45px] flex justify-center items-center border rounded-full dark:bg-white/10 bg-white",
-                                                        i == 0 ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
+                                                        inputsValues.icon && inputsValues.icon == key ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
                                                     )}
                                                 >
-                                                    <Icon color={i == 0 ? COLORS.emerald[500] : undefined} />
+                                                    <Icon color={inputsValues.icon && inputsValues.icon == key ? COLORS.emerald[500] : undefined} />
                                                 </PressableAnimated>
                                             )
                                         })
@@ -655,8 +674,7 @@ export default function CreateTaskPage() {
 
             <Modal
                 active={timeModalOpened}
-                animationDuration={300}
-                // closeAnimationDuration={300}
+                animationDuration={500}
                 onClose={() => setTimeModalOpened(false)}
             >
                 <></>

@@ -14,185 +14,185 @@ interface Props {
 
 export function getIcons(theme: "light" | "dark") {
     return [
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        {
+            "briefcase": ({ color, parentSize = 45 }: Props) => (
                 <Entypo
                     name="briefcase"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "envelope": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome
                     name="envelope"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "phone": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome6
                     name="phone"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "users": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="users"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "file-contract": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="file-contract"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "home": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="home"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "heart": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome
                     name="heart"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "shopping-cart": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="shopping-cart"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "dollar-sign": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="dollar-sign"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "book-open-page-variant": ({ color, parentSize = 45 }: Props) => (
                 <MaterialCommunityIcons
                     name="book-open-page-variant"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "activity": ({ color, parentSize = 45 }: Props) => (
                 <Feather
                     name="activity"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "coffeescript": ({ color, parentSize = 45 }: Props) => (
                 <Fontisto
                     name="coffeescript"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "music": ({ color, parentSize = 45 }: Props) => (
                 <FontAwesome5
                     name="music"
                     size={parentSize * .45}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "camera": ({ color, parentSize = 45 }: Props) => (
                 <Entypo
                     name="camera"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "film": ({ color, parentSize = 45 }: Props) => (
                 <Fontisto
                     name="film"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "alert-circle-sharp": ({ color, parentSize = 45 }: Props) => (
                 <Ionicons
                     name="alert-circle-sharp"
                     size={parentSize * .6}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "flag": ({ color, parentSize = 45 }: Props) => (
                 <Entypo
                     name="flag"
                     size={parentSize * .6}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "star-half-sharp": ({ color, parentSize = 45 }: Props) => (
                 <Ionicons
                     name="star-half-sharp"
                     size={parentSize * .6}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "map-pin": ({ color, parentSize = 45 }: Props) => (
                 <Feather
                     name="map-pin"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
-        (
-            ({ color, parentSize = 45 }: Props) => (
+        },
+        {
+            "navigation-variant": ({ color, parentSize = 45 }: Props) => (
                 <MaterialCommunityIcons
                     name="navigation-variant"
                     size={parentSize * .5}
                     color={color ? color : (theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)")}
                 />
             )
-        ),
+        },
     ];
 }
