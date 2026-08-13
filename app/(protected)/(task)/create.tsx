@@ -352,7 +352,7 @@ export default function CreateTaskPage() {
 
                         <View className="w-full mt-6">
                             <Select
-                                open
+                                // open
                                 duration={500}
                                 header={(
                                     <View className="w-full flex gap-3 pt-[2px]">
@@ -676,8 +676,55 @@ export default function CreateTaskPage() {
                 active={timeModalOpened}
                 animationDuration={500}
                 onClose={() => setTimeModalOpened(false)}
+                height={screenHeight * .5}
+                backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
+                className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
+                scrollViewClassName="w-full h-full dark:bg-white/5 bg-white"
+                rounded={20}
+                closeAnimationDuration={600}
+                dragHandler={(
+                    <View className="w-full dark:bg-black bg-white">
+                        <View className="size-full flex flex-row justify-between items-center px-3 pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
+                            <TextAnimated
+                                numberOfLines={1}
+                                className="text-xl tracking-wide"
+                            >
+                                {t("create_form_time")}
+                            </TextAnimated>
+
+                            <PressableAnimated
+                                onPress={() => setTimeModalOpened(false)}
+                                className="size-[45px] rounded-full"
+                            >
+                                <View
+                                    style={{
+                                        transform: [
+                                            {
+                                                translateY: 6,
+                                            }
+                                        ],
+                                        filter: "blur(5px)",
+                                    }}
+                                    className="absolute left-0 top-0 size-full bg-black/30 rounded-full"
+                                />
+
+                                <View className="size-full dark:bg-black bg-white rounded-full">
+                                    <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white border dark:border-white/10 border-black/10 rounded-full">
+                                        <FontAwesome6
+                                            name="xmark"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                        />
+                                    </View>
+                                </View>
+                            </PressableAnimated>
+                        </View>
+                    </View>
+                )}
             >
-                <></>
+                <View className="w-full h-full px-5">
+
+                </View>
             </Modal>
         </Container>
     )

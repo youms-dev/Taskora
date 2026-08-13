@@ -1,11 +1,10 @@
 import { useTheme } from "@/hooks/use-theme";
-import { CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useMemo, useRef } from "react";
-import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, useWindowDimensions, View } from "react-native";
+import { memo, ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { AnimatedScrollViewProps, Easing, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { PressableAnimated } from "./pressable-animated";
+import Animated, { AnimatedScrollViewProps, Easing, runOnJS, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-interface Props extends Omit<AnimatedScrollViewProps, "ref"> {
+interface Props extends AnimatedScrollViewProps {
     height?: DimensionValue;
     rounded?: number;
     width?: DimensionValue;
@@ -16,17 +15,19 @@ interface Props extends Omit<AnimatedScrollViewProps, "ref"> {
     animationDuration?: number;
     active?: boolean;
     onClose?: () => void;
-    scrollViewRef?: RefObject<Animated.ScrollView>;
-    containerRef?: RefObject<View>;
     closable?: boolean;
     zIndex?: number;
-    background?: CSSProperties["backgroundColor"];
+    backdropBackground?: string;
     children?: ReactNode;
-    draggingDragHandlerColor?: CSSProperties["backgroundColor"];
+    draggingDragHandlerColor?: string;
     closeAnimationDuration?: number;
+    dragHandlerContainerBackground?: string;
+    dragHandlerBackground?: string;
 }
 
 const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
+
+const PressableAnimated = Animated.createAnimatedComponent(Pressable);
 
 /**
  * Modal component
@@ -48,7 +49,7 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
  * @default "w-full flex items-center"
  * 
  * @param className The class list that will be used to custom the modal container
- * @default "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black"
+ * @default "flex items-center dark:bg-black bg-white"
  * 
  * @param animationDuration The animation duration when the modal is getting opened
  * @default 200
@@ -58,17 +59,13 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
  * 
  * @param onClose
  * 
- * @param containerRef The ref that will be used to access to the modal container
- * 
- * @param scrollViewRef The ref that will be used to access to the scrollView
- * 
  * @param closable Define whether the modal is closable or not
  * @default true
  * 
  * @param zIndex
  * @default 1000
  * 
- * @param background
+ * @param backdropBackground
  * @default "transparent"
  * 
  * @param children
@@ -77,6 +74,10 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
  * 
  * @param closeAnimationDuration
  * @default 200
+ * 
+ * @param dragHandlerContainerBackground
+ * 
+ * @param dragHandlerBackground
  * 
  * @returns Modal component 
  */
@@ -88,18 +89,18 @@ export const Modal = memo(({
     dragHandler,
     scrollViewClassName = "w-full h-full dark:bg-black/80 bg-white/80",
     contentContainerClassName = "w-full flex items-center pt-6",
-    className = "flex items-center border-t-2 dark:border-t-white/20 border-t-black/20 border-transparent dark:bg-white bg-black",
+    className = "flex items-center dark:bg-black bg-white",
     animationDuration = 200,
     active: modalActive,
     onClose,
-    containerRef,
-    scrollViewRef,
     closable: modalClosable = true,
     zIndex = 1000,
-    background: modalBackground = "transparent",
+    backdropBackground = "transparent",
     children,
     draggingDragHandlerColor,
     closeAnimationDuration = 200,
+    dragHandlerContainerBackground: dragHandlerContainerBackgroundProps = "",
+    dragHandlerBackground: dragHandlerBackgroundProps = "",
     ...rest
 }: Props) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -110,10 +111,13 @@ export const Modal = memo(({
     const active = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const closable = useSharedValue<boolean>(true);
-    const background = useSharedValue<typeof modalBackground>("transparent");
     const { themeShared } = useTheme();
     const dragging = useSharedValue<boolean>(false);
     const draggingDragHandlerColorShared = useSharedValue<typeof draggingDragHandlerColor>(undefined);
+    const scrolling = useSharedValue<boolean>(false);
+    const ref = useAnimatedRef<Animated.ScrollView>();
+    const dragHandlerContainerBackground = useSharedValue<typeof dragHandlerContainerBackgroundProps>("");
+    const dragHandlerBackground = useSharedValue<typeof dragHandlerBackgroundProps>("");
 
     const panAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -132,22 +136,24 @@ export const Modal = memo(({
         });
         timeout.current = setTimeout(() => {
             onClose && onClose();
-        }, 100);
+        }, closeAnimationDuration * .5);
     }, [modalClosable, closeAnimationDuration, onClose]);
 
     const pan = useMemo(() => {
         return (
             Gesture.Pan()
                 .simultaneousWithExternalGesture(scrollGesture)
+                .failOffsetX([-10, 10])
+                .activeOffsetY(5)
                 .onUpdate(({ translationY: y }) => {
-                    if (y > 0 && scroll.value <= 0 && closable.value) {
+                    if (y > 0 && !scrolling.value && closable.value && scroll.value == 0) {
                         dragging.value = true;
                         translateY.value = y;
                     }
                 })
                 .onEnd(({ translationY: y }) => {
                     dragging.value = false;
-                    if (scroll.value > 0) {
+                    if (scrolling.value || !closable.value || scroll.value != 0) {
                         translateY.value = withTiming(0, {
                             duration: 200,
                             easing: Easing.inOut(Easing.quad),
@@ -155,14 +161,15 @@ export const Modal = memo(({
                         return;
                     }
                     if (y <= 100) {
-                        scroll.value = 0;
+                        ref.current?.scrollTo({
+                            y: 0,
+                        });
                         translateY.value = withTiming(0, {
                             duration: 200,
                             easing: Easing.inOut(Easing.quad),
                         });
                         return;
                     }
-                    scroll.value = 0;
                     runOnJS(handleClose)();
                 })
         );
@@ -184,11 +191,8 @@ export const Modal = memo(({
         }
         const { remove } = BackHandler.addEventListener("hardwareBackPress", backPress);
 
-        active.value = !!modalActive;
-        closable.value = !!modalClosable;
-        background.value = modalBackground;
-
         if (modalActive) {
+            timeout.current && clearTimeout(timeout.current);
             translateY.value = withTiming(0, {
                 duration: animationDuration,
                 easing: Easing.inOut(Easing.quad),
@@ -199,17 +203,10 @@ export const Modal = memo(({
         }
 
         return () => remove();
-    }, [modalActive, modalClosable, animationDuration, modalBackground]);
+    }, [modalActive, animationDuration]);
 
     const containerAnimation = useAnimatedStyle(() => ({
         pointerEvents: active.value ? "auto" : "none",
-    }));
-
-    const backgroundAnimation = useAnimatedStyle(() => ({
-        backgroundColor: withTiming(background.value, {
-            duration: 200,
-            easing: Easing.inOut(Easing.quad),
-        }),
     }));
 
     const dragHandlerAnimation = useAnimatedStyle(() => ({
@@ -221,8 +218,12 @@ export const Modal = memo(({
                     (themeShared.value == "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)")
             )
             :
-            (themeShared.value == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)")
-            ,
+            (
+                dragHandlerBackground.value.trim().length > 0 ?
+                    dragHandlerBackground.value
+                    :
+                    themeShared.value == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"
+            ),
             {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad),
@@ -236,7 +237,26 @@ export const Modal = memo(({
 
     useEffect(() => {
         draggingDragHandlerColorShared.value = draggingDragHandlerColor;
-    }, [draggingDragHandlerColor]);
+        active.value = !!modalActive;
+        closable.value = !!modalClosable;
+        dragHandlerContainerBackground.value = dragHandlerContainerBackgroundProps;
+        dragHandlerBackground.value = dragHandlerBackgroundProps;
+    }, [draggingDragHandlerColor, modalClosable, dragHandlerContainerBackgroundProps, dragHandlerBackgroundProps, modalActive]);
+
+    const onMomentumScrollBegin = useCallback(() => {
+        scrolling.value = true;
+    }, []);
+
+    const onMomentumScrollEnd = useCallback(() => {
+        scrolling.value = false;
+    }, []);
+
+    const dragHandlerContainerAnimation = useAnimatedStyle(() => ({
+        backgroundColor: dragHandlerContainerBackground.value.trim().length > 0 ?
+            dragHandlerContainerBackground.value
+            :
+            themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, 1)"
+    }));
 
     return (
         <AnimatedKeyboardAvoidingView
@@ -251,21 +271,31 @@ export const Modal = memo(({
             ]}
             className="absolute left-0 top-0 flex items-center"
         >
-            <PressableAnimated
-                scale={1}
-                style={backgroundAnimation}
-                onPress={() => handleClose()}
-                className="w-full h-full"
-            />
+            {
+                modalActive && (
+                    <PressableAnimated
+                        onPress={() => handleClose()}
+                        style={{
+                            width: screenWidth,
+                            height: screenHeight + (screenHeight * .2),
+                            backgroundColor: backdropBackground,
+                            transform: [
+                                {
+                                    translateY: -(screenHeight * .1),
+                                }
+                            ]
+                        }}
+                    />
+                )
+            }
 
             <GestureDetector gesture={pan}>
                 <Animated.View
-                    ref={containerRef}
                     style={[
                         {
                             position: "absolute",
                             bottom: 0,
-                            width: width ? width : (screenWidth > 500 ? 500 : screenWidth),
+                            width: width ? width : screenWidth,
                             height,
                             borderTopLeftRadius: rounded,
                             borderTopRightRadius: rounded,
@@ -277,7 +307,10 @@ export const Modal = memo(({
                 >
                     <View className="w-full h-full flex items-center">
                         <View className="absolute w-full z-[1] dark:bg-black bg-white">
-                            <View className=" w-full flex justify-center items-center dark:bg-white/20 bg-white">
+                            <Animated.View
+                                style={dragHandlerContainerAnimation}
+                                className="w-full flex justify-center items-center"
+                            >
                                 {
                                     typeof dragHandler != "boolean" && (
                                         dragHandler ?
@@ -291,16 +324,18 @@ export const Modal = memo(({
                                             )
                                     )
                                 }
-                            </View>
+                            </Animated.View>
                         </View>
 
                         <GestureDetector gesture={scrollGesture}>
                             <Animated.ScrollView
-                                ref={scrollViewRef}
                                 {...rest}
+                                ref={ref}
                                 showsVerticalScrollIndicator={false}
                                 onScroll={scrollHandler}
                                 scrollEventThrottle={16}
+                                onMomentumScrollBegin={onMomentumScrollBegin}
+                                onMomentumScrollEnd={onMomentumScrollEnd}
                                 className={scrollViewClassName}
                                 contentContainerClassName={contentContainerClassName}
                             >
