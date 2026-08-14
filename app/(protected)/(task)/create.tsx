@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
-import { FlatListHours, HOUR_HEIGHT } from "@/components/create/hours";
+import { FlatListHours, HOUR_HEIGHT, HOURS_LIST_HEIGHT } from "@/components/create/hours";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -677,7 +677,7 @@ export default function CreateTaskPage() {
                 active={timeModalOpened}
                 animationDuration={500}
                 onClose={() => setTimeModalOpened(false)}
-                height={screenHeight * .5}
+                height={400}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
                 rounded={20}
@@ -727,7 +727,7 @@ export default function CreateTaskPage() {
                 <View className="w-full h-full flex flex-row justify-center gap-5 px-5 pt-[80px] pb-[80px]">
                     <View
                         style={{
-                            height: 200,
+                            height: HOURS_LIST_HEIGHT,
                         }}
                         className="w-[100px] border border-red-500"
                     >
