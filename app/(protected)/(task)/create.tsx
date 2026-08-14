@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
+import { FlatListHours, HOUR_HEIGHT } from "@/components/create/hours";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -162,7 +163,7 @@ export default function CreateTaskPage() {
         }
     >(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
-    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(false);
+    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(true);
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
     const targetTime = useRef<"start" | "end">("start");
 
@@ -679,9 +680,10 @@ export default function CreateTaskPage() {
                 height={screenHeight * .5}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
-                scrollViewClassName="w-full h-full dark:bg-white/5 bg-white"
                 rounded={20}
                 closeAnimationDuration={600}
+                closable={false}
+                scrollableContent={false}
                 dragHandler={(
                     <View className="w-full dark:bg-black bg-white">
                         <View className="size-full flex flex-row justify-between items-center px-3 pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
@@ -722,8 +724,15 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full px-5">
-
+                <View className="w-full h-full flex flex-row justify-center gap-5 px-5 pt-[80px] pb-[80px]">
+                    <View
+                        style={{
+                            height: 200,
+                        }}
+                        className="w-[100px] border border-red-500"
+                    >
+                        <FlatListHours />
+                    </View>
                 </View>
             </Modal>
         </Container>

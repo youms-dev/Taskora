@@ -1,32 +1,10 @@
 import { addMonths, startOfMonth } from "date-fns";
-import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
-
-const Context = createContext<{
-    months: Date[];
-    appendFutureMonths: () => void;
-    prependPastMonths: () => void;
-    loading: boolean;
-    reset: () => void;
-    years: number[];
-    generateMonths: (target: "month" | "year", entry: number, currentDate?: Date) => void;
-}>({
-    months: [],
-    appendFutureMonths: () => { },
-    prependPastMonths: () => { },
-    loading: false,
-    reset: () => { },
-    years: [],
-    generateMonths: () => { },
-});
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export const INITIAL_RANGE = 6;
 export const NUM_TO_ADD = 3;
 
-interface Props {
-    children: ReactNode;
-}
-
-export const CalendarProvider = ({ children }: Props) => {
+export const useCalendar = () => {
     const [months, setMonths] = useState<Date[]>([]);
     const today = useMemo(() => startOfMonth(new Date()), []);
     const [loading, setLoading] = useState<boolean>(false);
@@ -139,19 +117,13 @@ export const CalendarProvider = ({ children }: Props) => {
         setLoading(false);
     }
 
-    return (
-        <Context.Provider value={{
-            months,
-            appendFutureMonths,
-            prependPastMonths,
-            loading,
-            reset,
-            years,
-            generateMonths,
-        }}>
-            {children}
-        </Context.Provider>
-    );
+    return ({
+        months,
+        appendFutureMonths,
+        prependPastMonths,
+        loading,
+        reset,
+        years,
+        generateMonths,
+    });
 };
-
-export const useCalendar = () => useContext(Context);

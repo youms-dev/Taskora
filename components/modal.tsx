@@ -2,9 +2,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { memo, ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { AnimatedScrollViewProps, Easing, runOnJS, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-interface Props extends AnimatedScrollViewProps {
+interface Props {
     height?: DimensionValue;
     rounded?: number;
     width?: DimensionValue;
@@ -23,6 +23,7 @@ interface Props extends AnimatedScrollViewProps {
     closeAnimationDuration?: number;
     dragHandlerContainerBackground?: string;
     dragHandlerBackground?: string;
+    scrollableContent?: boolean;
 }
 
 const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
@@ -79,6 +80,8 @@ const PressableAnimated = Animated.createAnimatedComponent(Pressable);
  * 
  * @param dragHandlerBackground
  * 
+ * @param scrollableContent Define whether the children should be wrapped with à ScrollView or not
+ * 
  * @returns Modal component 
  */
 
@@ -101,13 +104,13 @@ export const Modal = memo(({
     closeAnimationDuration = 200,
     dragHandlerContainerBackground: dragHandlerContainerBackgroundProps = "",
     dragHandlerBackground: dragHandlerBackgroundProps = "",
-    ...rest
+    scrollableContent = true,
 }: Props) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const hideValue = useSharedValue<number>(screenHeight);
     const translateY = useSharedValue<number>(screenHeight);
     const scroll = useSharedValue<number>(0);
-    const scrollGesture = useMemo(() => Gesture.Native(), []);
+    const scrollGesture = useMemo(() => Gesture.Native(), [scrollableContent]);
     const active = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const closable = useSharedValue<boolean>(true);
@@ -129,7 +132,6 @@ export const Modal = memo(({
 
     const handleClose = useCallback(() => {
         timeout.current && clearTimeout(timeout.current);
-        if (!modalClosable) return;
         translateY.value = withTiming(hideValue.value, {
             duration: closeAnimationDuration,
             easing: Easing.inOut(Easing.quad),
@@ -137,14 +139,13 @@ export const Modal = memo(({
         timeout.current = setTimeout(() => {
             onClose && onClose();
         }, closeAnimationDuration * .5);
-    }, [modalClosable, closeAnimationDuration, onClose]);
+    }, [closeAnimationDuration, onClose]);
 
     const pan = useMemo(() => {
         return (
             Gesture.Pan()
                 .simultaneousWithExternalGesture(scrollGesture)
                 .failOffsetX([-10, 10])
-                .activeOffsetY(5)
                 .onUpdate(({ translationY: y }) => {
                     if (y > 0 && !scrolling.value && closable.value && scroll.value == 0) {
                         dragging.value = true;
@@ -173,7 +174,8 @@ export const Modal = memo(({
                     runOnJS(handleClose)();
                 })
         );
-    }, [handleClose]);
+    }, [handleClose, closable]);
+
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -184,7 +186,8 @@ export const Modal = memo(({
     useEffect(() => {
         const backPress = () => {
             if (modalActive) {
-                handleClose();
+                modalClosable && handleClose();
+
                 return true;
             }
             return false;
@@ -203,7 +206,7 @@ export const Modal = memo(({
         }
 
         return () => remove();
-    }, [modalActive, animationDuration]);
+    }, [modalActive, animationDuration, modalClosable]);
 
     const containerAnimation = useAnimatedStyle(() => ({
         pointerEvents: active.value ? "auto" : "none",
@@ -258,6 +261,13 @@ export const Modal = memo(({
             themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, 1)"
     }));
 
+    if (modalClosable) {
+        pan.activeOffsetY(0);
+    }
+    else {
+        pan.failOffsetY(0);
+    }
+
     return (
         <AnimatedKeyboardAvoidingView
             behavior={Platform.OS == "android" ? "height" : "padding"}
@@ -274,7 +284,7 @@ export const Modal = memo(({
             {
                 modalActive && (
                     <PressableAnimated
-                        onPress={() => handleClose()}
+                        onPress={() => modalClosable && handleClose()}
                         style={{
                             width: screenWidth,
                             height: screenHeight + (screenHeight * .2),
@@ -305,44 +315,52 @@ export const Modal = memo(({
                     ]}
                     className={className}
                 >
-                    <View className="w-full h-full flex items-center">
-                        <View className="absolute w-full z-[1] dark:bg-black bg-white">
-                            <Animated.View
-                                style={dragHandlerContainerAnimation}
-                                className="w-full flex justify-center items-center"
-                            >
-                                {
-                                    typeof dragHandler != "boolean" && (
-                                        dragHandler ?
-                                            dragHandler
-                                            :
-                                            (
-                                                <Animated.View
-                                                    style={dragHandlerAnimation}
-                                                    className="w-20 h-2 rounded-2xl my-2"
-                                                />
-                                            )
-                                    )
-                                }
-                            </Animated.View>
-                        </View>
-
-                        <GestureDetector gesture={scrollGesture}>
-                            <Animated.ScrollView
-                                {...rest}
-                                ref={ref}
-                                showsVerticalScrollIndicator={false}
-                                onScroll={scrollHandler}
-                                scrollEventThrottle={16}
-                                onMomentumScrollBegin={onMomentumScrollBegin}
-                                onMomentumScrollEnd={onMomentumScrollEnd}
-                                className={scrollViewClassName}
-                                contentContainerClassName={contentContainerClassName}
-                            >
-                                {children}
-                            </Animated.ScrollView>
-                        </GestureDetector>
+                    <View className="absolute w-full z-[1] dark:bg-black bg-white">
+                        <Animated.View
+                            style={dragHandlerContainerAnimation}
+                            className="w-full flex justify-center items-center"
+                        >
+                            {
+                                typeof dragHandler != "boolean" && (
+                                    dragHandler ?
+                                        dragHandler
+                                        :
+                                        (
+                                            <Animated.View
+                                                style={dragHandlerAnimation}
+                                                className="w-20 h-2 rounded-2xl my-2"
+                                            />
+                                        )
+                                )
+                            }
+                        </Animated.View>
                     </View>
+
+                    {
+                        scrollableContent ?
+                            (
+                                <GestureDetector gesture={scrollGesture}>
+                                    <Animated.ScrollView
+                                        ref={ref}
+                                        showsVerticalScrollIndicator={false}
+                                        onScroll={scrollHandler}
+                                        scrollEventThrottle={16}
+                                        onMomentumScrollBegin={onMomentumScrollBegin}
+                                        onMomentumScrollEnd={onMomentumScrollEnd}
+                                        className={scrollViewClassName}
+                                        contentContainerClassName={contentContainerClassName}
+                                    >
+                                        {children}
+                                    </Animated.ScrollView>
+                                </GestureDetector>
+                            )
+                            :
+                            (
+                                <View className="w-full h-full">
+                                    {children}
+                                </View>
+                            )
+                    }
                 </Animated.View>
             </GestureDetector>
         </AnimatedKeyboardAvoidingView>

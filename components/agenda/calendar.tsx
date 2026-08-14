@@ -378,6 +378,24 @@ export const Calendar = () => {
         return () => remove();
     }, [listActive]);
 
+    const monthsGetItemLayout = useCallback((data: unknown, index: number) => ({
+        length: (monthHeight + monthsGap),
+        offset: (monthHeight + monthsGap) * index,
+        index,
+    }), [monthHeight, monthsGap]);
+
+    const yearsGetItemLayout = useCallback((data: unknown, index: number) => ({
+        length: (yearHeight + yearsGap),
+        offset: (yearHeight + yearsGap) * index,
+        index,
+    }), [yearHeight, yearsGap]);
+
+    const getItemLayout = useCallback((data: unknown, index: number) => ({
+        length: screenWidth,
+        offset: screenWidth * index,
+        index,
+    }), [screenWidth]);
+
     return (
         <View className="w-screen flex items-center">
             <View className="w-full flex flex-row justify-center items-center gap-3">
@@ -575,11 +593,7 @@ export const Calendar = () => {
                                 data={monthsTranslation[currentLanguage]}
                                 keyExtractor={(month) => month}
                                 renderItem={renderMonthsListItem}
-                                getItemLayout={(_, index) => ({
-                                    length: (monthHeight + monthsGap),
-                                    offset: (monthHeight + monthsGap) * index,
-                                    index,
-                                })}
+                                getItemLayout={monthsGetItemLayout}
                                 className="absolute w-full h-[200px]"
                                 contentContainerStyle={{
                                     gap: monthsGap,
@@ -626,12 +640,9 @@ export const Calendar = () => {
                                 initialNumToRender={years.length / 2}
                                 removeClippedSubviews={false}
                                 maxToRenderPerBatch={years.length / 2}
+                                windowSize={Math.ceil(years.length / 2) > 0 ? Math.ceil(years.length / 2) : 1}
                                 className="absolute w-full h-[200px]"
-                                getItemLayout={(_, index) => ({
-                                    length: (yearHeight + yearsGap),
-                                    offset: (yearHeight + yearsGap) * index,
-                                    index,
-                                })}
+                                getItemLayout={yearsGetItemLayout}
                                 contentContainerStyle={{
                                     gap: yearsGap,
                                 }}
@@ -647,8 +658,8 @@ export const Calendar = () => {
                 horizontal
                 pagingEnabled
                 scrollEventThrottle={16}
-                windowSize={INITIAL_RANGE * 3}
-                maxToRenderPerBatch={INITIAL_RANGE * 3}
+                windowSize={Math.ceil(months.length) > 0 ? Math.ceil(months.length) : 1}
+                maxToRenderPerBatch={Math.ceil(months.length)}
                 removeClippedSubviews={false}
                 initialScrollIndex={INITIAL_RANGE}
                 initialNumToRender={INITIAL_RANGE}
@@ -656,11 +667,7 @@ export const Calendar = () => {
                 data={months}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.toISOString()}
-                getItemLayout={(_, index) => ({
-                    length: screenWidth,
-                    offset: screenWidth * index,
-                    index,
-                })}
+                getItemLayout={getItemLayout}
                 onScroll={handleScroll}
                 className="w-full h-full"
                 contentContainerClassName="h-full"
