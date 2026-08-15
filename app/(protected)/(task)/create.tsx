@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { FlatListHours } from "@/components/create/hours";
+import { FlatListMinutes } from "@/components/create/minutes";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -678,6 +679,9 @@ export default function CreateTaskPage() {
                     <PressableAnimated
                         scale={.95}
                         disabled={loading}
+                        onPress={() => {
+                            console.log("inputs values :", inputsValues);
+                        }}
                         className={clsx(
                             "w-[80%] sm:w-[300px] h-[50px] dark:bg-black bg-white rounded-3xl",
                             loading && "opacity-50",
@@ -795,9 +799,9 @@ export default function CreateTaskPage() {
                         onLayout={(e) => setMinutesListHeight(e.nativeEvent.layout.height)}
                         className="w-[100px] border border-red-500"
                     >
-                        <FlatListHours
+                        <FlatListMinutes
                             height={minutesListHeight}
-                            // initialIndex={24}
+                            initialIndex={date.getMinutes()}
                             onIndexChanged={handleTime}
                         />
                     </View>

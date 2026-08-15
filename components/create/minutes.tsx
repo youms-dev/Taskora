@@ -14,14 +14,14 @@ interface Props {
 
 export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: Props) => {
     const ref = useRef<FlatList>(null);
-    const perHour = 59;
+    const perHour = 60;
     const repeat = 3;
     const [minuteHeight, setMinuteHeight] = useState<number>(0);
     const currentIndex = useRef<number>(null);
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const startPos = Math.floor(((repeat * perHour) / 2) - (perHour / 2));
+    const startPos = Math.round(((repeat * perHour) / 2) - (perHour / 2));
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const minutes = useMemo(() => {
@@ -87,7 +87,7 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
         const index = Math.round(y / minuteHeight);
 
         if (currentIndex.current && index != currentIndex.current) {
-            onIndexChanged(minutes[index], "hour");
+            onIndexChanged(minutes[index], "minute");
         }
         currentIndex.current = index;
         scrolling.value = false;

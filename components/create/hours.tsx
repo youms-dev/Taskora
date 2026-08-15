@@ -21,7 +21,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const startPos = ((repeat * perDay) / 2) - (perDay / 2);
+    const startPos = Math.round((repeat * perDay) / 2) - (perDay / 2);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const hours = useMemo(() => {
