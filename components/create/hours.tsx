@@ -15,13 +15,13 @@ interface Props {
 export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Props) => {
     const ref = useRef<FlatList>(null);
     const perDay = 24;
-    const repeat = 10001;
+    const repeat = perDay * 101;
     const [hourHeight, setHourHeight] = useState<number>(0);
-    const currentIndex = useRef<number>(null);
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const startPos = Math.round((repeat * perDay) / 2) - (perDay / 2);
+    const currentIndex = useRef<number>(startPos);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const hours = useMemo(() => {
@@ -111,23 +111,17 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
         }, 200);
     }, []);
 
-    useEffect(() => {
-        if (initialIndex && !currentIndex.current) {
-            currentIndex.current = initialIndex;
-        }
-    }, [initialIndex]);
-
     return (
         <View className="w-full h-full">
             <View
                 style={{
                     height: hourHeight,
                 }}
-                className="absolute left-0 top-0 w-full z-[1] pointer-events-none"
+                className="absolute left-0 top-0 w-full z-[1] pointer-events-none dark:opacity-80 opacity-60"
             >
                 <LinearGradient
                     colors={theme == "dark" ?
-                        ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
                         :
                         ["rgba(255, 255, 255, .8)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
                     }
@@ -135,7 +129,19 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                     end={{ x: 0, y: 1 }}
                     locations={[0, .8, 1]}
                     className="size-full"
-                />
+                >
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(255, 255, 255, .05)", "rgba(255, 255, 255, .05)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        locations={[0, .8, 1]}
+                        className="size-full"
+                    />
+                </LinearGradient>
             </View>
 
             <Animated.FlatList
@@ -167,11 +173,11 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 style={{
                     height: hourHeight,
                 }}
-                className="absolute left-0 bottom-0 w-full z-[1] pointer-events-none"
+                className="absolute left-0 bottom-0 w-full z-[1] pointer-events-none dark:opacity-80 opacity-60"
             >
                 <LinearGradient
                     colors={theme == "dark" ?
-                        ["rgba(0, 0, 0, .8)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
                         :
                         ["rgba(255, 255, 255, .8)", "rgba(255, 255, 255, .8)", "rgba(255, 255, 255, 0)"]
                     }
@@ -179,7 +185,19 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                     end={{ x: 0, y: 0 }}
                     locations={[0, .8, 1]}
                     className="size-full"
-                />
+                >
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(255, 255, 255, .05)", "rgba(255, 255, 255, .05)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 0, y: 0 }}
+                        locations={[0, .8, 1]}
+                        className="size-full"
+                    />
+                </LinearGradient>
             </View>
         </View>
     );

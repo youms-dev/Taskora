@@ -196,57 +196,45 @@ export default function CreateTaskPage() {
     }, []);
 
     const handleTime = useCallback((entry: string, target: "hour" | "minute" = "hour") => {
-        console.log("index got :", entry);
+        setInputsValues((prev) => {
+            if (targetTime.current === "start") {
+                const [hour, min] = prev.startAt.split(":");
 
-        if (targetTime.current == "start") {
-            const [hour, min] = inputsValues.startAt.split(":");
+                return {
+                    ...prev,
+                    startAt: target === "hour" ?
+                        `${entry.trim()} : ${min.trim()}`
+                        :
+                        `${hour.trim()} : ${entry.trim()}`,
+                };
+            }
 
-            if (target == "hour") {
-                setInputsValues({
-                    ...inputsValues,
-                    startAt: `${entry} : ${min}`,
-                });
-            }
-            else {
-                setInputsValues({
-                    ...inputsValues,
-                    startAt: `${hour} : ${entry}`,
-                });
-            }
-        }
-        else if (targetTime.current == "end") {
-            if (!inputsValues.endAt) {
-                if (target == "hour") {
-                    setInputsValues({
-                        ...inputsValues,
-                        startAt: `${entry} : 00`,
-                    });
+            if (targetTime.current === "end") {
+                if (!prev.endAt) {
+                    return {
+                        ...prev,
+                        endAt: target === "hour" ?
+                            `${entry.trim()} : 00`
+                            :
+                            `00 : ${entry.trim()}`,
+                    };
                 }
-                else {
-                    setInputsValues({
-                        ...inputsValues,
-                        startAt: `00 : ${entry}`,
-                    });
-                }
-            }
-            else {
-                const [hour, min] = inputsValues.endAt.split(":");
 
-                if (target == "hour") {
-                    setInputsValues({
-                        ...inputsValues,
-                        endAt: `${entry} : ${min}`,
-                    });
-                }
-                else {
-                    setInputsValues({
-                        ...inputsValues,
-                        endAt: `${hour} : ${entry}`,
-                    });
-                }
+                const [hour, min] = prev.endAt.split(":");
+
+                return {
+                    ...prev,
+                    endAt:
+                        target === "hour" ?
+                            `${entry.trim()} : ${min.trim()}`
+                            :
+                            `${hour.trim()} : ${entry.trim()}`,
+                };
             }
-        }
-    }, [inputsValues]);
+
+            return prev;
+        });
+    }, []);
 
     return (
         <Container centerX>
@@ -786,22 +774,19 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full flex flex-row justify-center gap-[50px] px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                <View className="w-full h-full flex flex-row justify-center gap-[60px] px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
                     <View onLayout={(e) => setHoursListHeight(e.nativeEvent.layout.height)}>
                         <FlatListHours
                             height={hoursListHeight}
-                            initialIndex={date.getHours() + 1}
+                            initialIndex={Number(inputsValues.startAt.split(":").shift()) ?? 0}
                             onIndexChanged={handleTime}
                         />
                     </View>
 
-                    <View
-                        onLayout={(e) => setMinutesListHeight(e.nativeEvent.layout.height)}
-                        className="w-[100px] border border-red-500"
-                    >
+                    <View onLayout={(e) => setMinutesListHeight(e.nativeEvent.layout.height)}>
                         <FlatListMinutes
                             height={minutesListHeight}
-                            initialIndex={date.getMinutes()}
+                            initialIndex={Number(inputsValues.startAt.split(":").pop()) ?? 0}
                             onIndexChanged={handleTime}
                         />
                     </View>
