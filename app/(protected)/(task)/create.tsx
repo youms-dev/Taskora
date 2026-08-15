@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
-import { FlatListHours, HOUR_HEIGHT, HOURS_LIST_HEIGHT } from "@/components/create/hours";
+import { FlatListHours } from "@/components/create/hours";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -17,7 +17,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -163,9 +163,10 @@ export default function CreateTaskPage() {
         }
     >(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
-    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(true);
+    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(false);
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
-    const targetTime = useRef<"start" | "end">("start");
+    const targetTime = useRef<"start" | "end" | null>(null);
+    const [hoursListHeight, setHoursListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -191,6 +192,59 @@ export default function CreateTaskPage() {
     const repeatRange = useMemo(() => {
         return Array(7).fill(0).map((_, i) => i == 0 ? 5 : i * 10)
     }, []);
+
+    const handleTime = useCallback((entry: string, target: "hour" | "minute" = "hour") => {
+        console.log("index got :", entry);
+
+        if (targetTime.current == "start") {
+            const [hour, min] = inputsValues.startAt.split(":");
+
+            if (target == "hour") {
+                setInputsValues({
+                    ...inputsValues,
+                    startAt: `${entry} : ${min}`,
+                });
+            }
+            else {
+                setInputsValues({
+                    ...inputsValues,
+                    startAt: `${hour} : ${entry}`,
+                });
+            }
+        }
+        else if (targetTime.current == "end") {
+            if (!inputsValues.endAt) {
+                if (target == "hour") {
+                    setInputsValues({
+                        ...inputsValues,
+                        startAt: `${entry} : 00`,
+                    });
+                }
+                else {
+                    setInputsValues({
+                        ...inputsValues,
+                        startAt: `00 : ${entry}`,
+                    });
+                }
+            }
+            else {
+                const [hour, min] = inputsValues.endAt.split(":");
+
+                if (target == "hour") {
+                    setInputsValues({
+                        ...inputsValues,
+                        endAt: `${entry} : ${min}`,
+                    });
+                }
+                else {
+                    setInputsValues({
+                        ...inputsValues,
+                        endAt: `${hour} : ${entry}`,
+                    });
+                }
+            }
+        }
+    }, [inputsValues]);
 
     return (
         <Container centerX>
@@ -677,7 +731,7 @@ export default function CreateTaskPage() {
                 active={timeModalOpened}
                 animationDuration={500}
                 onClose={() => setTimeModalOpened(false)}
-                height={400}
+                height={screenHeight * .45}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
                 rounded={20}
@@ -695,7 +749,10 @@ export default function CreateTaskPage() {
                             </TextAnimated>
 
                             <PressableAnimated
-                                onPress={() => setTimeModalOpened(false)}
+                                onPress={() => {
+                                    setTimeModalOpened(false);
+                                    targetTime.current = null;
+                                }}
                                 className="size-[45px] rounded-full"
                             >
                                 <View
@@ -724,14 +781,16 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full flex flex-row justify-center gap-5 px-5 pt-[80px] pb-[80px]">
+                <View className="w-full h-full flex flex-row justify-center gap-5 px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
                     <View
-                        style={{
-                            height: HOURS_LIST_HEIGHT,
-                        }}
+                        onLayout={(e) => setHoursListHeight(e.nativeEvent.layout.height)}
                         className="w-[100px] border border-red-500"
                     >
-                        <FlatListHours />
+                        <FlatListHours
+                            height={hoursListHeight}
+                            initialIndex={24}
+                            onIndexChanged={handleTime}
+                        />
                     </View>
                 </View>
             </Modal>
