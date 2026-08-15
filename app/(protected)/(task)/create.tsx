@@ -167,6 +167,7 @@ export default function CreateTaskPage() {
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
     const targetTime = useRef<"start" | "end" | null>(null);
     const [hoursListHeight, setHoursListHeight] = useState<number>(0);
+    const [minutesListHeight, setMinutesListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -781,14 +782,22 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full flex flex-row justify-center gap-5 px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                <View className="w-full h-full flex flex-row justify-center gap-[50px] px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                    <View onLayout={(e) => setHoursListHeight(e.nativeEvent.layout.height)}>
+                        <FlatListHours
+                            height={hoursListHeight}
+                            initialIndex={date.getHours() + 1}
+                            onIndexChanged={handleTime}
+                        />
+                    </View>
+
                     <View
-                        onLayout={(e) => setHoursListHeight(e.nativeEvent.layout.height)}
+                        onLayout={(e) => setMinutesListHeight(e.nativeEvent.layout.height)}
                         className="w-[100px] border border-red-500"
                     >
                         <FlatListHours
-                            height={hoursListHeight}
-                            initialIndex={24}
+                            height={minutesListHeight}
+                            // initialIndex={24}
                             onIndexChanged={handleTime}
                         />
                     </View>

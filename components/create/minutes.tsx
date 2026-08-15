@@ -12,21 +12,21 @@ interface Props {
     initialIndex?: number;
 }
 
-export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Props) => {
+export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: Props) => {
     const ref = useRef<FlatList>(null);
-    const perDay = 24;
-    const repeat = 10001;
-    const [hourHeight, setHourHeight] = useState<number>(0);
+    const perHour = 59;
+    const repeat = 3;
+    const [minuteHeight, setMinuteHeight] = useState<number>(0);
     const currentIndex = useRef<number>(null);
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const startPos = ((repeat * perDay) / 2) - (perDay / 2);
+    const startPos = Math.floor(((repeat * perHour) / 2) - (perHour / 2));
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
-    const hours = useMemo(() => {
+    const minutes = useMemo(() => {
         return Array(repeat).fill(0).map(() => {
-            return Array(perDay).fill(0).map((_, i) => String(i).padStart(2, "0"));
+            return Array(perHour).fill(0).map((_, i) => String(i).padStart(2, "0"));
         }).join(",").split(",");
     }, []);
 
@@ -61,7 +61,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
             <GestureDetector gesture={tapGesture(index)}>
                 <View
                     style={{
-                        height: hourHeight,
+                        height: minuteHeight,
                     }}
                     className="w-full flex justify-center items-center"
                 >
@@ -74,28 +74,28 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 </View>
             </GestureDetector>
         );
-    }, [hourHeight]);
+    }, [minuteHeight]);
 
     const getItemLayout = useCallback((data: unknown, index: number) => ({
-        length: hourHeight,
-        offset: index * hourHeight,
+        length: minuteHeight,
+        offset: index * minuteHeight,
         index,
-    }), [hourHeight]);
+    }), [minuteHeight]);
 
     const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
-        const index = Math.round(y / hourHeight);
+        const index = Math.round(y / minuteHeight);
 
         if (currentIndex.current && index != currentIndex.current) {
-            onIndexChanged(hours[index], "hour");
+            onIndexChanged(minutes[index], "hour");
         }
         currentIndex.current = index;
         scrolling.value = false;
-    }, [hourHeight]);
+    }, [minuteHeight]);
 
     useEffect(() => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
-        setHourHeight(height / 3);
+        setMinuteHeight(height / 3);
         scrollTimeout.current = setTimeout(() => {
             ref.current?.scrollToIndex({
                 index: currentIndex.current ? currentIndex.current : startPos,
@@ -121,7 +121,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
         <View className="w-full h-full">
             <View
                 style={{
-                    height: hourHeight,
+                    height: minuteHeight,
                 }}
                 className="absolute left-0 top-0 w-full z-[1] pointer-events-none"
             >
@@ -140,8 +140,8 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
 
             <Animated.FlatList
                 ref={ref}
-                data={hours}
-                snapToInterval={hourHeight}
+                data={minutes}
+                snapToInterval={minuteHeight}
                 snapToAlignment="start"
                 keyExtractor={(_, i) => String(i)}
                 scrollEventThrottle={16}
@@ -150,7 +150,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 initialScrollIndex={initialIndex ? startPos + initialIndex : startPos}
                 initialNumToRender={10}
                 windowSize={10}
-                maxToRenderPerBatch={perDay * 3}
+                maxToRenderPerBatch={perHour * 3}
                 updateCellsBatchingPeriod={1}
                 showsVerticalScrollIndicator={false}
                 onScroll={onScroll}
@@ -158,14 +158,14 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 removeClippedSubviews
                 className="w-full h-full"
                 contentContainerStyle={{
-                    paddingVertical: hourHeight,
+                    paddingVertical: minuteHeight,
                 }}
                 contentContainerClassName="w-full flex items-center"
             />
 
             <View
                 style={{
-                    height: hourHeight,
+                    height: minuteHeight,
                 }}
                 className="absolute left-0 bottom-0 w-full z-[1] pointer-events-none"
             >
