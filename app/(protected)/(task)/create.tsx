@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
+import { Calendar } from "@/components/create/calendar";
 import { TimePager } from "@/components/create/time-pager";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
@@ -170,7 +171,7 @@ export default function CreateTaskPage() {
         target: "start",
         active: false,
     });
-    const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
+    const [dateModalOpened, setDateModalOpened] = useState<boolean>(true);
     const [listHeight, setListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
@@ -462,8 +463,7 @@ export default function CreateTaskPage() {
                             </View>
 
                             <Pressable
-                                onPress={() => {
-                                }}
+                                onPress={() => setDateModalOpened(true)}
                                 className="w-[88%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                             >
                                 <TextAnimated
@@ -743,45 +743,49 @@ export default function CreateTaskPage() {
                 scrollableContent={false}
                 dragHandler={(
                     <View className="w-full dark:bg-black bg-white">
-                        <View className="size-full flex flex-row justify-between items-center px-3 pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
-                            <TextAnimated
-                                numberOfLines={1}
-                                className="text-xl tracking-wide"
-                            >
-                                {t("create_form_time")}
-                            </TextAnimated>
+                        <View className="size-full flex flex-row justify-between items-center pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
+                            <View className="w-[80%] px-3">
+                                <TextAnimated
+                                    numberOfLines={1}
+                                    className="text-xl tracking-wide"
+                                >
+                                    {t("create_form_time")}
+                                </TextAnimated>
+                            </View>
 
-                            <PressableAnimated
-                                onPress={() => {
-                                    setTimeModal({
-                                        ...timeModal,
-                                        active: false,
-                                    });
-                                }}
-                                className="size-[45px] rounded-full"
-                            >
-                                <View
-                                    style={{
-                                        transform: [
-                                            {
-                                                translateY: 6,
-                                            }
-                                        ],
-                                        filter: "blur(5px)",
+                            <View className="w-[20%] flex items-end px-3">
+                                <PressableAnimated
+                                    onPress={() => {
+                                        setTimeModal({
+                                            ...timeModal,
+                                            active: false,
+                                        });
                                     }}
-                                    className="absolute left-0 top-0 size-full bg-black/30 rounded-full"
-                                />
+                                    className="size-[45px] rounded-full"
+                                >
+                                    <View
+                                        style={{
+                                            transform: [
+                                                {
+                                                    translateY: 6,
+                                                }
+                                            ],
+                                            filter: "blur(5px)",
+                                        }}
+                                        className="absolute left-0 top-0 size-full bg-black/30 rounded-full"
+                                    />
 
-                                <View className="size-full dark:bg-black bg-white rounded-full">
-                                    <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white border dark:border-white/10 border-black/10 rounded-full">
-                                        <FontAwesome6
-                                            name="xmark"
-                                            size={25}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
-                                        />
+                                    <View className="size-full dark:bg-black bg-white rounded-full">
+                                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white border dark:border-white/10 border-black/10 rounded-full">
+                                            <FontAwesome6
+                                                name="xmark"
+                                                size={25}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                            />
+                                        </View>
                                     </View>
-                                </View>
-                            </PressableAnimated>
+                                </PressableAnimated>
+                            </View>
                         </View>
                     </View>
                 )}
@@ -835,6 +839,67 @@ export default function CreateTaskPage() {
                             />
                         </View>
                     </View>
+                </View>
+            </Modal>
+
+            {/* Date modal */}
+
+            <Modal
+                active={dateModalOpened}
+                animationDuration={500}
+                onClose={() => setDateModalOpened(false)}
+                height={screenHeight * .6}
+                backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
+                className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
+                rounded={20}
+                closeAnimationDuration={600}
+                scrollableContent={false}
+                dragHandler={(
+                    <View className="w-full dark:bg-black bg-white">
+                        <View className="size-full flex flex-row justify-between items-center pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
+                            <View className="w-[80%] px-3">
+                                <TextAnimated
+                                    numberOfLines={1}
+                                    className="text-xl tracking-wide"
+                                >
+                                    {t("create_form_date")}
+                                </TextAnimated>
+                            </View>
+
+                            <View className="w-[20%] flex items-end px-3">
+                                <PressableAnimated
+                                    onPress={() => setDateModalOpened(false)}
+                                    className="size-[45px] rounded-full"
+                                >
+                                    <View
+                                        style={{
+                                            transform: [
+                                                {
+                                                    translateY: 6,
+                                                }
+                                            ],
+                                            filter: "blur(5px)",
+                                        }}
+                                        className="absolute left-0 top-0 size-full bg-black/30 rounded-full"
+                                    />
+
+                                    <View className="size-full dark:bg-black bg-white rounded-full">
+                                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white border dark:border-white/10 border-black/10 rounded-full">
+                                            <FontAwesome6
+                                                name="xmark"
+                                                size={25}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                            />
+                                        </View>
+                                    </View>
+                                </PressableAnimated>
+                            </View>
+                        </View>
+                    </View>
+                )}
+            >
+                <View className="w-full h-full flex items-center pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                    <Calendar />
                 </View>
             </Modal>
         </Container>
