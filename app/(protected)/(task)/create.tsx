@@ -1,7 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
-import { FlatListHours } from "@/components/create/hours";
-import { FlatListMinutes } from "@/components/create/minutes";
+import { TimePager } from "@/components/create/time-pager";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -164,9 +163,14 @@ export default function CreateTaskPage() {
         }
     >(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
-    const [timeModalOpened, setTimeModalOpened] = useState<boolean>(false);
+    const [timeModal, setTimeModal] = useState<{
+        target: "start" | "end";
+        active: boolean;
+    }>({
+        target: "start",
+        active: false,
+    });
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
-    const targetTime = useRef<"start" | "end" | null>(null);
     const [listHeight, setListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
@@ -196,7 +200,7 @@ export default function CreateTaskPage() {
 
     const handleTime = useCallback((entry: string, target: "hour" | "minute" = "hour") => {
         setInputsValues((prev) => {
-            if (targetTime.current === "start") {
+            if (timeModal.target === "start") {
                 const [hour, min] = prev.startAt.split(":");
 
                 return {
@@ -208,7 +212,7 @@ export default function CreateTaskPage() {
                 };
             }
 
-            if (targetTime.current === "end") {
+            if (timeModal.target === "end") {
                 if (!prev.endAt) {
                     return {
                         ...prev,
@@ -233,7 +237,7 @@ export default function CreateTaskPage() {
 
             return prev;
         });
-    }, []);
+    }, [timeModal]);
 
     return (
         <Container centerX>
@@ -507,8 +511,10 @@ export default function CreateTaskPage() {
 
                                 <Pressable
                                     onPress={() => {
-                                        setTimeModalOpened(true);
-                                        targetTime.current = "start";
+                                        setTimeModal({
+                                            target: "start",
+                                            active: true,
+                                        });
                                     }}
                                     className={clsx(
                                         "dark:bg-white/10 bg-white rounded-2xl px-5 py-3",
@@ -537,8 +543,10 @@ export default function CreateTaskPage() {
 
                                         <Pressable
                                             onPress={() => {
-                                                setTimeModalOpened(true);
-                                                targetTime.current = "end";
+                                                setTimeModal({
+                                                    target: "end",
+                                                    active: true,
+                                                });
                                             }}
                                             className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                                         >
@@ -720,9 +728,12 @@ export default function CreateTaskPage() {
             {/* Time modal */}
 
             <Modal
-                active={timeModalOpened}
+                active={timeModal.active}
                 animationDuration={500}
-                onClose={() => setTimeModalOpened(false)}
+                onClose={() => setTimeModal({
+                    ...timeModal,
+                    active: false,
+                })}
                 height={screenHeight * .45}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
@@ -742,8 +753,10 @@ export default function CreateTaskPage() {
 
                             <PressableAnimated
                                 onPress={() => {
-                                    setTimeModalOpened(false);
-                                    targetTime.current = null;
+                                    setTimeModal({
+                                        ...timeModal,
+                                        active: false,
+                                    });
                                 }}
                                 className="size-[45px] rounded-full"
                             >
@@ -779,18 +792,46 @@ export default function CreateTaskPage() {
                         className="size-full flex flex-row justify-center gap-[20px] px-5"
                     >
                         <View className="w-[100px] h-full">
-                            <FlatListHours
+                            <TimePager
                                 height={listHeight}
-                                initialIndex={Number(inputsValues.startAt.split(":").shift()) ?? 0}
                                 onIndexChanged={handleTime}
+                                initialIndex={timeModal.target == "start" ?
+                                    (Number(inputsValues.startAt.split(":").shift()) ?? 0)
+                                    :
+                                    (
+                                        inputsValues.endAt ?
+                                            Number(inputsValues.endAt.split(":").shift()) ?? 0
+                                            :
+                                            0
+                                    )
+                                }
                             />
                         </View>
 
+                        <View className="h-full flex justify-center items-center pb-1">
+                            <TextAnimated
+                                numberOfLines={1}
+                                className="text-4xl font-bold"
+                            >
+                                :
+                            </TextAnimated>
+                        </View>
+
                         <View className="w-[100px] h-full">
-                            <FlatListMinutes
+                            <TimePager
                                 height={listHeight}
-                                initialIndex={Number(inputsValues.startAt.split(":").pop()) ?? 0}
+                                target="minutes"
                                 onIndexChanged={handleTime}
+                                initialIndex={timeModal.target == "start" ?
+                                    (Number(inputsValues.startAt.split(":").pop()) ?? 0)
+                                    :
+                                    (
+                                        inputsValues.endAt ?
+                                            Number(inputsValues.endAt.split(":").pop()) ?? 0
+                                            :
+                                            0
+                                    )
+                                }
                             />
                         </View>
                     </View>

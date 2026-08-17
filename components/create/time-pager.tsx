@@ -10,23 +10,25 @@ interface Props {
     height: number;
     onIndexChanged: (value: string, target?: "hour" | "minute") => void;
     initialIndex?: number;
+    target?: "hours" | "minutes";
 }
 
-export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: Props) => {
+export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = "hours" }: Props) => {
     const ref = useRef<FlatList>(null);
-    const perHour = 60;
-    const repeat = perHour * 101;
-    const [minuteHeight, setMinuteHeight] = useState<number>(0);
+    const range = target == "hours" ? 24 : 60;
+    const repeat = Math.round(10000 / range);
+    const [itemHeight, setItemHeight] = useState<number>(0);
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
-    const startPos = Math.round(((repeat * perHour) / 2) - (perHour / 2));
-    const currentIndex = useRef<number>(startPos);
+    const startPos = Math.round((repeat * range) / 2) - (range / 2);
+    const currentIndex = useRef<number>(initialIndex ? startPos + initialIndex : startPos);
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const mounted = useRef<boolean>(false);
 
-    const minutes = useMemo(() => {
+    const hours = useMemo(() => {
         return Array(repeat).fill(0).map(() => {
-            return Array(perHour).fill(0).map((_, i) => String(i).padStart(2, "0"));
+            return Array(range).fill(0).map((_, i) => String(i).padStart(2, "0"));
         }).join(",").split(",");
     }, []);
 
@@ -56,12 +58,12 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
         );
     }, []);
 
-    const renderItem = useCallback(({ item: hour, index }: { item: string; index: number }) => {
+    const renderItem = useCallback(({ item, index }: { item: string; index: number }) => {
         return (
             <GestureDetector gesture={tapGesture(index)}>
                 <View
                     style={{
-                        height: minuteHeight,
+                        height: itemHeight,
                     }}
                     className="w-full flex justify-center items-center"
                 >
@@ -69,38 +71,42 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
                         style={textAnimation}
                         className="text-5xl font-bold"
                     >
-                        {hour}
+                        {item}
                     </Animated.Text>
                 </View>
             </GestureDetector>
         );
-    }, [minuteHeight]);
+    }, [itemHeight]);
 
     const getItemLayout = useCallback((data: unknown, index: number) => ({
-        length: minuteHeight,
-        offset: index * minuteHeight,
+        length: itemHeight,
+        offset: index * itemHeight,
         index,
-    }), [minuteHeight]);
+    }), [itemHeight]);
 
     const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
-        const index = Math.round(y / minuteHeight);
+        const index = Math.round(y / itemHeight);
 
         if (currentIndex.current && index != currentIndex.current) {
-            onIndexChanged(minutes[index], "minute");
+            onIndexChanged(hours[index], target == "hours" ? "hour" : "minute");
         }
         currentIndex.current = index;
         scrolling.value = false;
-    }, [minuteHeight, onIndexChanged]);
+    }, [itemHeight, onIndexChanged, target]);
 
     useEffect(() => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
-        setMinuteHeight(height / 3);
-        scrollTimeout.current = setTimeout(() => {
-            ref.current?.scrollToIndex({
-                index: currentIndex.current ? currentIndex.current : startPos,
-            });
-        }, 100);
+        setItemHeight(height / 3);
+        if (mounted.current) {
+            scrollTimeout.current = setTimeout(() => {
+                ref.current?.scrollToIndex({
+                    index: currentIndex.current,
+                    animated: false,
+                });
+            }, 50);
+        }
+        mounted.current = true;
     }, [height]);
 
     const onScroll = useCallback(() => {
@@ -111,16 +117,21 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
         }, 200);
     }, []);
 
+    useEffect(() => {
+        scrollTimeout.current && clearTimeout(scrollTimeout.current);
+        if (initialIndex && mounted.current) {
+            ref.current?.scrollToIndex({
+                index: startPos + initialIndex,
+                animated: false,
+            });
+        }
+    }, [initialIndex]);
+
     return (
         <View className="w-full h-full">
             <View
                 style={{
-                    height: minuteHeight,
-                    transform: [
-                        {
-                            translateY: -1,
-                        }
-                    ],
+                    height: itemHeight,
                 }}
                 className="absolute left-0 top-0 w-full z-[1] pointer-events-none dark:opacity-80 opacity-60"
             >
@@ -151,8 +162,8 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
 
             <Animated.FlatList
                 ref={ref}
-                data={minutes}
-                snapToInterval={minuteHeight}
+                data={hours}
+                snapToInterval={itemHeight}
                 snapToAlignment="start"
                 keyExtractor={(_, i) => String(i)}
                 scrollEventThrottle={16}
@@ -160,28 +171,23 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
                 getItemLayout={getItemLayout}
                 initialScrollIndex={initialIndex ? startPos + initialIndex : startPos}
                 initialNumToRender={10}
-                windowSize={10}
-                maxToRenderPerBatch={perHour * 3}
+                windowSize={100}
+                maxToRenderPerBatch={range * 3}
                 updateCellsBatchingPeriod={1}
                 showsVerticalScrollIndicator={false}
                 onScroll={onScroll}
                 onMomentumScrollEnd={onMomentumScrollEnd}
-                removeClippedSubviews
+                removeClippedSubviews={false}
                 className="w-full h-full"
                 contentContainerStyle={{
-                    paddingVertical: minuteHeight,
+                    paddingVertical: itemHeight,
                 }}
                 contentContainerClassName="w-full flex items-center"
             />
 
             <View
                 style={{
-                    height: minuteHeight,
-                    transform: [
-                        {
-                            translateY: 1,
-                        }
-                    ],
+                    height: itemHeight,
                 }}
                 className="absolute left-0 bottom-0 w-full z-[1] pointer-events-none dark:opacity-80 opacity-60"
             >
