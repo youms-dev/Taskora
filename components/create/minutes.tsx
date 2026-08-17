@@ -91,7 +91,7 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
         }
         currentIndex.current = index;
         scrolling.value = false;
-    }, [minuteHeight]);
+    }, [minuteHeight, onIndexChanged]);
 
     useEffect(() => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
@@ -101,7 +101,7 @@ export const FlatListMinutes = memo(({ height, onIndexChanged, initialIndex }: P
                 index: currentIndex.current ? currentIndex.current : startPos,
             });
         }, 100);
-    }, [height, onIndexChanged]);
+    }, [height]);
 
     const onScroll = useCallback(() => {
         timeout.current && clearTimeout(timeout.current);

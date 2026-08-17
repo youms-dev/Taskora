@@ -91,7 +91,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
         }
         currentIndex.current = index;
         scrolling.value = false;
-    }, [hourHeight]);
+    }, [hourHeight, onIndexChanged]);
 
     useEffect(() => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
@@ -101,7 +101,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 index: currentIndex.current ? currentIndex.current : startPos,
             });
         }, 100);
-    }, [height, onIndexChanged]);
+    }, [height]);
 
     const onScroll = useCallback(() => {
         timeout.current && clearTimeout(timeout.current);
@@ -168,7 +168,7 @@ export const FlatListHours = memo(({ height, onIndexChanged, initialIndex }: Pro
                 }}
                 contentContainerClassName="w-full flex items-center"
             />
-
+            
             <View
                 style={{
                     height: hourHeight,

@@ -167,8 +167,7 @@ export default function CreateTaskPage() {
     const [timeModalOpened, setTimeModalOpened] = useState<boolean>(false);
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
     const targetTime = useRef<"start" | "end" | null>(null);
-    const [hoursListHeight, setHoursListHeight] = useState<number>(0);
-    const [minutesListHeight, setMinutesListHeight] = useState<number>(0);
+    const [listHeight, setListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -774,21 +773,26 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full flex flex-row justify-center gap-[60px] px-5 pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
-                    <View onLayout={(e) => setHoursListHeight(e.nativeEvent.layout.height)}>
-                        <FlatListHours
-                            height={hoursListHeight}
-                            initialIndex={Number(inputsValues.startAt.split(":").shift()) ?? 0}
-                            onIndexChanged={handleTime}
-                        />
-                    </View>
+                <View className="w-full h-full pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                    <View
+                        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+                        className="size-full flex flex-row justify-center gap-[20px] px-5"
+                    >
+                        <View className="w-[100px] h-full">
+                            <FlatListHours
+                                height={listHeight}
+                                initialIndex={Number(inputsValues.startAt.split(":").shift()) ?? 0}
+                                onIndexChanged={handleTime}
+                            />
+                        </View>
 
-                    <View onLayout={(e) => setMinutesListHeight(e.nativeEvent.layout.height)}>
-                        <FlatListMinutes
-                            height={minutesListHeight}
-                            initialIndex={Number(inputsValues.startAt.split(":").pop()) ?? 0}
-                            onIndexChanged={handleTime}
-                        />
+                        <View className="w-[100px] h-full">
+                            <FlatListMinutes
+                                height={listHeight}
+                                initialIndex={Number(inputsValues.startAt.split(":").pop()) ?? 0}
+                                onIndexChanged={handleTime}
+                            />
+                        </View>
                     </View>
                 </View>
             </Modal>
