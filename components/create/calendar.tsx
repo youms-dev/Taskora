@@ -1,12 +1,14 @@
+import { useCalendar } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
 import clsx from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, useWindowDimensions, View } from "react-native";
+import { FlatList, Text, useWindowDimensions, View } from "react-native";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import { format } from "date-fns";
+import { CalendarDays, PADDING_X } from "./days";
 
 export const Calendar = () => {
     const { t, i18n } = useTranslation();
@@ -14,6 +16,7 @@ export const Calendar = () => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const { theme } = useTheme();
+    const { months } = useCalendar();
 
     const days = useMemo(() => (i18n.language == "fr" ?
         ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
@@ -22,12 +25,31 @@ export const Calendar = () => {
     ), [i18n.language]);
 
     useEffect(() => {
-        setDayWidth(screenWidth / 7);
+        setDayWidth((screenWidth / 7) - PADDING_X);
     }, [screenWidth]);
 
+    const renderItem = useCallback(({ item: month, index }: { item: Date; index: number }) => {
+        return (
+            <View
+                style={{
+                    width: screenWidth,
+                }}
+                className="h-full"
+            >
+                <CalendarDays month={month} />
+            </View>
+        );
+    }, [months]);
+
+    const getItemLayout = useCallback((_data: unknown, index: number) => ({
+        length: (screenWidth - PADDING_X),
+        offset: index * (screenWidth - PADDING_X),
+        index,
+    }), [screenWidth]);
+
     return (
-        <View className="size-full flex items-center px-3">
-            <View className="w-full flex flex-row justify-between items-center gap-2">
+        <View className="size-full flex items-center">
+            <View className="w-full flex flex-row justify-between items-center gap-2 mb-5 mt-3 px-3">
                 <View className="size-[35px] dark:bg-black bg-white rounded-full">
                     <PressableAnimated className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full border border-white/5">
                         <Entypo
@@ -58,8 +80,7 @@ export const Calendar = () => {
                 </View>
             </View>
 
-
-            <View className="w-full flex flex-row justify-center">
+            <View className="w-full flex flex-row justify-center px-3 mb-5">
                 {
                     days.map((d, i) => (
                         <View
@@ -72,7 +93,7 @@ export const Calendar = () => {
                             <Text
                                 numberOfLines={1}
                                 className={clsx(
-                                    (i18n.language == "en" && i == 0) || (i18n.language == "fr" && i == 6) ? "text-red-500/60" : "dark:text-gray-600 text-gray-400",
+                                    (i18n.language == "en" && i == 0) || (i18n.language == "fr" && i == 6) ? "text-red-500/60" : "dark:text-gray-600 text-gray-500",
                                 )}
                             >
                                 {d}
@@ -80,6 +101,25 @@ export const Calendar = () => {
                         </View>
                     ))
                 }
+            </View>
+
+            <View className="w-full">
+                <FlatList
+                    horizontal
+                    pagingEnabled
+                    decelerationRate="fast"
+                    scrollEventThrottle={16}
+                    windowSize={100}
+                    initialNumToRender={12}
+                    maxToRenderPerBatch={12}
+                    updateCellsBatchingPeriod={1}
+                    removeClippedSubviews={false}
+                    data={months}
+                    keyExtractor={(item) => item.toISOString()}
+                    renderItem={renderItem}
+                    getItemLayout={getItemLayout}
+                    className="w-full h-full"
+                />
             </View>
         </View>
     );

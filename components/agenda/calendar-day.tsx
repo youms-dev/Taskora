@@ -28,7 +28,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
     const loading = useRef<boolean>(false);
     const { getTasksByDate } = useTasks();
     const limit = 10;
-    const [tasks, setTasks] = useState<Array<Record<number, TaskType[]>>>([]);
+    const [tasks, setTasks] = useState<Map<number, TaskType[]>>(new Map());
     const timeout = useRef<ReturnType<typeof setTimeout>>(0);
     const daysHeight = 100;
     const daysGap = 5;
@@ -38,12 +38,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
         const monthDay = day.getDate();
         const isNotPartOfThisMonth = (String(monthDay).length == 2 && index <= 5) || (String(monthDay).length == 1 && index > days.length / 2);
 
-        if (index >= 35) return (<></>);
-        const data = tasks.find(item => item[monthDay]) || {
-            [monthDay]: [],
-        };
-
-        const dayTasks = data[monthDay] || [];
+        const data = tasks.get(monthDay) ?? [];
 
         return (
             <Pressable
@@ -66,7 +61,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                 }}
                 className={clsx(
                     "flex items-center py-2",
-                    dayTasks.length > 0 && !isNotPartOfThisMonth && "dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-black/20",
+                    data.length > 0 && !isNotPartOfThisMonth && "dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-black/20",
                 )}
             >
                 <TextAnimated
@@ -81,7 +76,7 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                 </TextAnimated>
 
                 {
-                    dayTasks.length > 0 && !isNotPartOfThisMonth && dayTasks.map(task => (
+                    data.length > 0 && !isNotPartOfThisMonth && data.map(task => (
                         <View
                             key={task.idTask}
                             className="w-full h-[30px] flex flex-row gap-1 overflow-hidden mb-1"
@@ -101,15 +96,15 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                 }
             </Pressable>
         );
-    }, [month, tasks]);
+    }, [tasks]);
 
     const handleGetTasks = useCallback(async () => {
-        if (loading.current || tasks.length > 0) return;
+        if (loading.current || tasks.size > 0) return;
         timeout.current && clearTimeout(timeout.current);
         timeout.current = setTimeout(async () => {
             loading.current = true;
             try {
-                const tasks: Record<number, TaskType[]>[] = [];
+                const tasks: [number, TaskType[]][] = [];
 
                 await Promise.all(days.map(async (day, index) => {
                     const monthDay = day.getDate();
@@ -118,14 +113,12 @@ export const CalendarDay = memo(({ active, month }: Props) => {
                     if (isNotPartOfThisMonth) return;
                     const data = await getTasksByDate(day, 2, 0) as TaskType[];
 
-                    tasks.push(
-                        {
-                            [monthDay]: data,
-                        }
-                    );
+                    tasks.push([monthDay, data]);
                 }));
 
-                setTasks(tasks);
+                setTasks(new Map(
+                    tasks.map(item => item)
+                ));
                 loading.current = false;
             }
             catch (e) {

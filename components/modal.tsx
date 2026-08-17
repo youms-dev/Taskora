@@ -145,7 +145,7 @@ export const Modal = memo(({
         return (
             Gesture.Pan()
                 .simultaneousWithExternalGesture(scrollGesture)
-                .failOffsetX([-10, 10])
+                .failOffsetX([-5, 5])
                 .onUpdate(({ translationY: y }) => {
                     if (y > 0 && !scrolling.value && closable.value && scroll.value == 0) {
                         dragging.value = true;

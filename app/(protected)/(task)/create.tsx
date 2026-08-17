@@ -1,7 +1,6 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { Calendar } from "@/components/create/calendar";
-import { TimePager } from "@/components/create/time-pager";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -727,7 +726,7 @@ export default function CreateTaskPage() {
 
             {/* Time modal */}
 
-            <Modal
+            {/* <Modal
                 active={timeModal.active}
                 animationDuration={500}
                 onClose={() => setTimeModal({
@@ -840,7 +839,7 @@ export default function CreateTaskPage() {
                         </View>
                     </View>
                 </View>
-            </Modal>
+            </Modal> */}
 
             {/* Date modal */}
 
@@ -848,7 +847,7 @@ export default function CreateTaskPage() {
                 active={dateModalOpened}
                 animationDuration={500}
                 onClose={() => setDateModalOpened(false)}
-                height={screenHeight * .6}
+                height={screenHeight * .75}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
                 rounded={20}
@@ -898,7 +897,7 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-full h-full flex items-center pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                <View className="w-screen h-full flex items-center pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
                     <Calendar />
                 </View>
             </Modal>

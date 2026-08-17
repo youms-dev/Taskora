@@ -658,8 +658,9 @@ export const Calendar = () => {
                 horizontal
                 pagingEnabled
                 scrollEventThrottle={16}
-                windowSize={Math.ceil(months.length) > 0 ? Math.ceil(months.length) : 1}
-                maxToRenderPerBatch={Math.ceil(months.length)}
+                windowSize={100}
+                updateCellsBatchingPeriod={1}
+                maxToRenderPerBatch={12}
                 removeClippedSubviews={false}
                 initialScrollIndex={INITIAL_RANGE}
                 initialNumToRender={INITIAL_RANGE}
