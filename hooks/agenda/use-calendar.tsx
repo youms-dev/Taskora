@@ -2,21 +2,19 @@ import { addMonths, startOfMonth } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export const INITIAL_RANGE = 6;
-export const NUM_TO_ADD = 3;
+// export const NUM_TO_ADD = INITIAL_RANGE * 2;
+export const NUM_TO_ADD = 6;
 
 export const useCalendar = () => {
     const [months, setMonths] = useState<Date[]>([]);
     const today = useMemo(() => startOfMonth(new Date()), []);
-    const [loading, setLoading] = useState<boolean>(false);
-    const loadingRef = useRef<boolean>(false);
+    const loading = useRef<boolean>(false);
     const [years, setYears] = useState<number[]>([]);
 
     const prependPastMonths = async () => {
-        setLoading(true);
-        if (loadingRef.current || months[0].getFullYear() < years[0]) {
-            setLoading(false);
-            return;
-        }
+        if (loading.current || months[0].getFullYear() < years[0]) return;
+        loading.current = true;
+
         const firstMonth = months[0];
         const previousMonths: Date[] = [];
 
@@ -31,15 +29,12 @@ export const useCalendar = () => {
         setMonths((prev) => [...previousMonths.reverse(), ...prev]);
 
         console.log("Prepend done");
-        setLoading(false);
     };
 
     const appendFutureMonths = async () => {
-        setLoading(true);
-        if (loadingRef.current || months[months.length - 1].getFullYear() > years[years.length - 1]) {
-            setLoading(false);
-            return;
-        }
+        if (loading.current || months[months.length - 1].getFullYear() > years[years.length - 1]) return;
+        loading.current = true;
+
         const lastMonth = months[months.length - 1];
         const nextMonths: Date[] = [];
 
@@ -54,17 +49,11 @@ export const useCalendar = () => {
 
         console.log("Append done");
 
-        setLoading(false);
     };
 
     useEffect(() => {
-        const months = Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
-            return startOfMonth(addMonths(today, i - INITIAL_RANGE));
-        });
         const years: number[] = [];
         const date = new Date();
-
-        setMonths(months);
 
         for (let i = date.getFullYear() - 200; i < date.getFullYear() + 200; i++) {
             years.push(i + 1);
@@ -81,25 +70,14 @@ export const useCalendar = () => {
         setMonths(months);
     }
 
-    useEffect(() => {
-        loadingRef.current = loading;
-    }, [loading]);
-
-    const generateMonths = (target: "month" | "year", entry: number, currentDate: Date = new Date()) => {
-        setLoading(true);
-        if (loadingRef.current) {
-            setLoading(false);
-            return;
-        }
-
-        if (target == "year" && !years.includes(entry)) {
-            throw new Error("The given entry doesn't exists in the current years range");
-        }
+    const generateMonths = (target: "month" | "year", entry: number, currentDate: Date = new Date(), init: boolean = false) => {
+        if (loading.current) return;
+        loading.current = true;
 
         if (target == "month") {
             const targetDate = new Date(currentDate.getFullYear(), entry, 1);
 
-            const months = Array(INITIAL_RANGE + 2).fill(0).map((_, i) => {
+            const months = Array(init ? (INITIAL_RANGE * 2) + 1 : INITIAL_RANGE + 2).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 
@@ -108,13 +86,13 @@ export const useCalendar = () => {
         else {
             const targetDate = new Date(entry, currentDate.getMonth(), 1);
 
-            const months = Array(INITIAL_RANGE + 2).fill(0).map((_, i) => {
+            const months = Array(init ? (INITIAL_RANGE * 2) + 1 : INITIAL_RANGE + 2).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 
             setMonths(months);
         }
-        setLoading(false);
+        loading.current = false;
     }
 
     return ({

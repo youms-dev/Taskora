@@ -147,7 +147,7 @@ export default function CreateTaskPage() {
         title: null,
         desc: "",
         icon: null,
-        date,
+        date: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
         startAt: `${String(date.getHours() + 1).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         endAt: `${String(date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
@@ -238,6 +238,17 @@ export default function CreateTaskPage() {
             return prev;
         });
     }, [timeModal]);
+
+    const handleDateChanged = useCallback((entry: Date) => {
+        setInputsValues((prev) => {
+            const { date, ...rest } = prev;
+
+            return ({
+                ...rest,
+                date: entry,
+            });
+        });
+    }, [inputsValues]);
 
     return (
         <Container centerX>
@@ -897,8 +908,11 @@ export default function CreateTaskPage() {
                     </View>
                 )}
             >
-                <View className="w-screen h-full flex items-center pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
-                    <Calendar />
+                <View className="w-full h-full pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
+                    <Calendar
+                        targetDate={inputsValues.date}
+                        onDateChanged={handleDateChanged}
+                    />
                 </View>
             </Modal>
         </Container>
