@@ -173,6 +173,8 @@ export default function CreateTaskPage() {
     });
     const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
     const [listHeight, setListHeight] = useState<number>(0);
+    const [timePagerMounted, setTimePagerMounted] = useState<boolean>(false);
+    const [calendarMounted, setCalendarMounted] = useState<boolean>(false);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -249,7 +251,7 @@ export default function CreateTaskPage() {
                 date: entry,
             });
         });
-    }, [inputsValues]);
+    }, []);
 
     return (
         <Container centerX>
@@ -474,7 +476,10 @@ export default function CreateTaskPage() {
                             </View>
 
                             <Pressable
-                                onPress={() => setDateModalOpened(true)}
+                                onPress={() => {
+                                    setDateModalOpened(true);
+                                    setCalendarMounted(true);
+                                }}
                                 className="w-[88%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                             >
                                 <TextAnimated
@@ -526,6 +531,7 @@ export default function CreateTaskPage() {
                                             target: "start",
                                             active: true,
                                         });
+                                        setTimePagerMounted(true);
                                     }}
                                     className={clsx(
                                         "dark:bg-white/10 bg-white rounded-2xl px-5 py-3",
@@ -558,6 +564,7 @@ export default function CreateTaskPage() {
                                                     target: "end",
                                                     active: true,
                                                 });
+                                                setTimePagerMounted(true);
                                             }}
                                             className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                                         >
@@ -807,7 +814,7 @@ export default function CreateTaskPage() {
                         className="size-full flex flex-row justify-center gap-[20px] px-5"
                     >
                         {
-                            timeModal.active && listHeight > 0 && (
+                            ((timeModal.active && listHeight > 0) || timePagerMounted) && (
                                 <>
                                     <View className="w-[100px] h-full">
                                         <TimePager
@@ -917,7 +924,7 @@ export default function CreateTaskPage() {
             >
                 <View className="w-full h-full pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
                     {
-                        dateModalOpened && (
+                        (dateModalOpened || calendarMounted) && (
                             <Calendar
                                 targetDate={inputsValues.date}
                                 onDateChanged={handleDateChanged}
