@@ -1,9 +1,8 @@
 import { addMonths, startOfMonth } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export const INITIAL_RANGE = 6;
-// export const NUM_TO_ADD = INITIAL_RANGE * 2;
-export const NUM_TO_ADD = 6;
+export const INITIAL_RANGE = 12;
+export const NUM_TO_ADD = INITIAL_RANGE;
 
 export const useCalendar = () => {
     const [months, setMonths] = useState<Date[]>([]);

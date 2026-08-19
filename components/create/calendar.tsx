@@ -1,5 +1,4 @@
 import { INITIAL_RANGE, NUM_TO_ADD, useCalendar } from "@/hooks/agenda/use-calendar";
-import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -16,10 +15,9 @@ interface Props {
 }
 
 export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
-    const { t, i18n } = useTranslation();
+    const { i18n } = useTranslation();
     const [dayWidth, setDayWidth] = useState<number>(0);
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const { theme } = useTheme();
+    const { width: screenWidth } = useWindowDimensions();
     const { months, generateMonths, loading: hookLoading, prependPastMonths, appendFutureMonths } = useCalendar();
     const [currentDate, setCurrentDate] = useState<Date>(targetDate);
     const ref = useRef<FlatList>(null);
@@ -99,12 +97,12 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
 
         if (hookLoading.current || mutation.current) return;
 
-        if (index <= 3) {
+        if (index <= 5) {
             mutation.current = "prepend";
             prependPastMonths();
         }
 
-        else if (index >= months.length - 3) {
+        else if (index >= months.length - 5) {
             mutation.current = "append";
             appendFutureMonths();
         }
@@ -128,7 +126,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                 animated: false,
             });
             mutation.current = null;
-            // currentIndex.current = currentIndex.current + NUM_TO_ADD;
+            currentIndex.current = currentIndex.current + NUM_TO_ADD;
             hookLoading.current = false;
         }
         else if (hookLoading.current && mutation.current == "append") {
@@ -146,9 +144,6 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
             });
         }
     }, [months]);
-
-    console.log("\n");
-    console.log("\n");
 
     return (
         <View className="w-full h-full flex items-center">
