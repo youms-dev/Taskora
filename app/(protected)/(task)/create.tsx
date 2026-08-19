@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { Calendar } from "@/components/create/calendar";
+import { TimePager } from "@/components/create/time-pager";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -170,7 +171,7 @@ export default function CreateTaskPage() {
         target: "start",
         active: false,
     });
-    const [dateModalOpened, setDateModalOpened] = useState<boolean>(true);
+    const [dateModalOpened, setDateModalOpened] = useState<boolean>(false);
     const [listHeight, setListHeight] = useState<number>(0);
 
     const markerAnimation = useAnimatedStyle(() => ({
@@ -737,7 +738,7 @@ export default function CreateTaskPage() {
 
             {/* Time modal */}
 
-            {/* <Modal
+            <Modal
                 active={timeModal.active}
                 animationDuration={500}
                 onClose={() => setTimeModal({
@@ -805,52 +806,58 @@ export default function CreateTaskPage() {
                         onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
                         className="size-full flex flex-row justify-center gap-[20px] px-5"
                     >
-                        <View className="w-[100px] h-full">
-                            <TimePager
-                                height={listHeight}
-                                onIndexChanged={handleTime}
-                                initialIndex={timeModal.target == "start" ?
-                                    (Number(inputsValues.startAt.split(":").shift()) ?? 0)
-                                    :
-                                    (
-                                        inputsValues.endAt ?
-                                            Number(inputsValues.endAt.split(":").shift()) ?? 0
-                                            :
-                                            0
-                                    )
-                                }
-                            />
-                        </View>
+                        {
+                            timeModal.active && listHeight > 0 && (
+                                <>
+                                    <View className="w-[100px] h-full">
+                                        <TimePager
+                                            height={listHeight}
+                                            onIndexChanged={handleTime}
+                                            initialIndex={timeModal.target == "start" ?
+                                                (Number(inputsValues.startAt.split(":").shift()) ?? 0)
+                                                :
+                                                (
+                                                    inputsValues.endAt ?
+                                                        Number(inputsValues.endAt.split(":").shift()) ?? 0
+                                                        :
+                                                        0
+                                                )
+                                            }
+                                        />
+                                    </View>
 
-                        <View className="h-full flex justify-center items-center pb-1">
-                            <TextAnimated
-                                numberOfLines={1}
-                                className="text-4xl font-bold"
-                            >
-                                :
-                            </TextAnimated>
-                        </View>
-
-                        <View className="w-[100px] h-full">
-                            <TimePager
-                                height={listHeight}
-                                target="minutes"
-                                onIndexChanged={handleTime}
-                                initialIndex={timeModal.target == "start" ?
-                                    (Number(inputsValues.startAt.split(":").pop()) ?? 0)
-                                    :
-                                    (
-                                        inputsValues.endAt ?
-                                            Number(inputsValues.endAt.split(":").pop()) ?? 0
+                                    <View className="h-full flex justify-center items-center pb-1">
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="text-4xl font-bold"
+                                        >
                                             :
-                                            0
-                                    )
-                                }
-                            />
-                        </View>
+                                        </TextAnimated>
+                                    </View>
+
+                                    <View className="w-[100px] h-full">
+                                        <TimePager
+                                            height={listHeight}
+                                            target="minutes"
+                                            onIndexChanged={handleTime}
+                                            initialIndex={timeModal.target == "start" ?
+                                                (Number(inputsValues.startAt.split(":").pop()) ?? 0)
+                                                :
+                                                (
+                                                    inputsValues.endAt ?
+                                                        Number(inputsValues.endAt.split(":").pop()) ?? 0
+                                                        :
+                                                        0
+                                                )
+                                            }
+                                        />
+                                    </View>
+                                </>
+                            )
+                        }
                     </View>
                 </View>
-            </Modal> */}
+            </Modal>
 
             {/* Date modal */}
 
@@ -909,10 +916,14 @@ export default function CreateTaskPage() {
                 )}
             >
                 <View className="w-full h-full pt-[80px] pb-[80px] dark:bg-white/5 bg-white">
-                    <Calendar
-                        targetDate={inputsValues.date}
-                        onDateChanged={handleDateChanged}
-                    />
+                    {
+                        dateModalOpened && (
+                            <Calendar
+                                targetDate={inputsValues.date}
+                                onDateChanged={handleDateChanged}
+                            />
+                        )
+                    }
                 </View>
             </Modal>
         </Container>

@@ -73,6 +73,9 @@ export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: P
             numColumns={7}
             renderItem={renderItem}
             getItemLayout={getItemLayout}
+            updateCellsBatchingPeriod={0}
+            scrollEventThrottle={16}
+            maxToRenderPerBatch={35}
             style={{
                 width,
             }}

@@ -16,13 +16,13 @@ interface Props {
 
 export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
     const { i18n } = useTranslation();
-    const [dayWidth, setDayWidth] = useState<number>(0);
     const { width: screenWidth } = useWindowDimensions();
+    const [dayWidth, setDayWidth] = useState<number>(screenWidth / 7);
     const { months, generateMonths, loading: hookLoading, prependPastMonths, appendFutureMonths } = useCalendar();
     const [currentDate, setCurrentDate] = useState<Date>(targetDate);
     const ref = useRef<FlatList>(null);
     const currentIndex = useRef<number>(INITIAL_RANGE);
-    const [width, setWidth] = useState<number>(0);
+    const [width, setWidth] = useState<number>(screenWidth);
     const monthsMap = useMemo(() => {
         return (
             new Map(
@@ -220,7 +220,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                     windowSize={100}
                     initialNumToRender={12}
                     maxToRenderPerBatch={12}
-                    updateCellsBatchingPeriod={1}
+                    updateCellsBatchingPeriod={0}
                     removeClippedSubviews={false}
                     data={months}
                     keyExtractor={(item) => item.toISOString()}

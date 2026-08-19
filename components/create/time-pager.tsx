@@ -17,7 +17,7 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
     const ref = useRef<FlatList>(null);
     const range = target == "hours" ? 24 : 60;
     const repeat = Math.round(10000 / range);
-    const [itemHeight, setItemHeight] = useState<number>(0);
+    const [itemHeight, setItemHeight] = useState<number>(height / 3);
     const { theme, themeShared } = useTheme();
     const scrolling = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -26,11 +26,19 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
     const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const mounted = useRef<boolean>(false);
 
-    const hours = useMemo(() => {
+    const times = useMemo(() => {
         return Array(repeat).fill(0).map(() => {
             return Array(range).fill(0).map((_, i) => String(i).padStart(2, "0"));
         }).join(",").split(",");
     }, []);
+
+    const timesMap = useMemo(() => {
+        return (
+            new Map(
+                times.map((t, i) => [i, t]),
+            )
+        );
+    }, [times]);
 
     const textAnimation = useAnimatedStyle(() => ({
         color: scrolling.value ?
@@ -89,11 +97,11 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
         const index = Math.round(y / itemHeight);
 
         if (currentIndex.current && index != currentIndex.current) {
-            onIndexChanged(hours[index], target == "hours" ? "hour" : "minute");
+            onIndexChanged(timesMap.get(index) ?? "00", target == "hours" ? "hour" : "minute");
         }
         currentIndex.current = index;
         scrolling.value = false;
-    }, [itemHeight, onIndexChanged, target]);
+    }, [itemHeight, onIndexChanged, target, timesMap]);
 
     useEffect(() => {
         scrollTimeout.current && clearTimeout(scrollTimeout.current);
@@ -104,7 +112,7 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
                     index: currentIndex.current,
                     animated: false,
                 });
-            }, 50);
+            }, 200);
         }
         mounted.current = true;
     }, [height]);
@@ -162,7 +170,7 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
 
             <Animated.FlatList
                 ref={ref}
-                data={hours}
+                data={times}
                 snapToInterval={itemHeight}
                 snapToAlignment="start"
                 keyExtractor={(_, i) => String(i)}
@@ -173,7 +181,7 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
                 initialNumToRender={10}
                 windowSize={100}
                 maxToRenderPerBatch={range * 3}
-                updateCellsBatchingPeriod={1}
+                updateCellsBatchingPeriod={0}
                 showsVerticalScrollIndicator={false}
                 onScroll={onScroll}
                 onMomentumScrollEnd={onMomentumScrollEnd}
