@@ -1,15 +1,18 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
 import { Calendar } from "@/components/create/calendar";
+import { FoldersList } from "@/components/create/folders-list";
 import { TimePager } from "@/components/create/time-pager";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
 import { TextAnimated } from "@/components/text-animated";
+import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { getIcons } from "@/constants/icons";
 import { useTheme } from "@/hooks/use-theme";
+import { FolderType } from "@/types/folder";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -20,7 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
@@ -152,15 +155,18 @@ export default function CreateTaskPage() {
         startAt: `${String(date.getHours() + 1).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         endAt: `${String(date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
+        archive: false,
+        folder: null
     }
     const [inputsValues, setInputsValues] = useState<
-        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore" | "icon">
+        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore" | "icon" | "folder">
         &
         {
             title: string | null;
             icon: string | null;
             remindBefore: number | null;
             endAt: string | null;
+            folder: FolderType | null,
         }
     >(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
@@ -175,6 +181,7 @@ export default function CreateTaskPage() {
     const [listHeight, setListHeight] = useState<number>(0);
     const [timePagerMounted, setTimePagerMounted] = useState<boolean>(false);
     const [calendarMounted, setCalendarMounted] = useState<boolean>(false);
+    const [foldersModalOpened, setFoldersModalOpened] = useState<boolean>(false);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -251,6 +258,13 @@ export default function CreateTaskPage() {
                 date: entry,
             });
         });
+    }, []);
+
+    const onFolderSelected = useCallback((entry: FolderType | null) => {
+        setInputsValues((prev) => ({
+            ...prev,
+            folder: entry,
+        }));
     }, []);
 
     return (
@@ -378,6 +392,9 @@ export default function CreateTaskPage() {
                 className="w-full h-full"
                 contentContainerClassName="w-full flex items-center gap-6 pt-[120px] pb-[100px] px-3"
             >
+
+                {/* First section */}
+
                 <View className="w-full dark:bg-black bg-white rounded-2xl">
                     <View className="w-full dark:bg-black bg-black/5 p-5 pt-10 rounded-2xl">
                         <KeyboardAvoidingView
@@ -463,6 +480,8 @@ export default function CreateTaskPage() {
                         </View>
                     </View>
                 </View>
+
+                {/* Second section */}
 
                 <View className="w-full dark:bg-black bg-white rounded-2xl">
                     <View className="w-full flex items-center gap-5 dark:bg-black bg-black/5 p-5 rounded-2xl">
@@ -656,6 +675,83 @@ export default function CreateTaskPage() {
                         }
                     </View>
                 </View>
+
+                {/* Third section */}
+
+                {
+                    target == "task" && (
+                        <View className="w-full dark:bg-black bg-white rounded-2xl">
+                            <View className="w-full flex items-center gap-5 dark:bg-black bg-black/5 p-5 rounded-2xl">
+                                <Pressable
+                                    onPress={() => setFoldersModalOpened(true)}
+                                    className="w-full flex flex-row justify-between items-center"
+                                >
+                                    <View className="w-[20%] shrink-0">
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="text-xl"
+                                        >
+                                            {t("create_form_folder")}
+                                        </TextAnimated>
+                                    </View>
+
+                                    <View className={clsx(
+                                        "max-w-[75%] h-full flex flex-row items-center px-3 py-2 dark:bg-white/10 bg-black/5 rounded-xl",
+                                    )}>
+                                        <Text
+                                            numberOfLines={1}
+                                            className={clsx(
+                                                "text-lg",
+                                                !inputsValues.folder ? "dark:text-white/90 text-black/90" : "text-emerald-500 font-bold tracking-widest",
+                                                !inputsValues.folder && "opacity-50",
+                                            )}
+                                        >
+                                            {inputsValues.folder ? inputsValues.folder.title.charAt(0).toUpperCase() + inputsValues.folder.title.slice(1).toLowerCase() : t("create_form_folder_default")}
+                                        </Text>
+                                    </View>
+                                </Pressable>
+
+                                <View className="w-full flex items-center gap-2">
+                                    <Pressable
+                                        onPress={() => setInputsValues((prev) => ({
+                                            ...prev,
+                                            archive: !prev.archive,
+                                        }))}
+                                        className="w-full flex flex-row justify-between items-center"
+                                    >
+                                        <View className="w-[60%]">
+                                            <TextAnimated className="text-xl">
+                                                {t("create_form_archive")}
+                                            </TextAnimated>
+                                        </View>
+
+                                        <View className="shrink-0">
+                                            <Toggle
+                                                active={inputsValues.archive}
+                                                animationDuration={400}
+                                                onPress={() => setInputsValues((prev) => ({
+                                                    ...prev,
+                                                    archive: !prev.archive,
+                                                }))}
+                                            />
+                                        </View>
+                                    </Pressable>
+
+                                    <View className="w-full flex gap-2 dark:bg-white/10 bg-black/10 px-3 py-3 rounded-2xl">
+                                        <Entypo
+                                            name="info-with-circle"
+                                            size={20}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                        <TextAnimated className="dark:text-">
+                                            {t("create_form_archive_notice")}
+                                        </TextAnimated>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    )
+                }
             </ScrollView>
 
             {/* Form submit button */}
@@ -743,7 +839,7 @@ export default function CreateTaskPage() {
                 </LinearGradient>
             </LinearGradient>
 
-            {/* Time modal */}
+            {/* Times modal */}
 
             <Modal
                 active={timeModal.active}
@@ -866,7 +962,7 @@ export default function CreateTaskPage() {
                 </View>
             </Modal>
 
-            {/* Date modal */}
+            {/* Dates modal */}
 
             <Modal
                 active={dateModalOpened}
@@ -931,6 +1027,106 @@ export default function CreateTaskPage() {
                             />
                         )
                     }
+                </View>
+            </Modal>
+
+            {/* Folders modal */}
+
+            <Modal
+                active={foldersModalOpened}
+                animationDuration={500}
+                onClose={() => setFoldersModalOpened(false)}
+                height={screenHeight * .6}
+                backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
+                className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
+                rounded={20}
+                closeAnimationDuration={600}
+                scrollableContent={false}
+                closable={false}
+                dragHandler={(
+                    <View className="w-full dark:bg-black bg-white">
+                        <View className="size-full flex flex-row justify-between items-center pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
+                            <View className="w-[80%] px-3">
+                                <TextAnimated
+                                    numberOfLines={1}
+                                    className="text-xl tracking-wide"
+                                >
+                                    {t("create_form_folders_modal")}
+                                </TextAnimated>
+                            </View>
+
+                            <View className="w-[20%] flex items-end px-3">
+                                <PressableAnimated
+                                    onPress={() => setFoldersModalOpened(false)}
+                                    className="size-[45px] rounded-full"
+                                >
+                                    <View
+                                        style={{
+                                            transform: [
+                                                {
+                                                    translateY: 6,
+                                                }
+                                            ],
+                                            filter: "blur(5px)",
+                                        }}
+                                        className="absolute left-0 top-0 size-full bg-black/30 rounded-full"
+                                    />
+
+                                    <View className="size-full dark:bg-black bg-white rounded-full">
+                                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white border dark:border-white/10 border-black/10 rounded-full">
+                                            <FontAwesome6
+                                                name="xmark"
+                                                size={25}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                            />
+                                        </View>
+                                    </View>
+                                </PressableAnimated>
+                            </View>
+                        </View>
+                    </View>
+                )}
+            >
+                <View className="w-full h-full pt-[80px] pb-[50px] dark:bg-white/5 bg-white">
+                    {
+                        (foldersModalOpened || inputsValues.folder) && (
+                            <FoldersList
+                                selected={inputsValues.folder}
+                                onSelect={onFolderSelected}
+                            />
+                        )
+                    }
+
+                    <LinearGradient
+                        colors={theme == "dark" ?
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                            :
+                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                        }
+                        locations={[0, .6, 1]}
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 0, y: 0 }}
+                        style={{
+                            transform: [
+                                {
+                                    translateY: -40,
+                                }
+                            ]
+                        }}
+                        className="absolute left-0 bottom-0 w-full h-[50px]"
+                    >
+                        <LinearGradient
+                            colors={theme == "dark" ?
+                                ["rgba(255, 255, 255, .05)", "rgba(255, 255, 255, .05)", "rgba(255, 255, 255, 0)"]
+                                :
+                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                            }
+                            locations={[0, .6, 1]}
+                            start={{ x: 0, y: 1 }}
+                            end={{ x: 0, y: 0 }}
+                            className="size-full"
+                        />
+                    </LinearGradient>
                 </View>
             </Modal>
         </Container>

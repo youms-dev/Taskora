@@ -5,6 +5,7 @@ import { endOfDay, startOfDay } from "date-fns";
 
 export const useTasks = () => {
     const { db } = useDatabase();
+    
     async function syncTasks(position: number = 0): Promise<boolean | unknown> {
         if (!db) return;
 

@@ -4,11 +4,19 @@ import { FolderType, SQLiteFolderType } from "@/types/folder";
 export const useFolders = () => {
     const { db } = useDatabase();
 
-    async function getFolders(): Promise<FolderType[] | unknown> {
+    async function getFolders(offset: number | null = null, limit: number | null = null): Promise<FolderType[] | unknown> {
         if (!db) return;
 
         try {
-            const result = await db.getAllAsync("SELECT * FROM folder ORDER BY updated_at DESC") as SQLiteFolderType[];
+            let result: SQLiteFolderType[] = [];
+
+            if (offset != null && limit != null) {
+                result = await db.getAllAsync("SELECT * FROM folder ORDER BY updated_at DESC LIMIT ? OFFSET ?", [limit, offset]);
+            }
+            else {
+                result = await db.getAllAsync("SELECT * FROM folder ORDER BY updated_at DESC");
+            }
+
             const dataParsed: FolderType[] = result.length > 0 ? result.map(item => {
                 const { id_folder, created_at, updated_at, ...rest } = item;
 

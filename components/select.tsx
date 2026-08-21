@@ -1,5 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
+import clsx from "clsx";
 import { memo, ReactNode, useEffect, useState } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -17,6 +18,7 @@ interface Props {
         paddingTop?: number;
         paddingBottom?: number;
     };
+    chevron?: boolean;
 }
 
 /**
@@ -36,10 +38,12 @@ interface Props {
  * 
  * @param chevronPadding
  * 
+ * @param chevron Define whether there is a chevron or not
+ * 
  * @returns 
  */
 
-export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200, chevronPadding = 0 }: Props) => {
+export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200, chevronPadding = 0, chevron = true }: Props) => {
     const active = useSharedValue(!!selectOpen);
     const contentHeight = useSharedValue(0);
     const [measuredHeight, setMeasuredHeight] = useState(0);
@@ -95,31 +99,38 @@ export const Select = memo(({ open: selectOpen = false, children, header, chevro
                 }}
                 className="w-full flex-row justify-between"
             >
-                <View className="w-[70%]">
+                <View className={clsx(
+                    chevron ? "w-[70%]" : "w-full",
+                )}>
                     {header}
                 </View>
 
-                <View className="w-[20%] h-full flex-row justify-end">
-                    <Animated.View
-                        onLayout={(e) => chevronWidth.value = e.nativeEvent.layout.width}
-                        style={[
-                            rotationAnimation,
-                            {
-                                padding: typeof chevronPadding == "number" ? chevronPadding : null,
-                                paddingLeft: typeof chevronPadding == "object" ? chevronPadding?.paddingLeft : null,
-                                paddingRight: typeof chevronPadding == "object" ? chevronPadding?.paddingRight : null,
-                                paddingBottom: typeof chevronPadding == "object" ? chevronPadding?.paddingBottom : null,
-                                paddingTop: typeof chevronPadding == "object" ? chevronPadding?.paddingTop : null,
-                            },
-                        ]}
-                    >
-                        <Entypo
-                            name="chevron-right"
-                            size={30}
-                            color={chevronColor ? chevronColor : (theme == "dark" ? "rgba(255,255,255,.5)" : "rgba(0, 0, 0, .5)")}
-                        />
-                    </Animated.View>
-                </View>
+                {
+                    chevron && (
+                        <View className="w-[20%] h-full flex-row justify-end">
+                            <Animated.View
+                                onLayout={(e) => chevronWidth.value = e.nativeEvent.layout.width}
+                                style={[
+                                    rotationAnimation,
+                                    {
+                                        padding: typeof chevronPadding == "number" ? chevronPadding : null,
+                                        paddingLeft: typeof chevronPadding == "object" ? chevronPadding?.paddingLeft : null,
+                                        paddingRight: typeof chevronPadding == "object" ? chevronPadding?.paddingRight : null,
+                                        paddingBottom: typeof chevronPadding == "object" ? chevronPadding?.paddingBottom : null,
+                                        paddingTop: typeof chevronPadding == "object" ? chevronPadding?.paddingTop : null,
+                                    },
+                                ]}
+                            >
+                                <Entypo
+                                    name="chevron-right"
+                                    size={30}
+                                    color={chevronColor ? chevronColor : (theme == "dark" ? "rgba(255,255,255,.5)" : "rgba(0, 0, 0, .5)")}
+                                />
+                            </Animated.View>
+                        </View>
+                    )
+                }
+
             </Pressable>
 
             <Animated.View

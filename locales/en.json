@@ -66,5 +66,12 @@
     "create_form_date": "Select date",
     "create_form_time": "Select time",
     "create_form_time_before": "{{time}} mins before",
-    "create_form_submit": "Create"
+    "create_form_submit": "Create",
+    "create_form_archive": "Archive directly",
+    "create_form_archive_notice": "The task will be archived directly and you will not receive an alert",
+    "create_form_folder": "Folder",
+    "create_form_folder_default": "Default",
+    "create_form_folders_modal": "Select a folder",
+    "create_no_folders": "No folders yet,\ncreate a folder first to use it",
+    "sqlite_error": "An error occurred"
 }

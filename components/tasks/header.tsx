@@ -84,7 +84,7 @@ export const TasksHeader = memo(() => {
                 onPress={() => onFolderPress(folder, index)}
                 onLayout={(e) => foldersButtonsSizes.current[index] = e.nativeEvent.layout.width}
             >
-                {index == 0 ? t("tasks_all_folders") : folder.title}
+                {index == 0 ? t("tasks_all_folders") : folder.title.charAt(0).toUpperCase() + folder.title.slice(1).toLowerCase()}
             </FolderButton>
         );
     }, [folders, currentFolder, onFolderPress, i18n.language]);
