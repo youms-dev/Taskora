@@ -18,7 +18,7 @@ import { TextAnimated } from "../text-animated";
 export const SELECT_LIMIT = 50;
 
 interface Props {
-    context: TasksDataContext;
+    context: Pick<TasksDataContext, "setTasksSelected" | "tasksSelected" | "tasks" | "handleArchiveTasks" | "handleDeleteTasks">;
 }
 
 export const TasksFooter = memo(({ context }: Props) => {
@@ -28,7 +28,7 @@ export const TasksFooter = memo(({ context }: Props) => {
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, loading } = context;
+    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks } = context;
     const showAddTaskButton = useSharedValue<boolean>(true);
     const router = useRouter();
 
@@ -256,4 +256,14 @@ export const TasksFooter = memo(({ context }: Props) => {
             </LinearGradient>
         </View>
     );
-});
+}, (prev, next) => (
+    Object.is(prev.context.handleArchiveTasks, next.context.handleArchiveTasks)
+    &&
+    Object.is(prev.context.handleDeleteTasks, next.context.handleDeleteTasks)
+    &&
+    Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
+    &&
+    Object.is(prev.context.tasks, next.context.tasks)
+    &&
+    Object.is(prev.context.tasksSelected, next.context.tasksSelected)
+));

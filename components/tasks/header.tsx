@@ -187,7 +187,6 @@ export const TasksHeader = memo(({ context }: Props) => {
         ]);
     }, [i18n.language]);
 
-
     return (
         <View className="absolute w-full z-[50]">
             <LinearGradient
