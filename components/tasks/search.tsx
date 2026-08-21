@@ -1,6 +1,6 @@
 import { COLORS } from "@/constants/colors";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
@@ -64,8 +64,12 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
     );
 });
 
-export const TasksSearch = memo(() => {
-    const { searchSectionActive, setSearchSectionActive } = useTasksData();
+interface Props {
+    context: Pick<TasksDataContext, "searchSectionActive" | "setSearchSectionActive">;
+}
+
+export const TasksSearch = memo(({ context }: Props) => {
+    const { searchSectionActive, setSearchSectionActive } = context;
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useAnimatedRef<Animated.FlatList>();
@@ -207,7 +211,7 @@ export const TasksSearch = memo(() => {
                 task={task as TaskType}
             />
         </Animated.View>
-    ), [tasks, taskHeight]);
+    ), [taskHeight]);
 
     const listFooterComponent = useCallback(() => {
         if (loading) {
@@ -485,4 +489,8 @@ export const TasksSearch = memo(() => {
             </View>
         </Animated.View>
     );
-});
+}, (prev, next) => (
+    Object.is(prev.context.searchSectionActive, next.context.searchSectionActive)
+    &&
+    Object.is(prev.context.setSearchSectionActive, next.context.setSearchSectionActive)
+));

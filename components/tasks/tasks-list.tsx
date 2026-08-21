@@ -1,4 +1,4 @@
-import { LIMIT, useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { LIMIT, TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
@@ -15,14 +15,15 @@ import { TaskCard } from "./task-card";
 interface Props {
     folder: FolderType;
     index: number;
+    context: TasksDataContext;
 }
 
-export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
+export const TaskList = memo(({ folder, index: folderIndex, context }: Props) => {
     const { t, i18n } = useTranslation();
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter } = useTasksData();
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter } = context;
     const nativeGesture = useMemo(() => Gesture.Native(), []);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
@@ -55,9 +56,12 @@ export const TaskList = memo(({ folder, index: folderIndex }: Props) => {
             }
             className="w-full"
         >
-            <TaskCard task={task as TaskType} />
+            <TaskCard
+                task={task as TaskType}
+                context={context}
+            />
         </Animated.View>
-    ), []);
+    ), [context]);
 
     const handleScroll = useAnimatedScrollHandler({
         onScroll: (e) => {

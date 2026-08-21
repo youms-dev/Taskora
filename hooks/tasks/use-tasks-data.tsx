@@ -1,46 +1,16 @@
 import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
-import { createContext, memo, ReactNode, RefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList } from "react-native";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
 import { useTasks } from "../database/use-tasks";
 import { useToast } from "../use-toast";
 
-const Context = createContext<{
-    tasks: TaskType[];
-    folders: FolderType[];
-    currentFolder: string | null;
-    currentFilter: 1 | 2 | 3;
-    scrollY: SharedValue<number>;
-    loading: boolean;
-    handleGetTasks: (refresh?: boolean) => Promise<void>;
-    handleGetFolders: (refresh: boolean) => Promise<void>;
-    tasksCount: number;
-    foldersCount: number;
-    refreshTranslateY: SharedValue<number>;
-    scrolling: SharedValue<boolean>;
-    setCurrentFolder: ((value: string | null) => void);
-    searchSectionActive: boolean;
-    setSearchSectionActive: ((value: boolean) => void);
-    tasksSelected: TaskType[];
-    setTasksSelected: ((value: (TaskType[] | ((prev: TaskType[]) => TaskType[]))) => void);
-    setCurrentFilter: (value: 1 | 2 | 3) => void;
-    handleArchiveTasks: () => void;
-    handleDeleteTasks: () => void;
-    handleArchiveTask: (task: TaskType) => void;
-    handleDeleteTask: (task: TaskType) => void;
-} | null>(null);
-
-interface Props {
-    children: ReactNode;
-}
-
 export const LIMIT = 10;
 
-export const TasksDataProvider = memo(({ children }: Props) => {
+export const useTasksData = () => {
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const scrollY = useSharedValue<number>(0);
@@ -352,40 +322,30 @@ export const TasksDataProvider = memo(({ children }: Props) => {
         }
     }, [tasks, tasksCount]);
 
-    return (
-        <Context.Provider value={{
-            tasks: displayedTasks,
-            folders,
-            currentFolder,
-            currentFilter,
-            scrollY: scroll,
-            loading,
-            handleGetTasks,
-            handleGetFolders,
-            tasksCount,
-            foldersCount,
-            refreshTranslateY: refreshTranslate,
-            scrolling: isScrolling,
-            setCurrentFolder,
-            searchSectionActive,
-            setSearchSectionActive,
-            tasksSelected,
-            setTasksSelected,
-            setCurrentFilter: handleCurrentFilter,
-            handleArchiveTasks,
-            handleDeleteTasks,
-            handleArchiveTask,
-            handleDeleteTask,
-        }}>
-            {children}
-        </Context.Provider>
-    );
-});
-
-export const useTasksData = () => {
-    const ctx = useContext(Context);
-
-    if (!ctx) throw new Error("No TasksDataProvider found");
-
-    return ctx;
+    return ({
+        tasks: displayedTasks,
+        folders,
+        currentFolder,
+        currentFilter,
+        scrollY: scroll,
+        loading,
+        handleGetTasks,
+        handleGetFolders,
+        tasksCount,
+        foldersCount,
+        refreshTranslateY: refreshTranslate,
+        scrolling: isScrolling,
+        setCurrentFolder,
+        searchSectionActive,
+        setSearchSectionActive,
+        tasksSelected,
+        setTasksSelected,
+        setCurrentFilter: handleCurrentFilter,
+        handleArchiveTasks,
+        handleDeleteTasks,
+        handleArchiveTask,
+        handleDeleteTask,
+    });
 };
+
+export type TasksDataContext = ReturnType<typeof useTasksData>;

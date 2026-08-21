@@ -370,7 +370,7 @@ export default function Archives() {
                 onDelete={onDeleteTask}
             />
         </Animated.View>
-    ), [tasks, onLongPressTask, onPressTask, taskLoading, selectMap]);
+    ), [onLongPressTask, onPressTask, taskLoading, selectMap]);
 
     const onScroll = useAnimatedScrollHandler({
         onScroll: (e) => {

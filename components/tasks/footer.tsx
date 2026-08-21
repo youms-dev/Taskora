@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/colors";
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -17,15 +17,18 @@ import { TextAnimated } from "../text-animated";
 
 export const SELECT_LIMIT = 50;
 
-export const TasksFooter = memo(() => {
-    const { } = useTasksData();
+interface Props {
+    context: TasksDataContext;
+}
+
+export const TasksFooter = memo(({ context }: Props) => {
     const { theme } = useTheme();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const areTasksSelected = useSharedValue<boolean>(false);
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, loading } = useTasksData();
+    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, loading } = context;
     const showAddTaskButton = useSharedValue<boolean>(true);
     const router = useRouter();
 
@@ -126,6 +129,8 @@ export const TasksFooter = memo(() => {
         }
     }, [tasksSelected, tasks, selectMap]);
 
+    const deleteTasks = useCallback(() => handleDeleteTasks(), []);
+
     return (
         <View className="w-full flex items-center">
             {/* Selection section */}
@@ -175,7 +180,7 @@ export const TasksFooter = memo(() => {
                         />
                     </PressableAnimated>
 
-                    <PressableAnimated onPress={handleDeleteTasks}>
+                    <PressableAnimated onPress={deleteTasks}>
                         <FontAwesome6
                             name="trash-alt"
                             size={25}

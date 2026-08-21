@@ -1,4 +1,4 @@
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { FolderType } from "@/types/folder";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, useWindowDimensions } from "react-native";
@@ -12,8 +12,12 @@ export const DEFAULT_FOLDER: FolderType = {
     updatedAt: new Date(),
 };
 
-export const TasksPager = memo(() => {
-    const { loading, folders, currentFolder } = useTasksData();
+interface Props {
+    context: TasksDataContext;
+}
+
+export const TasksPager = memo(({ context }: Props) => {
+    const { loading, folders, currentFolder } = context;
     const { width: screenWidth } = useWindowDimensions();
     const loadingShared = useSharedValue<boolean>(loading);
     const pager = useRef<FlatList>(null);
@@ -37,14 +41,15 @@ export const TasksPager = memo(() => {
         );
     }, [folders]);
 
-    const listRenderItem = useCallback(({ item: folder, index }: { item: FolderType, index: number }) => {
+    const renderItem = useCallback(({ item: folder, index }: { item: FolderType, index: number }) => {
         return (
             <TaskList
                 folder={folder}
                 index={index}
+                context={context}
             />
         );
-    }, [folders]);
+    }, [context]);
 
     useEffect(() => {
         loadingShared.value = loading;
@@ -67,7 +72,9 @@ export const TasksPager = memo(() => {
         const index = !currentFolder ? 0 : foldersMap.get(currentFolder)?.index ?? 0;
 
         scrollToFolder(index);
-    }, [currentFolder, foldersMap.size]);
+    }, [currentFolder, foldersMap, scrollToFolder]);
+
+    // return null;
 
     return (
         <FlatList
@@ -83,7 +90,7 @@ export const TasksPager = memo(() => {
             removeClippedSubviews={false}
             data={displayedFolders}
             keyExtractor={(item) => item.idFolder}
-            renderItem={listRenderItem}
+            renderItem={renderItem}
             getItemLayout={getItemLayout}
             className="w-full"
             contentContainerClassName="flex flex-row"

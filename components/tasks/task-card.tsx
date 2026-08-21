@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/colors";
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -12,14 +12,16 @@ import { SELECT_LIMIT } from "./footer";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
+    context: Pick<TasksDataContext, "tasksSelected" | "setTasksSelected" | "handleArchiveTask" | "handleDeleteTask" | "loading">;
 }
-export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
+
+export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     const translateX = useSharedValue<number>(0);
     const selected = useSharedValue<boolean>(false);
     const selection = useSharedValue<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
-    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading } = useTasksData();
+    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading } = context;
 
     const selectMap = useMemo(() => {
         return new Map(
@@ -110,7 +112,7 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
     const onPress = useCallback(() => {
         if (loading) return;
         if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-            
+
         }
         else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
             setTasksSelected((prev) => [...prev, task]);
@@ -219,4 +221,14 @@ export const TaskCard = memo(({ task, ...rest }: TaskCardProps) => {
             </Pressable>
         </GestureDetector>
     );
-});
+}, (prev, next) => (
+    Object.is(prev.context.handleArchiveTask, next.context.handleArchiveTask)
+    &&
+    Object.is(prev.context.handleDeleteTask, next.context.handleDeleteTask)
+    &&
+    Object.is(prev.context.loading, next.context.loading)
+    &&
+    Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
+    &&
+    Object.is(prev.context.tasksSelected, next.context.tasksSelected)
+));

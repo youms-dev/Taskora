@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/colors";
-import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
@@ -54,8 +54,12 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 
 export const scrollCheckPoint = 100;
 
-export const TasksHeader = memo(() => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected } = useTasksData();
+interface Props {
+    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected">;
+}
+
+export const TasksHeader = memo(({ context }: Props) => {
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -492,5 +496,27 @@ export const TasksHeader = memo(() => {
                 </View>
             </Animated.View>
         </View>
+    );
+}, (prev, next) => {
+    return (
+        Object.is(prev.context.tasks, next.context.tasks)
+        &&
+        Object.is(prev.context.currentFilter, next.context.currentFilter)
+        &&
+        Object.is(prev.context.currentFolder, next.context.currentFolder)
+        &&
+        Object.is(prev.context.folders, next.context.folders)
+        &&
+        Object.is(prev.context.loading, next.context.loading)
+        &&
+        Object.is(prev.context.refreshTranslateY, next.context.refreshTranslateY)
+        &&
+        Object.is(prev.context.setCurrentFilter, next.context.setCurrentFilter)
+        &&
+        Object.is(prev.context.setCurrentFolder, next.context.setCurrentFolder)
+        &&
+        Object.is(prev.context.setSearchSectionActive, next.context.setSearchSectionActive)
+        &&
+        Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
     );
 });

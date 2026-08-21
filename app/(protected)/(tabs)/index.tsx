@@ -3,20 +3,20 @@ import { TasksFooter } from "@/components/tasks/footer";
 import { TasksHeader } from "@/components/tasks/header";
 import { TasksPager } from "@/components/tasks/pager";
 import { TasksSearch } from "@/components/tasks/search";
-import { TasksDataProvider } from "@/hooks/tasks/use-tasks-data";
+import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 
 export default function Tasks() {
+    const context = useTasksData();
+
     return (
         <Container centerX>
-            <TasksDataProvider>
-                <TasksHeader />
+            <TasksHeader context={context} />
 
-                <TasksPager />
+            <TasksPager context={context} />
 
-                <TasksSearch />
+            <TasksSearch context={context} />
 
-                <TasksFooter />
-            </TasksDataProvider>
+            <TasksFooter context={context} />
         </Container>
     );
 }
