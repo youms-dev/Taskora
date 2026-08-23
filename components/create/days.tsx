@@ -80,7 +80,7 @@ export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: P
                 width,
             }}
             className="h-full"
-            contentContainerClassName="flex flex-col items-center gap-3 px-3"
+            contentContainerClassName="flex flex-col items-center gap-3"
         />
     );
 });
