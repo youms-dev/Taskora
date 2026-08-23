@@ -1,16 +1,33 @@
 import { addMonths, startOfMonth } from "date-fns";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 export const INITIAL_RANGE = 12;
 export const NUM_TO_ADD = INITIAL_RANGE;
 
-export const useCalendar = () => {
-    const [months, setMonths] = useState<Date[]>([]);
-    const today = useMemo(() => startOfMonth(new Date()), []);
-    const loading = useRef<boolean>(false);
-    const [years, setYears] = useState<number[]>([]);
+const buildInitialYears = (): number[] => {
+    const years: number[] = [];
+    const date = new Date();
 
-    const prependPastMonths = async () => {
+    for (let i = date.getFullYear() - 200; i < date.getFullYear() + 200; i++) {
+        years.push(i + 1);
+    }
+
+    return years;
+};
+
+const buildInitialMonths = (): Date[] => {
+    const today = startOfMonth(new Date());
+    return Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
+        return startOfMonth(addMonths(today, i - INITIAL_RANGE));
+    });
+};
+
+export const useCalendar = (init: boolean = true) => {
+    const [months, setMonths] = useState<Date[]>(() => init ? buildInitialMonths() : []);
+    const loading = useRef<boolean>(false);
+    const years = useMemo<number[]>(() => buildInitialYears(), []);
+
+    const prependPastMonths = useCallback(async () => {
         if (loading.current || months[0].getFullYear() < years[0]) return;
         loading.current = true;
 
@@ -26,11 +43,9 @@ export const useCalendar = () => {
         }
 
         setMonths((prev) => [...previousMonths.reverse(), ...prev]);
+    }, [months, years]);
 
-        console.log("Prepend done");
-    };
-
-    const appendFutureMonths = async () => {
+    const appendFutureMonths = useCallback(async () => {
         if (loading.current || months[months.length - 1].getFullYear() > years[years.length - 1]) return;
         loading.current = true;
 
@@ -45,38 +60,16 @@ export const useCalendar = () => {
             }
         }
         setMonths((prev) => [...prev, ...nextMonths]);
+    }, [months, years]);
 
-        console.log("Append done");
-
-    };
-
-    useEffect(() => {
-        const years: number[] = [];
-        const date = new Date();
-
-        for (let i = date.getFullYear() - 200; i < date.getFullYear() + 200; i++) {
-            years.push(i + 1);
-        }
-
-        setYears(years);
-    }, []);
-
-    const reset = () => {
-        const months = Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
-            return startOfMonth(addMonths(today, i - INITIAL_RANGE));
-        });
-
-        setMonths(months);
-    }
-
-    const generateMonths = (target: "month" | "year", entry: number, currentDate: Date = new Date(), init: boolean = false) => {
+    const generateMonths = useCallback((target: "month" | "year", entry: number, currentDate: Date = new Date()) => {
         if (loading.current) return;
         loading.current = true;
 
         if (target == "month") {
             const targetDate = new Date(currentDate.getFullYear(), entry, 1);
 
-            const months = Array(init ? (INITIAL_RANGE * 2) + 1 : INITIAL_RANGE + 2).fill(0).map((_, i) => {
+            const months = Array((INITIAL_RANGE * 2) + 1).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 
@@ -85,22 +78,22 @@ export const useCalendar = () => {
         else {
             const targetDate = new Date(entry, currentDate.getMonth(), 1);
 
-            const months = Array(init ? (INITIAL_RANGE * 2) + 1 : INITIAL_RANGE + 2).fill(0).map((_, i) => {
+            const months = Array((INITIAL_RANGE * 2) + 1).fill(0).map((_, i) => {
                 return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
             });
 
             setMonths(months);
         }
-        loading.current = false;
-    }
+    }, []);
 
     return ({
         months,
         appendFutureMonths,
         prependPastMonths,
         loading,
-        reset,
         years,
         generateMonths,
     });
 };
+
+export type CalendarType = ReturnType<typeof useCalendar>;

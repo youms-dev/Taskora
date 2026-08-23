@@ -18,7 +18,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
     const { i18n } = useTranslation();
     const { width: screenWidth } = useWindowDimensions();
     const [dayWidth, setDayWidth] = useState<number>(screenWidth / 7);
-    const { months, generateMonths, loading: hookLoading, prependPastMonths, appendFutureMonths } = useCalendar();
+    const { months, generateMonths, loading: hookLoading, prependPastMonths, appendFutureMonths } = useCalendar(false);
     const [currentDate, setCurrentDate] = useState<Date>(targetDate);
     const ref = useRef<FlatList>(null);
     const currentIndex = useRef<number>(INITIAL_RANGE);
@@ -36,7 +36,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
 
     if (monthsMap.size == 0) {
         mutation.current = "generate";
-        generateMonths("month", targetDate.getMonth(), targetDate, true);
+        generateMonths("month", targetDate.getMonth(), targetDate);
     }
 
     const days = useMemo(() => (i18n.language == "fr" ?

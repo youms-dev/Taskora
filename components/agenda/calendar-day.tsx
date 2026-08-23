@@ -79,9 +79,12 @@ export const CalendarDay = memo(({ active, month, width, height }: Props) => {
                     data.length > 0 && data.map(task => (
                         <View
                             key={task.idTask}
-                            className="w-full h-[30px] flex flex-row gap-1 overflow-hidden mb-1"
+                            className={clsx(
+                                "w-full h-[30px] flex flex-row gap-1 overflow-hidden mb-1",
+                                isNotPartOfThisMonth && "opacity-60",
+                            )}
                         >
-                            <View className="w-[2px] h-full bg-emerald-500" />
+                            <View className="w-[2px] h-full bg-emerald-500 shrink-0" />
                             <View className="w-[85%] h-full flex justify-center">
                                 <TextAnimated
                                     numberOfLines={2}
