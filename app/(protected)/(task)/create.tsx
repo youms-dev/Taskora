@@ -153,7 +153,7 @@ export default function CreateTaskPage() {
         icon: null,
         date: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
         startAt: `${String(date.getHours() + 1).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
-        endAt: `${String(date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
+        endAt: `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
         archive: false,
         folder: null
