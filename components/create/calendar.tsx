@@ -10,19 +10,21 @@ import { TextAnimated } from "../text-animated";
 import { CalendarDays } from "./days";
 
 interface Props {
-    targetDate: Date;
     onDateChanged: (entry: Date) => void;
+    targetDate: Date;
 }
 
 export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
     const { i18n } = useTranslation();
     const { width: screenWidth } = useWindowDimensions();
-    const [dayWidth, setDayWidth] = useState<number>(screenWidth / 7);
-    const { months, generateMonths, loading: hookLoading, prependPastMonths, appendFutureMonths } = useCalendar(false);
+    const { months, loading, prependPastMonths, appendFutureMonths } = useCalendar(true, targetDate);
     const [currentDate, setCurrentDate] = useState<Date>(targetDate);
     const ref = useRef<FlatList>(null);
     const currentIndex = useRef<number>(INITIAL_RANGE);
-    const [width, setWidth] = useState<number>(screenWidth);
+    const date = useMemo(() => new Date(), []);
+    const mutation = useRef<"append" | "prepend" | "generate">(null);
+    const dayWidth = useMemo<number>(() => (screenWidth / 7), [screenWidth]);
+
     const monthsMap = useMemo(() => {
         return (
             new Map(
@@ -30,14 +32,6 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
             )
         );
     }, [months]);
-    const mounted = useRef<boolean>(false);
-    const date = useMemo(() => new Date(), []);
-    const mutation = useRef<"append" | "prepend" | "generate">(null);
-
-    if (monthsMap.size == 0) {
-        mutation.current = "generate";
-        generateMonths("month", targetDate.getMonth(), targetDate);
-    }
 
     const days = useMemo(() => (i18n.language == "fr" ?
         ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
@@ -45,33 +39,29 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
         ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     ), [i18n.language]);
 
-    useEffect(() => {
-        setDayWidth(screenWidth / 7);
-    }, [screenWidth]);
-
     const renderItem = useCallback(({ item: month }: { item: Date; index: number }) => {
         return (
             <View
                 style={{
-                    width,
+                    width: screenWidth,
                 }}
                 className="h-full"
             >
                 <CalendarDays
                     month={month}
-                    width={width}
+                    width={screenWidth}
                     targetDate={targetDate}
                     onDateChanged={onDateChanged}
                 />
             </View>
         );
-    }, [width, onDateChanged, targetDate]);
+    }, [screenWidth, onDateChanged, targetDate]);
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
-        length: (width),
-        offset: index * (width),
+        length: (screenWidth),
+        offset: index * (screenWidth),
         index,
-    }), [width]);
+    }), [screenWidth]);
 
     const handleScroll = useCallback((direction: "left" | "right" = "right") => {
         if (direction == "right" && currentIndex.current < months.length - 1) {
@@ -90,12 +80,12 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
 
     const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const x = e.nativeEvent.contentOffset.x;
-        const index = Math.round(x / width);
+        const index = Math.round(x / screenWidth);
 
-        setCurrentDate(monthsMap.get(index) ?? new Date());
         currentIndex.current = index;
+        setCurrentDate(monthsMap.get(index) ?? new Date());
 
-        if (hookLoading.current || mutation.current) return;
+        if (loading.current || mutation.current) return;
 
         if (index <= 5) {
             mutation.current = "prepend";
@@ -106,34 +96,26 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
             mutation.current = "append";
             appendFutureMonths();
         }
-    }, [width, monthsMap]);
+    }, [monthsMap]);
 
     useEffect(() => {
-        if (!mounted.current && mutation.current == "generate" && width != 0 && months.length > 0) {
-            requestAnimationFrame(() => {
-                ref.current?.scrollToIndex({
-                    index: INITIAL_RANGE,
-                    animated: false,
-                });
-                mounted.current = true;
-                mutation.current = null;
-            });
-        }
-
-        if (hookLoading.current && mutation.current == "prepend") {
+        if (loading.current && mutation.current == "prepend") {
             ref.current?.scrollToIndex({
                 index: currentIndex.current + NUM_TO_ADD,
                 animated: false,
             });
-            mutation.current = null;
-            currentIndex.current = currentIndex.current + NUM_TO_ADD;
-            hookLoading.current = false;
+            requestAnimationFrame(() => {
+                mutation.current = null;
+                currentIndex.current = currentIndex.current + NUM_TO_ADD;
+                loading.current = false;
+                setCurrentDate(monthsMap.get(currentIndex.current) ?? new Date());
+            });
         }
-        else if (hookLoading.current && mutation.current == "append") {
-            hookLoading.current = false;
+        else if (loading.current && mutation.current == "append") {
+            loading.current = false;
             mutation.current = null;
         }
-    }, [months, width]);
+    }, [months]);
 
     const goBackToday = useCallback(() => {
         const index = months.findIndex(m => m.getMonth() == date.getMonth() && m.getFullYear() == date.getFullYear());
@@ -193,7 +175,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                         <View
                             key={i}
                             style={{
-                                width: dayWidth - 1,
+                                width: dayWidth,
                             }}
                             className="w-full flex flex-row justify-center items-center"
                         >
@@ -210,27 +192,26 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                 }
             </View>
 
-            <View className="w-full">
-                <FlatList
-                    ref={ref}
-                    horizontal
-                    pagingEnabled
-                    decelerationRate="fast"
-                    scrollEventThrottle={16}
-                    windowSize={100}
-                    initialNumToRender={12}
-                    maxToRenderPerBatch={12}
-                    updateCellsBatchingPeriod={0}
-                    removeClippedSubviews={false}
-                    data={months}
-                    keyExtractor={(item) => item.toISOString()}
-                    renderItem={renderItem}
-                    getItemLayout={getItemLayout}
-                    onMomentumScrollEnd={onMomentumScrollEnd}
-                    onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-                    className="w-full h-full"
-                />
-            </View>
+            <FlatList
+                ref={ref}
+                horizontal
+                pagingEnabled
+                decelerationRate="fast"
+                scrollEventThrottle={16}
+                windowSize={100}
+                initialScrollIndex={INITIAL_RANGE}
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                updateCellsBatchingPeriod={0}
+                removeClippedSubviews={false}
+                showsHorizontalScrollIndicator={false}
+                data={months}
+                keyExtractor={(item) => item.toISOString()}
+                renderItem={renderItem}
+                getItemLayout={getItemLayout}
+                onMomentumScrollEnd={onMomentumScrollEnd}
+                className="w-full h-full"
+            />
         </View>
     );
 });

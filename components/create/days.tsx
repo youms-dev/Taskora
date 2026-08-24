@@ -26,7 +26,7 @@ export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: P
         return days;
     }, [i18n.language, month]);
 
-    const renderItem = useCallback(({ item: date, index }: { item: Date; index: number }) => {
+    const renderItem = useCallback(({ item: date }: { item: Date; index: number }) => {
         const day = date.getDate();
         const isPartOfThisMonth = date.getMonth() == month.getMonth();
         const selected = targetDate.toLocaleString() == date.toLocaleString();

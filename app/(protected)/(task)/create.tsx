@@ -789,7 +789,7 @@ export default function CreateTaskPage() {
                         scale={.95}
                         disabled={loading}
                         onPress={() => {
-                            console.log("inputs values :", inputsValues);
+                            // console.log("inputs values :", inputsValues);
                         }}
                         className={clsx(
                             "w-[80%] sm:w-[300px] h-[50px] dark:bg-black bg-white rounded-3xl",
@@ -970,13 +970,13 @@ export default function CreateTaskPage() {
                 onClose={() => setDateModalOpened(false)}
                 height={screenHeight * .75}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
-                className="flex items-center border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent dark:bg-black bg-white"
+                className="flex items-center dark:bg-black bg-white"
                 rounded={20}
                 closeAnimationDuration={600}
                 scrollableContent={false}
                 dragHandler={(
-                    <View className="w-full dark:bg-black bg-white">
-                        <View className="size-full flex flex-row justify-between items-center pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px]">
+                    <View className="w-full dark:bg-black bg-white rounded-t-[20px]">
+                        <View className="size-full flex flex-row justify-between items-center pt-6 pb-2 dark:bg-white/5 bg-white rounded-t-[20px] border-2 dark:border-white/10 border-black/10 border-x-transparent border-b-transparent">
                             <View className="w-[80%] px-3">
                                 <TextAnimated
                                     numberOfLines={1}

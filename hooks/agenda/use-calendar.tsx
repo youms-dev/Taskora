@@ -15,15 +15,15 @@ const buildInitialYears = (): number[] => {
     return years;
 };
 
-const buildInitialMonths = (): Date[] => {
-    const today = startOfMonth(new Date());
+const buildInitialMonths = (entry: Date | null = null): Date[] => {
+    const date = startOfMonth(entry ?? new Date());
     return Array(INITIAL_RANGE * 2 + 1).fill(0).map((_, i) => {
-        return startOfMonth(addMonths(today, i - INITIAL_RANGE));
+        return startOfMonth(addMonths(date, i - INITIAL_RANGE));
     });
 };
 
-export const useCalendar = (init: boolean = true) => {
-    const [months, setMonths] = useState<Date[]>(() => init ? buildInitialMonths() : []);
+export const useCalendar = (init: boolean = true, date: Date | null = null) => {
+    const [months, setMonths] = useState<Date[]>(() => init ? buildInitialMonths(date) : []);
     const loading = useRef<boolean>(false);
     const years = useMemo<number[]>(() => buildInitialYears(), []);
 
