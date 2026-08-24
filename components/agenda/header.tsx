@@ -19,12 +19,13 @@ interface Props {
     currentMonth: Date;
     mutation: RefObject<"append" | "prepend" | "generate" | null>;
     flatListRef: RefObject<FlatList | null>;
+    animationRef: RefObject<boolean>;
 }
 
-export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef }: Props) => {
+export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef }: Props) => {
     const { theme } = useTheme();
     const showYearsList = useSharedValue<boolean>(false);
-    const { months, years, generateMonths, loading } = context;
+    const { months, years, generateMonths } = context;
     const { i18n } = useTranslation();
     const monthHeight = 30;
     const monthsGap = 12;
@@ -161,6 +162,7 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
 
                     if (!monthData) {
                         mutation.current = "generate";
+                        animationRef.current = true;
                         generateMonths("month", index, currentMonth);
                     }
                     else {
@@ -209,6 +211,7 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
 
                     if (!yearData) {
                         mutation.current = "generate";
+                        animationRef.current = true;
                         generateMonths("year", year, currentMonth);
                     }
                     else {
@@ -346,6 +349,7 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
 
                             if (!month) {
                                 mutation.current = "generate";
+                                animationRef.current = true;
                                 generateMonths("year", date.getFullYear());
                             }
                             else {
