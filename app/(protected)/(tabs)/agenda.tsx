@@ -1,4 +1,5 @@
 import { Calendar } from "@/components/agenda/calendar";
+import { DateTasks } from "@/components/agenda/date-tasks";
 import { CalendarHeader } from "@/components/agenda/header";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
@@ -82,14 +83,16 @@ export default function Agenda() {
                     animationRef={animationRef}
                 />
 
-                <Calendar
+                {/* <Calendar
                     context={context}
                     currentMonth={currentMonth}
                     setCurrentMonth={setCurrentMonth}
                     mutation={mutation}
                     flatListRef={flatListRef}
-                />
+                /> */}
             </Animated.View>
+
+            <DateTasks />
         </Container>
     );
 }

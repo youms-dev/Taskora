@@ -2,10 +2,11 @@ import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 import { endOfDay, startOfDay } from "date-fns";
+import SQLiteError from "expo-sqlite";
 
 export const useTasks = () => {
     const { db } = useDatabase();
-    
+
     async function syncTasks(position: number = 0): Promise<boolean | unknown> {
         if (!db) return;
 
@@ -27,11 +28,19 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasks(limit: number = 10, offset: number = 0, archived: boolean = false): Promise<TaskType[] | unknown> {
+    async function getTasks(limit: number = 10, offset: number = 0, archived: boolean | null = null): Promise<TaskType[] | unknown> {
         if (!db) return;
 
         try {
-            const result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [archived ? 1 : 0, limit, offset]) as SQLiteTaskType[];
+            let result: SQLiteTaskType[] = [];
+
+            if (archived != null) {
+                result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [archived ? 1 : 0, limit, offset]);
+            }
+            else {
+                result = await db.getAllAsync("SELECT * FROM task ORDER BY updated_at DESC LIMIT ? OFFSET ?", [limit, offset]);
+            }
+
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
                 const { id_task, planned_date, id_folder, created_at, updated_at, ...rest } = item;
 
@@ -79,10 +88,33 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasksCount(archived: boolean = false): Promise<number | unknown> {
+    async function getTasksCount(archived: boolean | null = null): Promise<number | unknown> {
         if (!db) return;
+
         try {
-            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ?", [archived ? 1 : 0]) as { count: number };
+            let data: { count: number } = { count: 0 };
+
+            if (archived != null) {
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ?", [archived ? 1 : 0]) as { count: number };
+            }
+            else {
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task") as { count: number };
+            }
+
+            return data.count ?? 0;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
+    async function getTasksCountByDate(date: Date): Promise<number | unknown> {
+        if (!db) return;
+        const start = startOfDay(date).getTime();
+        const end = endOfDay(date).getTime();
+
+        try {
+            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE planned_date >= ? AND planned_date <= ?", [start, end]) as { count: number };
 
             return data.count ?? 0;
         }
@@ -161,5 +193,6 @@ export const useTasks = () => {
         searchTasks,
         deleteTasks,
         toggleArchiveTasks,
+        getTasksCountByDate,
     }
 }

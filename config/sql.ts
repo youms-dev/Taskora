@@ -32,6 +32,7 @@ function genData(): {
             title: nb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
             content: faker.lorem.text(),
             done: nb > 0.8,
+            type: "task",
             planned_date: Date.now(),
         });
     }
@@ -87,6 +88,7 @@ export const INIT_DATABASE = `
         done BOOLEAN DEFAULT 0,
         archived BOOLEAN DEFAULT 0,
         planned_date INTEGER DEFAULT NULL,
+        type TEXT,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
 

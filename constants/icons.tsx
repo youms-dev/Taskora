@@ -6,13 +6,17 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { ReactNode } from "react";
 
 interface Props {
     color?: string;
     parentSize?: number;
 }
 
-export function getIcons(theme: "light" | "dark") {
+export function getIcons(theme: "light" | "dark"): Array<{
+    [key: string]: (({ color, parentSize }: Props) => ReactNode);
+}> {
+    // export function getIcons(theme: "light" | "dark") {
     return [
         {
             "briefcase": ({ color, parentSize = 45 }: Props) => (
