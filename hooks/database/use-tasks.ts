@@ -2,7 +2,6 @@ import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 import { endOfDay, startOfDay } from "date-fns";
-import SQLiteError from "expo-sqlite";
 
 export const useTasks = () => {
     const { db } = useDatabase();
@@ -17,7 +16,7 @@ export const useTasks = () => {
                 for (const item of data) {
                     await db.runAsync(
                         `INSERT OR IGNORE INTO task (id_task, title, content, done) VALUES (?, ?, ?, ?)`,
-                        [item.idTask, item.title ?? null, item.content, Number(item.done)]
+                        [item.idTask, item.title ?? null, item.content ?? null, Number(item.done)]
                     );
                 }
             }
@@ -42,13 +41,15 @@ export const useTasks = () => {
             }
 
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, planned_date, id_folder, created_at, updated_at, ...rest } = item;
+                const { id_task, planned_date, id_folder, start_at, end_at, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
                     plannedDate: planned_date,
+                    startAt: start_at,
+                    endAt: end_at,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -67,15 +68,17 @@ export const useTasks = () => {
         const end = endOfDay(date).getTime();
 
         try {
-            const result = await db.getAllAsync("SELECT * FROM task WHERE planned_date >= ? AND planned_date <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [start, end, limit, offset]) as SQLiteTaskType[];
+            const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND planned_date >= ? AND planned_date <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, planned_date, id_folder, created_at, updated_at, ...rest } = item;
+                const { id_task, planned_date, id_folder, start_at, end_at, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
                     plannedDate: planned_date,
+                    startAt: start_at,
+                    endAt: end_at,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -114,7 +117,7 @@ export const useTasks = () => {
         const end = endOfDay(date).getTime();
 
         try {
-            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE planned_date >= ? AND planned_date <= ?", [start, end]) as { count: number };
+            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND planned_date >= ? AND planned_date <= ?", ["event", start, end]) as { count: number };
 
             return data.count ?? 0;
         }
@@ -136,12 +139,14 @@ export const useTasks = () => {
             const { count } = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ?", [like, like, archived ? 1 : 0]) as { count: number };
 
             const dataParsed = data.length > 0 ? data.map(item => {
-                const { id_task, planned_date, created_at, updated_at, ...rest } = item;
+                const { id_task, planned_date, start_at, end_at, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     plannedDate: planned_date,
+                    startAt: start_at,
+                    endAt: end_at,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 } as TaskType);

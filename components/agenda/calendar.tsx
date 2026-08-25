@@ -11,9 +11,10 @@ interface Props {
     setCurrentMonth: (value: Date) => void;
     mutation: RefObject<"append" | "prepend" | "generate" | null>;
     flatListRef: RefObject<FlatList | null>;
+    setTargetDate: (entry: Date | null) => void;
 }
 
-export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef }: Props) => {
+export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef, setTargetDate }: Props) => {
     const { months, appendFutureMonths, prependPastMonths, loading, years } = context;
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { i18n } = useTranslation();
@@ -35,8 +36,9 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
             month={item}
             width={calendarWidth}
             height={calendarHeight}
+            setTargetDate={setTargetDate}
         />
-    ), [currentMonth, calendarWidth, calendarHeight]);
+    ), [currentMonth, calendarWidth, calendarHeight, setTargetDate]);
 
     const days = useMemo(() => (i18n.language == "fr" ?
         ["L", "M", "M", "J", "V", "S", "D"]
@@ -44,7 +46,7 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
         ["S", "M", "T", "W", "T", "F", "S"]
     ), [i18n.language]);
 
-    const dayWidth = useMemo(() => (screenWidth / 7), [screenWidth]);
+    const dayWidth = useMemo(() => (screenWidth / 7) - 3, [screenWidth]);
 
     const onMomentumScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetX = event.nativeEvent.contentOffset.x;
@@ -102,7 +104,7 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
                 <View
                     key={i}
                     style={{
-                        width: dayWidth - 1,
+                        width: dayWidth,
                     }}
                     className="flex items-center"
                 >

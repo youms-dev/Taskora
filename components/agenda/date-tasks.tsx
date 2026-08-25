@@ -1,92 +1,147 @@
 import { daysTranslation } from "@/constants/calendar";
+import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { format, transpose } from "date-fns";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Translation, useTranslation } from "react-i18next";
-import { FlatList, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, FadeIn } from "react-native-reanimated";
+import clsx from "clsx";
+import { format } from "date-fns";
+import { LinearGradient } from "expo-linear-gradient";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { LinearGradient } from "expo-linear-gradient";
-import { getIcons } from "@/constants/icons";
-import clsx from "clsx";
-import { COLORS } from "@/constants/colors";
 
-export const DateTasks = memo(() => {
+interface Props {
+    targetDate: Date | null;
+    setTargetDate: (entry: Date | null) => void;
+}
+
+export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const targetDate = new Date();
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [tasksCount, setTasksCount] = useState<number>(0);
     const tasksGap = 15;
-    const taskHeight = 100;
+    const taskHeight = 85;
     const { getTasksByDate, getTasksCountByDate } = useTasks();
     const limit = 10;
     const { setToast } = useToast();
-    const viewWidth = useMemo(() => screenWidth * .9, [screenWidth]);
-
-    console.log("\n");
-    console.log("\n");
+    const active = useSharedValue<boolean>(false);
+    const timeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const init = useRef<boolean>(true);
 
     const displayDay = useMemo(() => {
-        return (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() - 1]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
-    }, [i18n.language]);
+        return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() - 1]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
+    }, [i18n.language, targetDate]);
 
-    const iconsMap = useMemo(() => {
+    const parseDate = useCallback((entry: Date) => {
+        const date = new Date(entry);
+
+        return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
+    }, []);
+
+    const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => {
+        let iconData: ICON_TYPE | null = null;
+
+        if (task.icon) {
+            const data = JSON.parse(task.icon);
+
+            if (data.name && data.packageName) {
+                iconData = data;
+            }
+        }
+
         return (
-            new Map(
-                getIcons(theme).map((item) => {
-                    const [key] = Object.keys(item);
-                    const [value] = Object.values(item);
-
-                    return [key, value];
-                }),
-            )
-        );
-    }, [theme]);
-
-    const renderItem = useCallback(({ item: task }: { item: TaskType; index: number }) => {
-        const Icon = iconsMap.get(task.icon ?? "");
-
-        return (
-            <View
+            <Animated.View
+                entering={FadeInUp
+                    .delay(index * 100)
+                    .duration(200)
+                    .easing(Easing.inOut(Easing.quad))
+                }
                 style={{
                     height: taskHeight,
                 }}
-                className="w-full flex flex-row justify-between items-center dark:bg-black bg-[rgba(0,0,0,.05)] rounded-2xl px-3"
+                className="w-full flex flex-row justify-between items-center dark:bg-black bg-[rgba(0,0,0,.05)] rounded-2xl px-3 border-2 dark:border-white/5 border-black/5"
             >
-                {
-                    Icon && (
-                        <View className="size-[45px] flex justify-center items-center">
+                <View className="w-[20%] flex items-center">
+                    {
+                        iconData && (
+                            <View className="size-[40px] flex justify-center items-center dark:bg-black rounded-full">
+                                {
+                                    <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+                                        <Icon
+                                            library={iconData.packageName}
+                                            name={iconData.name}
+                                            size={20}
+                                            color={COLORS.emerald[500]}
+                                        />
+                                    </View>
+                                }
+                            </View>
+                        )
+                    }
+
+                    <View className="w-full">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-center opacity-70 tracking-wider"
+                        >
+                            {parseDate(task.startAt)}
+                        </TextAnimated>
+                    </View>
+                </View>
+
+                <View className="w-[80%] flex gap-1 border-l-2 border-emerald-500/60 px-3">
+                    <View className="w-full">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-lg"
+                        >
+                            {task.title ?? ""}
+                        </TextAnimated>
+                    </View>
+
+                    <View className="w-full">
+                        <View className="w-full flex flex-row items-center gap-3">
+                            <TextAnimated
+                                numberOfLines={1}
+                                className="opacity-70 tracking-wider"
+                            >
+                                {parseDate(task.startAt)}
+                            </TextAnimated>
                             {
-                                <Icon
-                                    color={COLORS.emerald[500]}
-                                    parentSize={45}
-                                />
+                                task.endAt && (
+                                    <>
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="opacity-70 tracking-wider"
+                                        >
+                                            -
+                                        </TextAnimated>
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="opacity-70 tracking-wider"
+                                        >
+                                            {parseDate(task.endAt)}
+                                        </TextAnimated>
+                                    </>
+                                )
                             }
                         </View>
-                    )
-                }
-
-                <View className={clsx(
-                    task.icon ? "w-[83%]" : "w-full"
-                )}>
-                    <TextAnimated
-                        numberOfLines={1}
-                        className="text-lg"
-                    >
-                        {task.title ?? ""}
-                    </TextAnimated>
+                    </View>
                 </View>
-            </View>
+            </Animated.View>
         );
     }, []);
 
@@ -95,10 +150,9 @@ export const DateTasks = memo(() => {
             return (
                 <View
                     style={{
-                        width: viewWidth,
                         gap: tasksGap,
                     }}
-                    className="flex items-center px-3"
+                    className="w-full flex items-center"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (
@@ -125,14 +179,9 @@ export const DateTasks = memo(() => {
     }, [loading]);
 
     const listEmptyComponent = useCallback(() => {
-        if (!loading && tasks.length == 0) {
+        if (!loading && tasks.length == 0 && !init.current) {
             return (
-                <View
-                    style={{
-                        width: viewWidth,
-                    }}
-                    className="flex justify-center items-center gap-4 pt-20"
-                >
+                <View className="w-full flex justify-center items-center gap-4 pt-20">
                     <MaterialIcons
                         name="playlist-remove"
                         size={100}
@@ -149,17 +198,18 @@ export const DateTasks = memo(() => {
             );
         }
         return null;
-    }, [loading, i18n.language, theme, viewWidth, tasks]);
+    }, [loading, i18n.language, theme, tasks]);
 
     const handleGetTasks = useCallback(async () => {
-        if (loading || !targetDate) return;
+        if (loading || !targetDate || !active.value) return;
         setLoading(true);
 
         try {
             const data = await getTasksByDate(targetDate, limit, tasks.length) as TaskType[];
 
-            setTasks(data);
+            setTasks(prev => [...prev, ...data]);
             setLoading(false);
+            init.current = false;
         }
         catch (e) {
             setLoading(false);
@@ -182,12 +232,28 @@ export const DateTasks = memo(() => {
     }, [loading, i18n.language, targetDate]);
 
     useEffect(() => {
-        if (targetDate) {
-            handleGetTasksCount();
-            handleGetTasks();
+        const onBackPress = () => {
+            if (active.value) {
+                handleClose();
+                return true;
+            }
+            return false;
         }
-        // }, [targetDate]);
-    }, []);
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+        timeout.current && clearTimeout(timeout.current);
+        closeTimeout.current && clearTimeout(closeTimeout.current);
+
+        if (targetDate) {
+            active.value = true;
+            timeout.current = setTimeout(() => {
+                handleGetTasksCount();
+                handleGetTasks();
+            }, 800);
+        }
+
+        return () => remove();
+    }, [targetDate]);
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
         length: taskHeight + tasksGap,
@@ -196,20 +262,64 @@ export const DateTasks = memo(() => {
     }), []);
 
     const onEndReached = useCallback(() => {
-        if (loading || tasks.length >= tasksCount) return;
-        // handleGetTasks();
+        if (loading || tasks.length >= tasksCount || !active.value) return;
+        handleGetTasks();
     }, [loading, tasksCount, tasks]);
 
+    const containerAnimation = useAnimatedStyle(() => ({
+        pointerEvents: active.value ? "auto" : "none",
+    }));
+
+    const activeAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: active.value ?
+                    withSpring(1, {
+                        stiffness: 40,
+                        damping: 6,
+                        mass: 1,
+                    })
+                    :
+                    withTiming(0, {
+                        duration: 500,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+            }
+        ]
+    }));
+
+    const handleClose = useCallback(() => {
+        closeTimeout.current && clearTimeout(closeTimeout.current);
+        active.value = false;
+        closeTimeout.current = setTimeout(() => {
+            setTargetDate(null);
+            setTasks([]);
+            setTasksCount(0);
+            init.current = true;
+        }, 500);
+    }, []);
+
     return (
-        <View
-            style={{
-                width: screenWidth,
-                height: screenHeight,
-                zIndex: 9999,
-            }}
+        <Animated.View
+            style={[
+                {
+                    width: screenWidth,
+                    height: screenHeight,
+                    zIndex: 9999,
+                },
+                containerAnimation,
+            ]}
             className="absolute left-0 top-0 w-full h-full flex justify-center items-center"
         >
-            <Animated.View className="sm:w-[500px] w-[90%] sm:h-[500px] h-[65%] dark:bg-black bg-white rounded-2xl">
+            <Pressable
+                onPress={handleClose}
+                className="absolute left-0 top-0 size-full -z-1"
+            />
+
+            <Animated.View
+                style={activeAnimation}
+                className="sm:w-[500px] w-[90%] sm:h-[500px] h-[65%] dark:bg-black bg-white rounded-2xl"
+            >
                 <View
                     style={{
                         transform: [
@@ -255,6 +365,7 @@ export const DateTasks = memo(() => {
                             </View>
 
                             <PressableAnimated
+                                onPress={handleClose}
                                 className="size-[40px] shrink-0 dark:bg-black bg-white rounded-full"
                             >
                                 <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full">
@@ -286,7 +397,7 @@ export const DateTasks = memo(() => {
                         contentContainerStyle={{
                             gap: tasksGap,
                         }}
-                        contentContainerClassName="flex px-3 pt-[65px] pb-[30px]"
+                        contentContainerClassName="w-full flex px-3 pt-[65px] pb-[30px]"
                     />
 
                     <LinearGradient
@@ -314,6 +425,6 @@ export const DateTasks = memo(() => {
                     </LinearGradient>
                 </View>
             </Animated.View>
-        </View>
+        </Animated.View>
     );
 });

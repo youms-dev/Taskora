@@ -1,10 +1,14 @@
+import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, isToday, startOfMonth, startOfWeek } from "date-fns";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, Text, View } from "react-native";
+import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
 
 const generateMonthDays = (month: Date, lang: "en" | 'fr' = "en"): Date[] => {
@@ -19,12 +23,13 @@ interface Props {
     month: Date;
     width: number;
     height: number;
+    setTargetDate: (entry: Date | null) => void;
 };
 
-export const CalendarDay = memo(({ active, month, width, height }: Props) => {
+export const CalendarDay = memo(({ active, month, width, height, setTargetDate }: Props) => {
     const { i18n } = useTranslation();
     const days = useMemo(() => generateMonthDays(month, i18n.language == "en" || i18n.language == "fr" ? i18n.language : "en"), [i18n.language, month]);
-    const dayWidth = useMemo(() => ((width - 5) / 7), [width]);
+    const dayWidth = useMemo(() => (width / 7) - 3, [width]);
     const loading = useRef<boolean>(false);
     const { getTasksByDate } = useTasks();
     const limit = 10;
@@ -34,6 +39,7 @@ export const CalendarDay = memo(({ active, month, width, height }: Props) => {
         return (height / (days.length / 7));
     }, [height, days.length]);
     const daysGap = 5;
+    const router = useRouter();
 
     const renderItem = useCallback(({ item: day, index }: { item: Date; index: number }) => {
         const today = isToday(day);
@@ -45,24 +51,19 @@ export const CalendarDay = memo(({ active, month, width, height }: Props) => {
         return (
             <Pressable
                 onPress={() => {
-                    // if (monthDay == 1) {
-                    //     // console.log(tasks);
-                    //     console.log(data);
-                    // }
-                    // else if (monthDay == 2) {
-                    //     handleGetTasks();
-                    // }
-                    // else if (monthDay == 3) {
-                    //     setTasks([]);
-                    // }
-                    handleGetTasks();
+                    if (data.length > 0) {
+                        setTargetDate(day);
+                    }
+                    else {
+                        // router.navigate("");
+                    }
                 }}
                 style={{
                     width: dayWidth,
                     height: daysHeight - daysGap * 2,
                 }}
                 className={clsx(
-                    "flex items-center py-2 overflow-hidden rounded-xl border",
+                    "flex items-center gap-1 py-2 overflow-hidden rounded-xl border",
                     data.length > 0 && !isNotPartOfThisMonth ? "dark:bg-white/10 bg-white dark:border-white/10 border-black/10" : "dark:bg-white/5 bg-white/40 dark:border-white/5 border-black/5",
                 )}
             >
@@ -75,31 +76,65 @@ export const CalendarDay = memo(({ active, month, width, height }: Props) => {
                     {monthDay}
                 </Text>
 
-                {
-                    data.length > 0 && data.map(task => (
-                        <View
-                            key={task.idTask}
-                            className={clsx(
-                                "w-full h-[30px] flex flex-row gap-1 overflow-hidden mb-1",
-                                isNotPartOfThisMonth && "opacity-60",
-                            )}
-                        >
-                            <View className="w-[2px] h-full bg-emerald-500 shrink-0" />
-                            <View className="w-[85%] h-full flex justify-center">
-                                <TextAnimated
-                                    numberOfLines={2}
-                                    ellipsizeMode="clip"
-                                    className="text-sm leading-[14px] opacity-90 tracking-widest"
+                <View className="w-full flex items-center gap-1">
+                    {
+                        data.length > 0 && data.map(task => {
+                            let iconData: ICON_TYPE | null = null;
+
+                            if (task.icon) {
+                                const data = JSON.parse(task.icon);
+
+                                if (data.name && data.packageName) {
+                                    iconData = data;
+                                }
+                            }
+
+                            return (
+                                <View
+                                    key={task.idTask}
+                                    className={clsx(
+                                        "w-full h-[30px] flex flex-row gap-1 overflow-hidden",
+                                        isNotPartOfThisMonth && "opacity-60",
+                                    )}
                                 >
-                                    {task.title ?? task.content}
-                                </TextAnimated>
-                            </View>
-                        </View>
-                    ))
-                }
-            </Pressable>
+                                    <View className={clsx(
+                                        "w-full h-full flex justify-center border-l-2 border-emerald-500 px-2",
+                                        iconData && "items-center",
+                                    )}>
+                                        {
+                                            iconData ?
+                                                (
+                                                    <View className="size-[30px] dark:bg-black bg-white rounded-full">
+                                                        <View className="size-full flex justify-center items-center dark:bg-black bg-black/5 rounded-full border-2 dark:border-white/5 border-black/5">
+                                                            <Icon
+                                                                library={iconData.packageName}
+                                                                name={iconData.name}
+                                                                size={15}
+                                                                color={COLORS.emerald[500]}
+                                                            />
+                                                        </View>
+                                                    </View>
+                                                )
+                                                :
+                                                (
+                                                    <TextAnimated
+                                                        numberOfLines={2}
+                                                        ellipsizeMode="clip"
+                                                        className="text-sm leading-[14px] opacity-90 tracking-widest"
+                                                    >
+                                                        {task.title ?? (task.content ?? "")}
+                                                    </TextAnimated>
+                                                )
+                                        }
+                                    </View>
+                                </View>
+                            )
+                        })
+                    }
+                </View>
+            </Pressable >
         );
-    }, [tasks, daysHeight]);
+    }, [tasks, dayWidth, daysHeight]);
 
     const handleGetTasks = useCallback(async () => {
         if (loading.current || tasks.size > 0) return;

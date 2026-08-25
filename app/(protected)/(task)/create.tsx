@@ -3,6 +3,7 @@ import { Container } from "@/components/container";
 import { Calendar } from "@/components/create/calendar";
 import { FoldersList } from "@/components/create/folders-list";
 import { TimePager } from "@/components/create/time-pager";
+import { Icon } from "@/components/icon";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Select } from "@/components/select";
@@ -10,7 +11,7 @@ import { TextAnimated } from "@/components/text-animated";
 import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
-import { getIcons } from "@/constants/icons";
+import { ICON_TYPE, ICONS } from "@/constants/icons";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -163,7 +164,7 @@ export default function CreateTaskPage() {
         &
         {
             title: string | null;
-            icon: string | null;
+            icon: ICON_TYPE | null;
             remindBefore: number | null;
             endAt: string | null;
             folder: FolderType | null,
@@ -199,10 +200,6 @@ export default function CreateTaskPage() {
     useEffect(() => {
         targetShared.value = target;
     }, [target]);
-
-    const icons = useMemo(() => {
-        return getIcons(theme);
-    }, [theme]);
 
     const repeatRange = useMemo(() => {
         return Array(7).fill(0).map((_, i) => i == 0 ? 5 : i * 10)
@@ -404,7 +401,7 @@ export default function CreateTaskPage() {
                             <View className="w-full">
                                 <View className="dark:bg-white/10 bg-white rounded-2xl">
                                     <Input
-                                        label={t(`create_form_${target}_title`)}
+                                        label={t(`create_form_title`)}
                                         value={inputsValues.title ?? undefined}
                                         onChangeText={(e) => setInputsValues({
                                             ...inputsValues,
@@ -443,16 +440,13 @@ export default function CreateTaskPage() {
                             >
                                 <View className="w-full flex flex-row flex-wrap gap-5 pt-5">
                                     {
-                                        icons.map((item, i) => {
-                                            const [data] = Object.entries(item);
-                                            const [key, Icon] = data;
-
+                                        ICONS.map((icon, i) => {
                                             return (
                                                 <PressableAnimated
-                                                    key={String(key + i)}
+                                                    key={i}
                                                     scale={.95}
                                                     onPress={() => {
-                                                        if (inputsValues.icon && inputsValues.icon == key) {
+                                                        if (inputsValues.icon && inputsValues.icon.name == icon.name && inputsValues.icon.packageName == icon.packageName) {
                                                             setInputsValues({
                                                                 ...inputsValues,
                                                                 icon: null,
@@ -461,20 +455,29 @@ export default function CreateTaskPage() {
                                                         else {
                                                             setInputsValues({
                                                                 ...inputsValues,
-                                                                icon: key,
+                                                                icon,
                                                             });
                                                         }
                                                     }}
                                                     className={clsx(
                                                         "size-[45px] flex justify-center items-center border rounded-full dark:bg-white/10 bg-white",
-                                                        inputsValues.icon && inputsValues.icon == key ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
+                                                        inputsValues.icon && inputsValues.icon.name == icon.name && inputsValues.icon.packageName == icon.packageName ? "border-emerald-500/50" : "dark:border-white/10 border-black/10",
                                                     )}
                                                 >
-                                                    <Icon color={inputsValues.icon && inputsValues.icon == key ? COLORS.emerald[500] : undefined} />
+                                                    <Icon
+                                                        library={icon.packageName}
+                                                        name={icon.name}
+                                                        size={22}
+                                                        color={inputsValues.icon && inputsValues.icon.name == icon.name ?
+                                                            COLORS.emerald[500]
+                                                            :
+                                                            theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"
+                                                        }
+                                                    />
                                                 </PressableAnimated>
                                             )
-                                        })
-                                    }
+                                        }
+                                        )}
                                 </View>
                             </Select>
                         </View>

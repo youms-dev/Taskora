@@ -27,14 +27,42 @@ function genData(): {
 
     for (let i = 0; i < tasksCount; i++) {
         const nb = Math.random();
-        tasks.push({
-            id_task: createId(),
-            title: nb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
-            content: faker.lorem.text(),
-            done: nb > 0.8,
-            type: "task",
-            planned_date: Date.now(),
-        });
+        let entry = {};
+        const date = new Date();
+
+        if (nb > .75) {
+            const onb = Math.random();
+
+            entry = {
+                id_task: createId(),
+                title: faker.lorem.sentence({ min: 5, max: 20 }),
+                content: onb > .5 ? faker.lorem.text() : null,
+                icon: onb > .2 ? JSON.stringify({
+                    name: "activity",
+                    packageName: "Feather",
+                }) : null,
+                done: null,
+                planned_date: Date.now(),
+                start_at: date,
+                end_at: date,
+                remind_before: 30,
+                type: "event",
+            }
+        }
+        else {
+            const onb = Math.random();
+
+            entry = {
+                id_task: createId(),
+                title: onb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
+                content: faker.lorem.text(),
+                done: onb > 0.8,
+                planned_date: Date.now(),
+                start_at: date,
+                type: "task",
+            }
+        }
+        tasks.push(entry as Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">);
     }
 
     tasks = tasks.map((task) => {
@@ -55,13 +83,29 @@ const { folders, tasks } = genData();
 const init = `
     INSERT INTO folder(id_folder, title) VALUES
     ${folders.map((folder, i) =>
-    `("${folder.id_folder}", "${escapeSql(folder.title)}")${i < folders.length - 1 ? "," : ""}`
+    `(
+        "${folder.id_folder}", 
+        "${escapeSql(folder.title)}")
+        ${i < folders.length - 1 ? "," : ""}
+    `
 ).join("")}
     ;
 
-    INSERT INTO task(id_task, id_folder, title, content, done, planned_date) VALUES
+    INSERT INTO task(id_task, id_folder, title, content, icon, done, planned_date, start_at, end_at, type, remind_before) VALUES
     ${tasks.map((task, i) =>
-    `("${task.id_task}", ${task.id_folder ? `"${task.id_folder}"` : "NULL"}, ${task.title ? `"${escapeSql(task.title)}"` : "NULL"}, "${escapeSql(task.content)}", ${task.done ? 1 : 0}, ${task.planned_date})${i < tasks.length - 1 ? "," : ""}`
+    `(
+        "${task.id_task}", 
+        ${task.id_folder ? `"${task.id_folder}"` : null},
+        ${task.title ? `"${escapeSql(task.title)}"` : null}, 
+        ${task.content ? `"${escapeSql(task.content)}"` : null}, 
+        ${task.icon ? `"${escapeSql(task.icon)}"` : null}, 
+        ${task.done ? 1 : 0}, 
+        ${task.planned_date},
+        "${task.start_at}",
+        ${task.end_at ? `"${task.end_at}"` : null},
+        "${task.type}",
+        ${task.remind_before ?? "NULL"}
+    )${i < tasks.length - 1 ? "," : ""}`
 ).join("")}
     ON CONFLICT (id_task)
     DO NOTHING;
@@ -84,11 +128,15 @@ export const INIT_DATABASE = `
         id_task TEXT PRIMARY KEY,
         id_folder TEXT DEFAULT NULL,
         title TEXT DEFAULT NULL,
-        content TEXT NOT NULL,
-        done BOOLEAN DEFAULT 0,
+        content TEXT DEFAULT NULL,
+        icon TEXT NULL,
+        done BOOLEAN DEFAULT NULL,
         archived BOOLEAN DEFAULT 0,
-        planned_date INTEGER DEFAULT NULL,
-        type TEXT,
+        planned_date INTEGER NOT NULL,
+        start_at TIMESTAMP NOT NULL,
+        end_at TIMESTAMP DEFAULT NULL,
+        type TEXT NOT NULL CHECK (type IN ('event', 'task')),
+        remind_before INTEGER DEFAULT NULL,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
 

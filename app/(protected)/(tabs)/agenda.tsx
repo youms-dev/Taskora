@@ -4,9 +4,9 @@ import { CalendarHeader } from "@/components/agenda/header";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
 import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR } from "@/lib/event-emitter";
-import { startOfMonth } from "date-fns";
+import { setDate, startOfMonth } from "date-fns";
 import { usePathname } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
 
@@ -21,6 +21,7 @@ export default function Agenda() {
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const animation = useSharedValue<boolean>(false);
     const animationRef = useRef<boolean>(false);
+    const [dateEvents, setDateEvents] = useState<Date | null>(null);
 
     useEffect(() => {
         if (pathname == "/agenda") {
@@ -83,16 +84,20 @@ export default function Agenda() {
                     animationRef={animationRef}
                 />
 
-                {/* <Calendar
+                <Calendar
                     context={context}
                     currentMonth={currentMonth}
                     setCurrentMonth={setCurrentMonth}
                     mutation={mutation}
                     flatListRef={flatListRef}
-                /> */}
+                    setTargetDate={setDateEvents}
+                />
             </Animated.View>
 
-            <DateTasks />
+            <DateTasks
+                targetDate={dateEvents}
+                setTargetDate={setDateEvents}
+            />
         </Container>
     );
 }
