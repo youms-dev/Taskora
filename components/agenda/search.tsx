@@ -19,7 +19,7 @@ import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./date-tasks";
+import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./day-events";
 
 interface EventCardProps extends PressableProps {
     task: TaskType;
@@ -138,12 +138,12 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const limit = 10;
-    const { searchTasks } = useTasks();
+    const { searchTasks: searchEvents } = useTasks();
     const { } = useToast();
     const [count, setCount] = useState<number>(0);
-    const [tasks, setTasks] = useState<TaskType[]>([]);
+    const [events, setEvents] = useState<TaskType[]>([]);
     const { t, i18n } = useTranslation();
-    const tasksGap = 20;
+    const eventsGap = 20;
     const textInputWidth = useSharedValue<number>(0);
     const { generateMonths, months } = context;
 
@@ -161,10 +161,10 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     const tasksMap = useMemo(() => {
         return (
             new Map(
-                tasks.map((t) => [t.idTask, t])
+                events.map((t) => [t.idTask, t])
             )
         );
-    }, [tasks]);
+    }, [events]);
 
     const onSearchScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -235,7 +235,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
         searchTimeout.current && clearTimeout(searchTimeout.current);
         if (value.trim().length == 0) {
             setCount(0);
-            setTasks([]);
+            setEvents([]);
             setLoading(false);
             return;
         }
@@ -243,17 +243,17 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
         setLoading(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0, false, "event") as {
+                const { data, count } = await searchEvents(value, limit, pagination ? tasksMap.size : 0, false, "event") as {
                     data: TaskType[];
                     count: number;
                 };
 
                 setCount(count);
                 if (pagination) {
-                    setTasks(prev => [...prev, ...data.filter((task) => !tasksMap.get(task.idTask))]);
+                    setEvents(prev => [...prev, ...data.filter((task) => !tasksMap.get(task.idTask))]);
                 }
                 else {
-                    setTasks([...data]);
+                    setEvents([...data]);
                 }
                 setLoading(false);
             }
@@ -264,8 +264,8 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
         }, 100);
     }, [tasksMap]);
 
-    const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => {
-        const targetDate = new Date(task.plannedDate);
+    const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
+        const targetDate = new Date(event.plannedDate);
         const mapData = monthsMap.get(format(targetDate, "MMMM yyyy"));
 
         return (
@@ -297,7 +297,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
                 className="w-full"
             >
                 <EventCard
-                    task={task}
+                    task={event}
                     index={index}
                 />
             </AnimatedPressable>
@@ -309,7 +309,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
             return (
                 <View
                     style={{
-                        gap: tasksGap,
+                        gap: eventsGap,
                     }}
                     className="w-screen flex items-center px-3"
                 >
@@ -370,7 +370,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
                 searchTimeout.current && clearTimeout(searchTimeout.current);
                 textInputRef.current?.blur();
                 setCount(0);
-                setTasks([]);
+                setEvents([]);
                 setValue("");
                 setLoading(false);
                 active.value = false;
@@ -407,22 +407,22 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     }));
 
     const getItemLayout = useCallback((data: any, index: number) => ({
-        length: (CALENDAR_TASK_HEIGHT + tasksGap),
-        offset: index * (CALENDAR_TASK_HEIGHT + tasksGap),
+        length: (CALENDAR_TASK_HEIGHT + eventsGap),
+        offset: index * (CALENDAR_TASK_HEIGHT + eventsGap),
         index,
-    }), [CALENDAR_TASK_HEIGHT, tasksGap]);
+    }), [CALENDAR_TASK_HEIGHT, eventsGap]);
 
     const onEndReached = useCallback(() => {
-        if (tasks.length < count && !loading) {
+        if (events.length < count && !loading) {
             handleSearch(value, true);
         }
-    }, [tasks, count, loading]);
+    }, [events, count, loading]);
 
     const handleClose = useCallback(() => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
         textInputRef.current?.blur();
         setCount(0);
-        setTasks([]);
+        setEvents([]);
         setValue("");
         setLoading(false);
         active.value = false;
@@ -540,9 +540,9 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
                     windowSize={limit}
                     removeClippedSubviews
                     initialNumToRender={limit}
-                    maxToRenderPerBatch={Math.round(tasks.length / 2)}
+                    maxToRenderPerBatch={Math.round(events.length / 2)}
                     getItemLayout={getItemLayout}
-                    data={tasks}
+                    data={events}
                     keyExtractor={(task) => (task as TaskType).idTask}
                     renderItem={renderItem}
                     scrollEventThrottle={16}
@@ -554,7 +554,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
                     ListFooterComponent={listFooterComponent}
                     className="w-full"
                     contentContainerStyle={{
-                        gap: tasksGap,
+                        gap: eventsGap,
                     }}
                     contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
                 />

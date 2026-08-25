@@ -1,5 +1,5 @@
 import { Calendar } from "@/components/agenda/calendar";
-import { CalendarDayEvents } from "@/components/agenda/date-tasks";
+import { CalendarDayEvents } from "@/components/agenda/day-events";
 import { CalendarHeader } from "@/components/agenda/header";
 import { CalendarSearch } from "@/components/agenda/search";
 import { Container } from "@/components/container";
