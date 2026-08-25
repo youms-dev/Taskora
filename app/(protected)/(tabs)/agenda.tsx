@@ -1,12 +1,13 @@
 import { Calendar } from "@/components/agenda/calendar";
-import { DateTasks } from "@/components/agenda/date-tasks";
+import { CalendarDayEvents } from "@/components/agenda/date-tasks";
 import { CalendarHeader } from "@/components/agenda/header";
+import { CalendarSearch } from "@/components/agenda/search";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
 import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR } from "@/lib/event-emitter";
-import { setDate, startOfMonth } from "date-fns";
+import { startOfMonth } from "date-fns";
 import { usePathname } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
 
@@ -22,6 +23,7 @@ export default function Agenda() {
     const animation = useSharedValue<boolean>(false);
     const animationRef = useRef<boolean>(false);
     const [dateEvents, setDateEvents] = useState<Date | null>(null);
+    const searchSectionActive = useSharedValue<boolean>(false);
 
     useEffect(() => {
         if (pathname == "/agenda") {
@@ -82,6 +84,7 @@ export default function Agenda() {
                     mutation={mutation}
                     flatListRef={flatListRef}
                     animationRef={animationRef}
+                    searchSectionActive={searchSectionActive}
                 />
 
                 <Calendar
@@ -94,9 +97,17 @@ export default function Agenda() {
                 />
             </Animated.View>
 
-            <DateTasks
+            <CalendarDayEvents
                 targetDate={dateEvents}
                 setTargetDate={setDateEvents}
+            />
+
+            <CalendarSearch
+                active={searchSectionActive}
+                mutation={mutation}
+                context={context}
+                flatListRef={flatListRef}
+                animationRef={animationRef}
             />
         </Container>
     );

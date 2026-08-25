@@ -126,7 +126,7 @@ export const useTasks = () => {
         }
     }
 
-    async function searchTasks(value: string, limit: number = 0, offset: number = 0, archived: boolean = false): Promise<{
+    async function searchTasks(value: string, limit: number = 0, offset: number = 0, archived: boolean = false, type: TaskType["type"] = "task"): Promise<{
         data: TaskType[];
         count: number;
     } | unknown> {
@@ -134,9 +134,19 @@ export const useTasks = () => {
         const like = `%${value}%`;
 
         try {
-            const data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? ORDER BY updated_at LIMIT ? OFFSET ?", [like, like, archived ? 1 : 0, limit, offset]) as SQLiteTaskType[];
+            let data: SQLiteTaskType[] = [];
+            let dataCount: { count: number } = { count: 0 };
 
-            const { count } = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ?", [like, like, archived ? 1 : 0]) as { count: number };
+            if (type == "event") {
+                data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [like, like, type, limit, offset]) as SQLiteTaskType[];
+
+                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ?", [like, like, type]) as { count: number };
+            }
+            else {
+                data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [like, like, archived ? 1 : 0, type, limit, offset]) as SQLiteTaskType[];
+
+                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ?", [like, like, archived ? 1 : 0, type]) as { count: number };
+            }
 
             const dataParsed = data.length > 0 ? data.map(item => {
                 const { id_task, planned_date, start_at, end_at, created_at, updated_at, ...rest } = item;
@@ -154,7 +164,7 @@ export const useTasks = () => {
 
             return {
                 data: dataParsed,
-                count,
+                count: dataCount.count,
             };
         }
         catch (e) {

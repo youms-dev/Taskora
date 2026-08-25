@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
+import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
@@ -8,68 +9,123 @@ import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname } from "expo-router";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, runOnJS, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./date-tasks";
 
-interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
+interface EventCardProps extends PressableProps {
     task: TaskType;
-    height: number;
+    index: number;
 }
 
-const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
-    return (
-        <Pressable
-            {...rest}
-            onPress={() => { }}
-            style={{
-                height,
-            }}
-            className="w-full flex justify-center items-center rounded-2xl"
-        >
-            <View
-                className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
-            >
-                <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
-                    {
-                        task.title && (
-                            <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
-                                <TextAnimated
-                                    numberOfLines={1}
-                                    className="text-lg tracking-widest"
-                                >
-                                    {task.title}
-                                </TextAnimated>
-                            </View>
-                        )
-                    }
+const EventCard = memo(({ task, index, ...rest }: EventCardProps) => {
+    let iconData: ICON_TYPE | null = null;
 
-                    <View className="w-full">
+    if (task.icon) {
+        const data = JSON.parse(task.icon);
+
+        if (data.name && data.packageName) {
+            iconData = data;
+        }
+    }
+
+    return (
+        <Animated.View
+            style={{
+                height: CALENDAR_TASK_HEIGHT,
+            }}
+            className="w-full flex flex-row justify-between items-center dark:bg-white/5 bg-white rounded-2xl px-3 border-2 dark:border-white/5 border-black/5"
+        >
+            <View className="w-[20%] flex items-center">
+                {
+                    iconData && (
+                        <View className="size-[40px] flex justify-center items-center dark:bg-black rounded-full">
+                            {
+                                <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/5 rounded-full border-2 dark:border-white/5 border-black/5">
+                                    <Icon
+                                        library={iconData.packageName}
+                                        name={iconData.name}
+                                        size={20}
+                                        color={COLORS.emerald[500]}
+                                    />
+                                </View>
+                            }
+                        </View>
+                    )
+                }
+
+                <View className="w-full">
+                    <TextAnimated
+                        numberOfLines={1}
+                        className="text-center opacity-70 tracking-wider"
+                    >
+                        {parseCalendarDate(task.startAt)}
+                    </TextAnimated>
+                </View>
+            </View>
+
+            <View className="w-[80%] flex gap-1 border-l-2 border-emerald-500/60 px-3">
+                <View className="w-full">
+                    <TextAnimated
+                        numberOfLines={1}
+                        className="text-lg"
+                    >
+                        {task.title ?? ""}
+                    </TextAnimated>
+                </View>
+
+                <View className="w-full">
+                    <View className="w-full flex flex-row items-center gap-3">
                         <TextAnimated
-                            numberOfLines={task.title ? 2 : 3}
-                            className="text-lg dark:opacity-70 opacity-60"
+                            numberOfLines={1}
+                            className="opacity-70 tracking-wider"
                         >
-                            {task.content ?? ""}
+                            {parseCalendarDate(task.startAt)}
                         </TextAnimated>
+                        {
+                            task.endAt && (
+                                <>
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="opacity-70 tracking-wider"
+                                    >
+                                        -
+                                    </TextAnimated>
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="opacity-70 tracking-wider"
+                                    >
+                                        {parseCalendarDate(task.endAt)}
+                                    </TextAnimated>
+                                </>
+                            )
+                        }
                     </View>
                 </View>
             </View>
-        </Pressable>
+        </Animated.View>
     );
 });
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 interface Props {
-    context: Pick<TasksDataContext, "searchSectionActive" | "setSearchSectionActive">;
+    active: SharedValue<boolean>;
+    context: Pick<CalendarType, "generateMonths" | "months">
+    mutation: RefObject<"append" | "prepend" | "generate" | null>;
+    flatListRef: RefObject<FlatList | null>;
+    animationRef: RefObject<boolean>;
 }
 
-export const TasksSearch = memo(({ context }: Props) => {
-    const { searchSectionActive, setSearchSectionActive } = context;
+export const CalendarSearch = memo(({ active, context, mutation, flatListRef: calendar, animationRef }: Props) => {
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useAnimatedRef<Animated.FlatList>();
@@ -77,7 +133,6 @@ export const TasksSearch = memo(({ context }: Props) => {
     const { width: screenWidth } = useWindowDimensions();
     const screenWidthShared = useSharedValue<typeof screenWidth>(0);
     const themeShared = useSharedValue<typeof theme>("dark");
-    const sectionActive = useSharedValue<typeof searchSectionActive>(false);
     const textInputRef = useRef<TextInput>(null);
     const [value, setValue] = useState<string>("");
     const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -87,16 +142,26 @@ export const TasksSearch = memo(({ context }: Props) => {
     const { } = useToast();
     const [count, setCount] = useState<number>(0);
     const [tasks, setTasks] = useState<TaskType[]>([]);
-    const pathname = usePathname();
     const { t, i18n } = useTranslation();
-    const taskHeight = 100;
     const tasksGap = 20;
     const textInputWidth = useSharedValue<number>(0);
+    const { generateMonths, months } = context;
+
+    const monthsMap = useMemo(() => {
+        return (
+            new Map(
+                months.map((m, i) => [format(m, "MMMM yyyy"), {
+                    data: m,
+                    index: i,
+                }]),
+            )
+        );
+    }, [months]);
 
     const tasksMap = useMemo(() => {
         return (
             new Map(
-                tasks.map(t => [t.idTask, t]),
+                tasks.map((t) => [t.idTask, t])
             )
         );
     }, [tasks]);
@@ -145,17 +210,17 @@ export const TasksSearch = memo(({ context }: Props) => {
     const searchSectionAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateY: sectionActive.value ? withTiming(0, {
-                    duration: 200,
+                translateY: active.value ? withTiming(0, {
+                    duration: 500,
                     easing: Easing.inOut(Easing.quad),
                 }) : 50,
             }
         ],
-        opacity: sectionActive.value ? withTiming(1, {
-            duration: 200,
+        opacity: active.value ? withTiming(1, {
+            duration: 500,
             easing: Easing.inOut(Easing.linear),
         }) : 0,
-        zIndex: sectionActive.value ? 100 : -100,
+        zIndex: active.value ? 100 : -100,
     }));
 
     useEffect(() => {
@@ -168,7 +233,7 @@ export const TasksSearch = memo(({ context }: Props) => {
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
-        if (pathname != "/" || value.trim().length == 0) {
+        if (value.trim().length == 0) {
             setCount(0);
             setTasks([]);
             setLoading(false);
@@ -178,7 +243,7 @@ export const TasksSearch = memo(({ context }: Props) => {
         setLoading(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0) as {
+                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0, false, "event") as {
                     data: TaskType[];
                     count: number;
                 };
@@ -197,29 +262,47 @@ export const TasksSearch = memo(({ context }: Props) => {
                 console.log(e);
             }
         }, 100);
-    }, [pathname, tasksMap]);
+    }, [tasksMap]);
 
-    const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
-        <Animated.View
-            entering={FadeInUp
-                .delay(index * 100)
-                .springify()
-                .stiffness(100)
-                .damping(5)
-                .mass(1)
-            }
-            exiting={FadeOut
-                .duration(500)
-                .easing(Easing.inOut(Easing.quad))
-            }
-            className="w-full"
-        >
-            <TaskCard
-                height={taskHeight}
-                task={task as TaskType}
-            />
-        </Animated.View>
-    ), [taskHeight]);
+    const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => {
+        const targetDate = new Date(task.plannedDate);
+        const mapData = monthsMap.get(format(targetDate, "MMMM yyyy"));
+
+        return (
+            <AnimatedPressable
+                entering={FadeInUp
+                    .delay(index * 100)
+                    .springify()
+                    .stiffness(100)
+                    .damping(5)
+                    .mass(1)
+                }
+                exiting={FadeOut
+                    .duration(500)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+                onPress={() => {
+                    if (mapData) {
+                        calendar.current?.scrollToIndex({
+                            index: mapData.index,
+                        });
+                    }
+                    else {
+                        animationRef.current = true;
+                        mutation.current = "generate";
+                        generateMonths("month", targetDate.getMonth());
+                    }
+                    handleClose();
+                }}
+                className="w-full"
+            >
+                <EventCard
+                    task={task}
+                    index={index}
+                />
+            </AnimatedPressable>
+        )
+    }, [monthsMap]);
 
     const listFooterComponent = useCallback(() => {
         if (loading) {
@@ -240,7 +323,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: taskHeight
+                                    height: CALENDAR_TASK_HEIGHT
                                 }}
                                 className="w-full rounded-2xl overflow-hidden"
                             >
@@ -283,14 +366,14 @@ export const TasksSearch = memo(({ context }: Props) => {
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (searchSectionActive) {
+            if (active.value) {
                 searchTimeout.current && clearTimeout(searchTimeout.current);
                 textInputRef.current?.blur();
-                setSearchSectionActive(false);
                 setCount(0);
                 setTasks([]);
                 setValue("");
                 setLoading(false);
+                active.value = false;
                 event.emit(SHOW_NAVBAR);
 
                 return true;
@@ -299,27 +382,12 @@ export const TasksSearch = memo(({ context }: Props) => {
             return false;
         });
 
-        sectionActive.value = searchSectionActive;
-
-        if (!searchSectionActive) {
-            searchTimeout.current && clearTimeout(searchTimeout.current);
-            textInputRef.current?.blur();
-            setSearchSectionActive(false);
-            setCount(0);
-            setTasks([]);
-            setValue("");
-            setLoading(false);
-            event.emit(SHOW_NAVBAR);
-        }
-        else {
-            textInputRef.current?.focus();
-        }
 
         return () => {
             remove();
             searchTimeout.current && clearTimeout(searchTimeout.current);
         };
-    }, [searchSectionActive]);
+    }, []);
 
     const onMomentumScrollEnd = useAnimatedProps(() => ({
         onMomentumScrollEnd: () => {
@@ -339,16 +407,43 @@ export const TasksSearch = memo(({ context }: Props) => {
     }));
 
     const getItemLayout = useCallback((data: any, index: number) => ({
-        length: (taskHeight + tasksGap),
-        offset: index * (taskHeight + tasksGap),
+        length: (CALENDAR_TASK_HEIGHT + tasksGap),
+        offset: index * (CALENDAR_TASK_HEIGHT + tasksGap),
         index,
-    }), [taskHeight, tasksGap]);
+    }), [CALENDAR_TASK_HEIGHT, tasksGap]);
 
     const onEndReached = useCallback(() => {
         if (tasks.length < count && !loading) {
             handleSearch(value, true);
         }
     }, [tasks, count, loading]);
+
+    const handleClose = useCallback(() => {
+        searchTimeout.current && clearTimeout(searchTimeout.current);
+        textInputRef.current?.blur();
+        setCount(0);
+        setTasks([]);
+        setValue("");
+        setLoading(false);
+        active.value = false;
+        event.emit(SHOW_NAVBAR);
+    }, []);
+
+    const handleFocus = useCallback(() => {
+        textInputRef.current?.focus();
+    }, []);
+
+    useAnimatedReaction(
+        () => active.value,
+        (next, prev) => {
+            if (next != prev && !next) {
+                runOnJS(handleClose)();
+            }
+            else if (next != prev && next) {
+                runOnJS(handleFocus)();
+            }
+        }
+    )
 
     return (
         <Animated.View
@@ -380,7 +475,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                     >
                         <Pressable
                             onPress={() => {
-                                setSearchSectionActive(false);
+                                active.value = false;
                                 event.emit(SHOW_NAVBAR);
                             }}
                             android_ripple={{
@@ -498,7 +593,5 @@ export const TasksSearch = memo(({ context }: Props) => {
         </Animated.View>
     );
 }, (prev, next) => (
-    Object.is(prev.context.searchSectionActive, next.context.searchSectionActive)
-    &&
-    Object.is(prev.context.setSearchSectionActive, next.context.setSearchSectionActive)
+    Object.is(prev.context.months, next.context.months)
 ));

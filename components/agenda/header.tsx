@@ -8,9 +8,10 @@ import { format, startOfMonth } from "date-fns";
 import { memo, RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Pressable, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import Animated, { Easing, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
+import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 
 interface Props {
     context: Pick<CalendarType, "months" | "years" | "generateMonths" | "loading">;
@@ -20,9 +21,10 @@ interface Props {
     mutation: RefObject<"append" | "prepend" | "generate" | null>;
     flatListRef: RefObject<FlatList | null>;
     animationRef: RefObject<boolean>;
+    searchSectionActive: SharedValue<boolean>;
 }
 
-export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef }: Props) => {
+export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef, searchSectionActive }: Props) => {
     const { theme } = useTheme();
     const showYearsList = useSharedValue<boolean>(false);
     const { months, years, generateMonths } = context;
@@ -333,6 +335,8 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
 
                 <View className="w-[35%] h-full flex flex-row justify-end items-center gap-8 px-3">
                     <PressableAnimated onPress={() => {
+                        event.emit(HIDE_NAVBAR);
+                        searchSectionActive.value = true;
                     }}>
                         <FontAwesome5
                             name="search"

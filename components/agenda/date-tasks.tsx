@@ -19,12 +19,20 @@ import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 
+export const CALENDAR_TASK_HEIGHT = 85;
+
+export const parseCalendarDate = (entry: Date) => {
+    const date = new Date(entry);
+    
+    return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
+}
+
 interface Props {
     targetDate: Date | null;
     setTargetDate: (entry: Date | null) => void;
 }
 
-export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
+export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
@@ -32,7 +40,6 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [tasksCount, setTasksCount] = useState<number>(0);
     const tasksGap = 15;
-    const taskHeight = 85;
     const { getTasksByDate, getTasksCountByDate } = useTasks();
     const limit = 10;
     const { setToast } = useToast();
@@ -45,11 +52,6 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() - 1]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
 
-    const parseDate = useCallback((entry: Date) => {
-        const date = new Date(entry);
-
-        return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
-    }, []);
 
     const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => {
         let iconData: ICON_TYPE | null = null;
@@ -70,7 +72,7 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
                     .easing(Easing.inOut(Easing.quad))
                 }
                 style={{
-                    height: taskHeight,
+                    height: CALENDAR_TASK_HEIGHT,
                 }}
                 className="w-full flex flex-row justify-between items-center dark:bg-black bg-[rgba(0,0,0,.05)] rounded-2xl px-3 border-2 dark:border-white/5 border-black/5"
             >
@@ -97,7 +99,7 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
                             numberOfLines={1}
                             className="text-center opacity-70 tracking-wider"
                         >
-                            {parseDate(task.startAt)}
+                            {parseCalendarDate(task.startAt)}
                         </TextAnimated>
                     </View>
                 </View>
@@ -118,7 +120,7 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
                                 numberOfLines={1}
                                 className="opacity-70 tracking-wider"
                             >
-                                {parseDate(task.startAt)}
+                                {parseCalendarDate(task.startAt)}
                             </TextAnimated>
                             {
                                 task.endAt && (
@@ -133,7 +135,7 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
                                             numberOfLines={1}
                                             className="opacity-70 tracking-wider"
                                         >
-                                            {parseDate(task.endAt)}
+                                            {parseCalendarDate(task.endAt)}
                                         </TextAnimated>
                                     </>
                                 )
@@ -164,7 +166,7 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: taskHeight
+                                    height: CALENDAR_TASK_HEIGHT
                                 }}
                                 className="w-full rounded-2xl overflow-hidden"
                             >
@@ -256,8 +258,8 @@ export const DateTasks = memo(({ targetDate, setTargetDate }: Props) => {
     }, [targetDate]);
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
-        length: taskHeight + tasksGap,
-        offset: index * (tasksGap + taskHeight),
+        length: CALENDAR_TASK_HEIGHT + tasksGap,
+        offset: index * (tasksGap + CALENDAR_TASK_HEIGHT),
         index,
     }), []);
 
