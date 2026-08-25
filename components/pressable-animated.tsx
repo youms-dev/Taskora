@@ -1,8 +1,8 @@
 import { memo, useEffect } from "react";
 import { Pressable, PressableProps } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { AnimatedProps, Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-export interface PressableAnimatedProps extends PressableProps {
+export interface PressableAnimatedProps extends AnimatedProps<PressableProps> {
     children?: React.ReactNode;
     style?: PressableProps["style"];
     scale?: number;
