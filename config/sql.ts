@@ -122,8 +122,6 @@ export const INIT_DATABASE = `
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
     ); 
     
-    CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
-    
     CREATE TABLE if NOT EXISTS task (
         id_task TEXT PRIMARY KEY,
         id_folder TEXT DEFAULT NULL,
@@ -142,11 +140,12 @@ export const INIT_DATABASE = `
 
         FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL
     );
-        
-    CREATE INDEX IF NOT EXISTS task_id_folder_index ON task(id_folder);
+    
+    CREATE INDEX IF NOT EXISTS task_id_folder_id_index ON task(id_task, id_folder);
     CREATE INDEX IF NOT EXISTS task_title_index ON task(title);
-    CREATE INDEX IF NOT EXISTS task_created_at_id_task_index ON task(created_at, id_task);
     CREATE INDEX IF NOT EXISTS task_planned_date_index ON task(planned_date);
-        
+    
+    CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
+
     ${init} 
     `;

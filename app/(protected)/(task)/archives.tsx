@@ -1,9 +1,11 @@
 import { Checkbox } from "@/components/checkbox";
 import { Container } from "@/components/container";
+import { Icon } from "@/components/icon";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +15,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -42,6 +45,17 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const { t } = useTranslation();
     const loadingShared = useSharedValue<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+
+    const iconData = useMemo(() => {
+        if (task.icon) {
+            const data = JSON.parse(task.icon) as ICON_TYPE;
+
+            if (data.name && data.packageName) {
+                return data;
+            }
+        }
+        return null;
+    }, [task]);
 
     const swipeAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -180,6 +194,12 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         ]
     }));
 
+    const parseDate = useCallback((entry: Date | number) => {
+        const date = new Date(entry);
+
+        return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
+    }, []);
+
     return (
         <GestureDetector gesture={gesturesList}>
             <Pressable
@@ -192,29 +212,60 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             >
                 <Animated.View
                     style={swipeAnimation}
-                    className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
+                    className="absolute w-full h-full dark:bg-black bg-white rounded-2xl z-[1]"
                 >
-                    <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
-                        {
-                            task.title && (
-                                <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
-                                    <TextAnimated
-                                        numberOfLines={1}
-                                        className="text-lg tracking-widest"
-                                    >
-                                        {task.title}
-                                    </TextAnimated>
-                                </View>
-                            )
-                        }
+                    <View className="w-full h-full flex flex-row justify-between items-center rounded-2xl py-2 px-3 dark:bg-white/10 bg-white border dark:border-white/10 border-black/10">
+                        <View className="w-[20%] flex items-center gap-1">
+                            {
+                                iconData && (
+                                    <View className="size-[40px] dark:bg-black bg-white rounded-full">
+                                        <View className="size-full flex justify-center items-center dark:bg-black bg-black/5 rounded-full border-2 dark:border-white/5 border-black/5">
+                                            <Icon
+                                                library={iconData.packageName}
+                                                name={iconData.name}
+                                                size={25}
+                                                color={COLORS.emerald[500]}
+                                            />
+                                        </View>
+                                    </View>
+                                )
+                            }
 
-                        <View className="w-full">
-                            <TextAnimated
-                                numberOfLines={task.title ? 2 : 3}
-                                className="text-lg dark:opacity-70 opacity-60"
-                            >
-                                {task.content}
-                            </TextAnimated>
+                            <View className="w-full flex flex-row justify-center">
+                                <TextAnimated
+                                    numberOfLines={1}
+                                    className="font-medium opacity-80"
+                                >
+                                    {parseDate(task.plannedDate)}
+                                </TextAnimated>
+                            </View>
+                        </View>
+
+                        <View className="w-[78%] h-full border-l-2 border-emerald-500/50 px-3">
+                            {
+                                task.title && (
+                                    <View className={clsx(
+                                        "w-full",
+                                        task.content && "border-b dark:border-b-white/10 border-b-black/10 pb-1",
+                                    )}>
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="text-lg tracking-widest"
+                                        >
+                                            {task.title}
+                                        </TextAnimated>
+                                    </View>
+                                )
+                            }
+
+                            <View className="w-full">
+                                <TextAnimated
+                                    numberOfLines={task.title ? 2 : 3}
+                                    className="text-lg dark:opacity-70 opacity-60 whitespace-pre-wrap"
+                                >
+                                    {task.content ?? ""}
+                                </TextAnimated>
+                            </View>
                         </View>
                     </View>
                 </Animated.View>
@@ -414,6 +465,16 @@ export default function Archives() {
             [50, headerWidth.value],
             Extrapolation.CLAMP,
         )
+    }));
+
+    const shadowAnimation = useAnimatedStyle(() => ({
+        opacity: scrollY.value >= scrollCheckPoint ?
+            withTiming(1, {
+                duration: 200,
+                easing: Easing.inOut(Easing.quad),
+            })
+            :
+            0,
     }));
 
     useEffect(() => {
@@ -675,10 +736,26 @@ export default function Archives() {
                 className="absolute left-0 top-0 h-[50px] dark:bg-black bg-white rounded-[50px] z-[50]"
             >
                 <Animated.View
+                    style={[
+                        {
+                            transform: [
+                                {
+                                    translateY: 8,
+                                }
+                            ],
+                            filter: "blur(5px)",
+                        },
+                        shadowAnimation,
+                    ]}
+                    className="absolute size-full dark:bg-black/60 bg-black/20 rounded-[50px]"
+                />
+
+                <Animated.View
                     onLayout={(e) => headerWidth.value = e.nativeEvent.layout.width}
                     style={headerAnimation}
                     className="w-full h-full flex flex-row items-center gap-6 rounded-[50px] pr-10 dark:bg-black bg-black/5"
                 >
+
                     <Animated.View
                         style={headerBackgroundAnimation}
                         className="absolute left-0 h-[50px] dark:bg-white/10 bg-white rounded-[50px] -z-[10]"

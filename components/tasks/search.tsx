@@ -17,6 +17,9 @@ import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
+import { ICON_TYPE } from "@/constants/icons";
+import clsx from "clsx";
+import { Icon } from "../icon";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -24,6 +27,23 @@ interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> 
 }
 
 const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
+    const iconData = useMemo(() => {
+        if (task.icon) {
+            const data = JSON.parse(task.icon) as ICON_TYPE;
+
+            if (data.name && data.packageName) {
+                return data;
+            }
+        }
+        return null;
+    }, [task]);
+
+    const parseDate = useCallback((entry: Date | number) => {
+        const date = new Date(entry);
+
+        return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
+    }, []);
+
     return (
         <Pressable
             {...rest}
@@ -33,13 +53,40 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
             }}
             className="w-full flex justify-center items-center rounded-2xl"
         >
-            <View
-                className="absolute w-full h-full dark:bg-black bg-white border dark:border-white/20 border-black/20 rounded-2xl z-[1]"
-            >
-                <View className="w-full h-full flex items-center gap-2 rounded-2xl py-2 px-3 dark:bg-white/10 bg-white">
+            <View className="w-full h-full flex flex-row justify-between items-center rounded-2xl py-2 px-3 dark:bg-white/10 bg-white border dark:border-white/10 border-black/10">
+                <View className="w-[20%] flex items-center gap-1">
+                    {
+                        iconData && (
+                            <View className="size-[40px] dark:bg-black bg-white rounded-full">
+                                <View className="size-full flex justify-center items-center dark:bg-black bg-black/5 rounded-full border-2 dark:border-white/5 border-black/5">
+                                    <Icon
+                                        library={iconData.packageName}
+                                        name={iconData.name}
+                                        size={25}
+                                        color={COLORS.emerald[500]}
+                                    />
+                                </View>
+                            </View>
+                        )
+                    }
+
+                    <View className="w-full flex flex-row justify-center">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="font-medium opacity-80"
+                        >
+                            {parseDate(task.plannedDate)}
+                        </TextAnimated>
+                    </View>
+                </View>
+
+                <View className="w-[78%] h-full border-l-2 border-emerald-500/50 px-3">
                     {
                         task.title && (
-                            <View className="w-full border-b dark:border-b-white/10 border-b-black/10 pb-1">
+                            <View className={clsx(
+                                "w-full",
+                                task.content && "border-b dark:border-b-white/10 border-b-black/10 pb-1",
+                            )}>
                                 <TextAnimated
                                     numberOfLines={1}
                                     className="text-lg tracking-widest"
@@ -53,7 +100,7 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
                     <View className="w-full">
                         <TextAnimated
                             numberOfLines={task.title ? 2 : 3}
-                            className="text-lg dark:opacity-70 opacity-60"
+                            className="text-lg dark:opacity-70 opacity-60 whitespace-pre-wrap"
                         >
                             {task.content ?? ""}
                         </TextAnimated>
@@ -167,18 +214,24 @@ export const TasksSearch = memo(({ context }: Props) => {
     }, [theme]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
-        searchTimeout.current && clearTimeout(searchTimeout.current);
         if (pathname != "/" || value.trim().length == 0) {
+            setLoading(false);
             setCount(0);
             setTasks([]);
-            setLoading(false);
             return;
         }
+
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current);
+            setLoading(false);
+        }
+
         if (loading) return;
         setLoading(true);
+
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0) as {
+                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0, null, "task") as {
                     data: TaskType[];
                     count: number;
                 };

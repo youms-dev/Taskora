@@ -29,7 +29,7 @@
     "tasks_filter_done": "Fait",
     "tasks_filter_not_done": "En attente",
     "tasks_search": "Recherchez un évènement",
-    "tasks_search_tasks_empty": "Aucune tâche ou évènement trouvé",
+    "tasks_search_tasks_empty": "Aucune tâche trouvée",
     "tasks_selected": "Sélectionnées",
     "tasks_page_title": "Tâches",
     "tasks_archived": "Archivé{{many}}",

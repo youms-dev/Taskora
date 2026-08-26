@@ -68,7 +68,7 @@ export const useTasksData = () => {
 
         setLoading(true);
         try {
-            const data = await getTasks(refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length) as TaskType[];
+            const data = await getTasks(refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length, false) as TaskType[];
 
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
