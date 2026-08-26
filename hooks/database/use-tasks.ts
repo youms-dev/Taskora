@@ -138,15 +138,15 @@ export const useTasks = () => {
             let dataCount: { count: number } = { count: 0 };
 
             if (type == "event") {
-                data = await db.getAllAsync("SELECT * FROM task WHERE (title valueFormatted ? OR content valueFormatted ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset]) as SQLiteTaskType[];
+                data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset]) as SQLiteTaskType[];
 
-                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title valueFormatted ? OR content valueFormatted ?) AND type = ?", [valueFormatted, valueFormatted, type]) as { count: number };
+                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ?", [valueFormatted, valueFormatted, type]) as { count: number };
             }
             else {
                 if (archived != null) {
-                    data = await db.getAllAsync("SELECT * FROM task WHERE (title valueFormatted ? OR content valueFormatted ?) AND archived = ? AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type, limit, offset]) as SQLiteTaskType[];
+                    data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type, limit, offset]) as SQLiteTaskType[];
 
-                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title valueFormatted ? OR content valueFormatted ?) AND archived = ? AND type = ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type]) as { count: number };
+                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type]) as { count: number };
                 }
                 else {
                     data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset]) as SQLiteTaskType[];

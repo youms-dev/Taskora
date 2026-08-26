@@ -146,7 +146,7 @@ export const useTasksData = () => {
 
         try {
             await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
-            setToast(t("archives_unarchive_tasks", { many: selected.length > 1 ? "s" : "" }));
+            setToast(t("tasks_archived", { many: selected.length > 1 ? "s" : "" }));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);

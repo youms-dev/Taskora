@@ -59,6 +59,7 @@
     "agenda_edit_event": "Edit",
     "agenda_delete_event": "Delete",
     "agenda_duplicate_event": "Duplicate",
+    "agenda_no_event": "No event found",
     "error": "You're not connected to internet",
     "create_section_1_item_1": "Task",
     "create_section_1_item_2": "Event",

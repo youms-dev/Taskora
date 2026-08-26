@@ -20,6 +20,7 @@ import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./day-events";
+import { FontAwesome } from "@expo/vector-icons";
 
 interface EventCardProps extends PressableProps {
     task: TaskType;
@@ -232,7 +233,10 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     }, [theme]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
-        searchTimeout.current && clearTimeout(searchTimeout.current);
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current);
+            setLoading(false);
+        }
         if (value.trim().length == 0) {
             setCount(0);
             setEvents([]);
@@ -341,13 +345,13 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
         if (!loading && value.trim().length > 0) {
             return (
                 <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                    <MaterialIcons
-                        name="playlist-remove"
+                    <FontAwesome
+                        name="calendar-times-o"
                         size={120}
                         color={theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)"}
                     />
                     <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
-                        {t("tasks_search_tasks_empty")}
+                        {t("agenda_no_event")}
                     </Text>
                 </View>
             );

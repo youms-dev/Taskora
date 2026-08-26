@@ -3,7 +3,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
-import { eachDayOfInterval, endOfMonth, endOfWeek, isToday, startOfMonth, startOfWeek } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,7 +33,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
     const loading = useRef<boolean>(false);
     const { getTasksByDate } = useTasks();
     const limit = 10;
-    const [tasks, setTasks] = useState<Map<number, TaskType[]>>(new Map());
+    const [tasks, setTasks] = useState<Map<string, TaskType[]>>(new Map());
     const timeout = useRef<ReturnType<typeof setTimeout>>(0);
     const daysHeight = useMemo(() => {
         return (height / (days.length / 7));
@@ -43,10 +43,9 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
 
     const renderItem = useCallback(({ item: day, index }: { item: Date; index: number }) => {
         const today = isToday(day);
-        const monthDay = day.getDate();
-        const isNotPartOfThisMonth = (String(monthDay).length == 2 && index <= 5) || (String(monthDay).length == 1 && index > days.length / 2);
+        const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
 
-        const data = tasks.get(monthDay) ?? [];
+        const data = tasks.get(format(day, "dd MMMM yyyy")) ?? [];
 
         return (
             <Pressable
@@ -73,7 +72,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                     !today && day.getDay() > 0 && "dark:text-white/80 text-black/90",
                     isNotPartOfThisMonth && "opacity-40",
                 )}>
-                    {monthDay}
+                    {day.getDate()}
                 </Text>
 
                 <View className="w-full flex items-center gap-1">
@@ -139,24 +138,23 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
     const handleGetTasks = useCallback(async () => {
         if (loading.current || tasks.size > 0) return;
         timeout.current && clearTimeout(timeout.current);
+
         timeout.current = setTimeout(async () => {
             loading.current = true;
             try {
-                const tasks: [number, TaskType[]][] = [];
-
+                const tasks: [string, TaskType[]][] = [];
                 await Promise.all(days.map(async (day, index) => {
-                    const monthDay = day.getDate();
-                    const isNotPartOfThisMonth = (String(monthDay).length == 2 && index <= 5) || (String(monthDay).length == 1 && index > days.length / 2);
+                    const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
 
-                    if (isNotPartOfThisMonth) return;
+                    if (isNotPartOfThisMonth) {
+                        return;
+                    }
                     const data = await getTasksByDate(day, 2, 0) as TaskType[];
 
-                    tasks.push([monthDay, data]);
+                    tasks.push([format(day, "dd MMMM yyyy"), data]);
                 }));
 
-                setTasks(new Map(
-                    tasks.map(item => item)
-                ));
+                setTasks(new Map(tasks));
                 loading.current = false;
             }
             catch (e) {
