@@ -69,7 +69,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     const router = useRouter();
 
     const displayDay = useMemo(() => {
-        return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() - 1]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
+        return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
 
     const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
@@ -413,11 +413,6 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                 ]}
                 className="absolute left-0 top-0 w-full h-full flex justify-center items-center"
             >
-                {/* <Pressable
-                    onPress={handleClose}
-                    className="absolute left-0 top-0 size-full -z-1"
-                /> */}
-
                 <Animated.View
                     onLayout={(e) => {
                         viewLayout.value = ({

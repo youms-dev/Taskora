@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Animated, { Easing, useAnimatedStyle, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 interface Props {
@@ -6,13 +7,13 @@ interface Props {
 
 /**
  * 
- * @param size Loader size
+ * @param size
  * @default 100
  * 
  * @returns Loader component
  */
 
-export const Loader = ({ size = 100 }: Props) => {
+export const Loader = memo(({ size = 100 }: Props) => {
     const rootAnimation = useAnimatedStyle(() => ({
         transform: [{
             rotate: withRepeat(
@@ -137,11 +138,12 @@ export const Loader = ({ size = 100 }: Props) => {
             <Animated.View
                 style={firstChildAnimation}
                 className="absolute w-full h-full border-2 dark:border-white border-emerald-500 rounded-full"
-            ></Animated.View>
+            />
+
             <Animated.View
                 style={lastChildAnimation}
                 className="absolute w-full h-full border-2 dark:border-white border-emerald-500 rounded-full"
-            ></Animated.View>
+            />
         </Animated.View>
     );
-}
+});

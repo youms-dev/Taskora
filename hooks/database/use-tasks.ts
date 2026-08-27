@@ -1,5 +1,6 @@
 import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
+import { FolderType } from "@/types/folder";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 import { endOfDay, startOfDay } from "date-fns";
 
@@ -27,17 +28,17 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasks(limit: number = 10, offset: number = 0, archived: boolean | null = null): Promise<TaskType[] | unknown> {
+    async function getTasks(limit: number = 10, offset: number = 0, archived: boolean | null = null, type: TaskType["type"] = "task"): Promise<TaskType[] | unknown> {
         if (!db) return;
 
         try {
             let result: SQLiteTaskType[] = [];
 
             if (archived != null) {
-                result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", [archived ? 1 : 0, limit, offset]);
+                result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? AND type = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [archived ? 1 : 0, type, limit, offset]);
             }
             else {
-                result = await db.getAllAsync("SELECT * FROM task ORDER BY updated_at DESC LIMIT ? OFFSET ?", [limit, offset]);
+                result = await db.getAllAsync("SELECT * FROM task WHERE type = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [type, limit, offset]);
             }
 
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
@@ -207,6 +208,34 @@ export const useTasks = () => {
         }
     }
 
+    async function getTask(id: TaskType["idTask"], type: TaskType["type"] = "task"): Promise<TaskType | unknown> {
+        if (!db) return;
+        try {
+            const task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.type = ?", [id, type]) as SQLiteTaskType & {
+                folder_title: FolderType["title"];
+            };
+            const { id_task, id_folder, folder_title, planned_date, start_at, end_at, remind_before, created_at, updated_at, ...rest } = task;
+            
+            return {
+                ...rest,
+                idTask: id_task,
+                idFolder: id_folder,
+                folderTitle: folder_title,
+                plannedDate: planned_date,
+                startAt: start_at,
+                endAt: end_at,
+                remindBefore: remind_before,
+                createdAt: created_at,
+                updatedAt: updated_at,
+            } as TaskType & {
+                folderTitle: FolderType["title"];
+            };
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         syncTasks,
         getTasks,
@@ -216,5 +245,6 @@ export const useTasks = () => {
         deleteTasks,
         toggleArchiveTasks,
         getTasksCountByDate,
+        getTask,
     }
 }

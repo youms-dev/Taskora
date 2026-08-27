@@ -56,6 +56,10 @@ function genData(): {
                 id_task: createId(),
                 title: onb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
                 content: faker.lorem.text(),
+                icon: onb > .6 ? JSON.stringify({
+                    name: "briefcase",
+                    packageName: "Entypo",
+                }) : null,
                 done: onb > 0.8,
                 planned_date: Date.now(),
                 start_at: date,

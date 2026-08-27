@@ -1,4 +1,5 @@
 import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -8,20 +9,19 @@ import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { ICON_TYPE } from "@/constants/icons";
-import clsx from "clsx";
-import { Icon } from "../icon";
 
-interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
+interface TaskCardProps extends PressableProps {
     task: TaskType;
     height: number;
 }
@@ -47,7 +47,6 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
     return (
         <Pressable
             {...rest}
-            onPress={() => { }}
             style={{
                 height,
             }}
@@ -62,7 +61,7 @@ const TaskCard = memo(({ task, height, ...rest }: TaskCardProps) => {
                                     <Icon
                                         library={iconData.packageName}
                                         name={iconData.name}
-                                        size={25}
+                                        size={22}
                                         color={COLORS.emerald[500]}
                                     />
                                 </View>
@@ -139,6 +138,7 @@ export const TasksSearch = memo(({ context }: Props) => {
     const taskHeight = 100;
     const tasksGap = 20;
     const textInputWidth = useSharedValue<number>(0);
+    const router = useRouter();
 
     const tasksMap = useMemo(() => {
         return (
@@ -252,7 +252,7 @@ export const TasksSearch = memo(({ context }: Props) => {
         }, 100);
     }, [pathname, tasksMap]);
 
-    const renderItem = useCallback(({ item: task, index }: { item: unknown; index: number }) => (
+    const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => (
         <Animated.View
             entering={FadeInUp
                 .delay(index * 100)
@@ -270,6 +270,15 @@ export const TasksSearch = memo(({ context }: Props) => {
             <TaskCard
                 height={taskHeight}
                 task={task as TaskType}
+                onPress={() => {
+                    router.navigate({
+                        pathname: "/(protected)/(task)/[id]",
+                        params: {
+                            id: task.idTask,
+                        }
+                    });
+                    handleClose();
+                }}
             />
         </Animated.View>
     ), [taskHeight]);
@@ -334,18 +343,22 @@ export const TasksSearch = memo(({ context }: Props) => {
         return () => remove();
     }, []);
 
+    const handleClose = useCallback(() => {
+        searchTimeout.current && clearTimeout(searchTimeout.current);
+        textInputRef.current?.blur();
+        setSearchSectionActive(false);
+        setCount(0);
+        setTasks([]);
+        setValue("");
+        setLoading(false);
+        event.emit(SHOW_NAVBAR);
+
+    }, []);
+
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (searchSectionActive) {
-                searchTimeout.current && clearTimeout(searchTimeout.current);
-                textInputRef.current?.blur();
-                setSearchSectionActive(false);
-                setCount(0);
-                setTasks([]);
-                setValue("");
-                setLoading(false);
-                event.emit(SHOW_NAVBAR);
-
+            if (searchSectionActive && pathname == "/") {
+                handleClose();
                 return true;
             }
 
@@ -355,14 +368,7 @@ export const TasksSearch = memo(({ context }: Props) => {
         sectionActive.value = searchSectionActive;
 
         if (!searchSectionActive) {
-            searchTimeout.current && clearTimeout(searchTimeout.current);
-            textInputRef.current?.blur();
-            setSearchSectionActive(false);
-            setCount(0);
-            setTasks([]);
-            setValue("");
-            setLoading(false);
-            event.emit(SHOW_NAVBAR);
+            handleClose();
         }
         else {
             textInputRef.current?.focus();
@@ -372,7 +378,7 @@ export const TasksSearch = memo(({ context }: Props) => {
             remove();
             searchTimeout.current && clearTimeout(searchTimeout.current);
         };
-    }, [searchSectionActive]);
+    }, [searchSectionActive, pathname]);
 
     const onMomentumScrollEnd = useAnimatedProps(() => ({
         onMomentumScrollEnd: () => {

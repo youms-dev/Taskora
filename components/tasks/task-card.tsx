@@ -5,6 +5,7 @@ import { TaskType } from "@/types/task";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import clsx from "clsx";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { Pressable, PressableProps, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -25,6 +26,7 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
     const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading } = context;
+    const router = useRouter();
 
     const iconData = useMemo(() => {
         if (task.icon) {
@@ -126,7 +128,12 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     const onPress = useCallback(() => {
         if (loading) return;
         if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-
+            router.navigate({
+                pathname: "/(protected)/(task)/[id]",
+                params: {
+                    id: task.idTask,
+                }
+            });
         }
         else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
             setTasksSelected((prev) => [...prev, task]);
@@ -182,7 +189,7 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
                                             <Icon
                                                 library={iconData.packageName}
                                                 name={iconData.name}
-                                                size={25}
+                                                size={22}
                                                 color={COLORS.emerald[500]}
                                             />
                                         </View>

@@ -223,7 +223,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                                             <Icon
                                                 library={iconData.packageName}
                                                 name={iconData.name}
-                                                size={25}
+                                                size={22}
                                                 color={COLORS.emerald[500]}
                                             />
                                         </View>
@@ -370,8 +370,15 @@ export default function Archives() {
         else setTasksSelected(prev => [...prev, task]);
     }, [selectMap]);
 
-    const onPressTask = useCallback(() => {
-        selectMap.size == 0 && !processing && router.navigate("/");
+    const onPressTask = useCallback((id: TaskType["idTask"]) => {
+        if (selectMap.size == 0 && !processing) {
+            router.navigate({
+                pathname: "/(protected)/(task)/[id]",
+                params: {
+                    id,
+                }
+            });
+        }
     }, [selectMap, processing]);
 
     const taskLoading = useMemo(() => loading || processing, [loading, processing]);
