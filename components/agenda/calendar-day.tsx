@@ -54,7 +54,14 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                         setTargetDate(day);
                     }
                     else {
-                        // router.navigate("");
+                        router.navigate({
+                            pathname: "/(protected)/(task)/create",
+                            params: {
+                                target: "event",
+                                date: String(day),
+                                action: "create",
+                            },
+                        });
                     }
                 }}
                 style={{
@@ -131,7 +138,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                         })
                     }
                 </View>
-            </Pressable >
+            </Pressable>
         );
     }, [tasks, dayWidth, daysHeight]);
 

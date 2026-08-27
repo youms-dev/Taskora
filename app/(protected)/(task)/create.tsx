@@ -14,6 +14,7 @@ import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
+import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -21,7 +22,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
@@ -139,16 +140,29 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
     );
 };
 
+type InputsValuesType = {
+    title: string | null;
+    desc: string | null;
+    icon: ICON_TYPE | null;
+    date: Date;
+    startAt: string;
+    endAt: string | null;
+    remindBefore: number | null;
+    archive: boolean;
+    folder: FolderType["idFolder"] | null;
+}
+
 export default function CreateTaskPage() {
-    const { t, i18n } = useTranslation();
-    const [target, setTarget] = useState<"task" | "event">("task");
-    const targetShared = useSharedValue<typeof target>("task");
-    const parentWidth = useSharedValue<number>(0);
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const { theme } = useTheme();
-    const router = useRouter();
+    const params = useLocalSearchParams();
+    const { target: paramTarget, date: paramDate, action: paramAction, data: paramEntry } = params as {
+        target?: "task" | "event";
+        date?: string;
+        action?: "create" | "edit" | "duplicate";
+        data?: string;
+    };
     const date = useMemo(() => new Date(), []);
-    const initialInputsValues = {
+
+    let initialInputsValues: InputsValuesType = {
         title: null,
         desc: "",
         icon: null,
@@ -157,19 +171,61 @@ export default function CreateTaskPage() {
         endAt: `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`,
         remindBefore: 30,
         archive: false,
-        folder: null
-    }
-    const [inputsValues, setInputsValues] = useState<
-        Omit<typeof initialInputsValues, "endAt" | "title" | "remindBefore" | "icon" | "folder">
-        &
-        {
-            title: string | null;
-            icon: ICON_TYPE | null;
-            remindBefore: number | null;
-            endAt: string | null;
-            folder: FolderType | null,
+        folder: null,
+    };
+
+    console.log("\n");
+    console.log("\n");
+
+    if (paramTarget == "event") {
+        if (paramDate && paramDate.length > 0 && paramAction == "create") {
+            initialInputsValues = {
+                ...initialInputsValues,
+                date: new Date(paramDate),
+            }
         }
-    >(initialInputsValues);
+        else if (paramEntry) {
+            const event = JSON.parse(paramEntry) as TaskType;
+            let iconData: ICON_TYPE | null = null;
+            const startAt = new Date(event.startAt);
+            const endAt = event.endAt ? new Date(event.endAt) : null;
+            const archived = Boolean(event.archived);
+
+            if (event.icon) {
+                const data = JSON.parse(event.icon) as ICON_TYPE;
+
+                if (data.name && data.packageName) {
+                    iconData = data;
+                }
+            }
+
+            initialInputsValues = {
+                title: event.title ?? null,
+                desc: event.content ?? null,
+                icon: iconData,
+                date: new Date(event.plannedDate),
+                startAt: `${String(startAt.getHours()).padStart(2, "0")} : ${String(startAt.getMinutes()).padStart(2, "0")}`,
+                endAt: endAt ?
+                    `${String(endAt.getHours() == 0 ? 0 : endAt.getHours()).padStart(2, "0")} : ${String(endAt.getMinutes()).padStart(2, "0")}`
+                    :
+                    `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`
+                ,
+                remindBefore: event.remindBefore ?? 30,
+                archive: archived,
+                folder: event.idFolder ?? null,
+            }
+        }
+    }
+
+
+    const { t, i18n } = useTranslation();
+    const [target, setTarget] = useState<"task" | "event">(paramTarget ?? "task");
+    const targetShared = useSharedValue<typeof target>(target);
+    const parentWidth = useSharedValue<number>(0);
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const { theme } = useTheme();
+    const router = useRouter();
+    const [inputsValues, setInputsValues] = useState<InputsValuesType>(initialInputsValues);
     const [loading, setLoading] = useState<boolean>(false);
     const [timeModal, setTimeModal] = useState<{
         target: "start" | "end";
@@ -183,6 +239,7 @@ export default function CreateTaskPage() {
     const [timePagerMounted, setTimePagerMounted] = useState<boolean>(false);
     const [calendarMounted, setCalendarMounted] = useState<boolean>(false);
     const [foldersModalOpened, setFoldersModalOpened] = useState<boolean>(false);
+    const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -260,8 +317,9 @@ export default function CreateTaskPage() {
     const onFolderSelected = useCallback((entry: FolderType | null) => {
         setInputsValues((prev) => ({
             ...prev,
-            folder: entry,
+            folder: entry?.idFolder ?? null,
         }));
+        setFolderSelected(entry);
     }, []);
 
     return (
@@ -416,7 +474,7 @@ export default function CreateTaskPage() {
                                     <Input
                                         label={t("create_form_description")}
                                         multiline
-                                        value={inputsValues.desc}
+                                        value={inputsValues.desc ?? ""}
                                         onChangeText={(e) => setInputsValues({
                                             ...inputsValues,
                                             desc: e,
@@ -709,7 +767,12 @@ export default function CreateTaskPage() {
                                                 !inputsValues.folder && "opacity-50",
                                             )}
                                         >
-                                            {inputsValues.folder ? inputsValues.folder.title.charAt(0).toUpperCase() + inputsValues.folder.title.slice(1).toLowerCase() : t("create_form_folder_default")}
+                                            {
+                                                folderSelected ?
+                                                    folderSelected.title.charAt(0).toUpperCase() + folderSelected.title.slice(1).toLowerCase()
+                                                    :
+                                                    t("create_form_folder_default")
+                                            }
                                         </Text>
                                     </View>
                                 </Pressable>
@@ -832,7 +895,12 @@ export default function CreateTaskPage() {
                                                 light="rgba(0, 0, 0, .9)"
                                                 className="text-2xl font-bold"
                                             >
-                                                {t("create_form_submit")}
+                                                {
+                                                    paramAction == "edit" ?
+                                                        t("create_form_submit_edit")
+                                                        :
+                                                        t("create_form_submit_create")
+                                                }
                                             </TextAnimated>
                                         )
                                 }
@@ -1094,7 +1162,7 @@ export default function CreateTaskPage() {
                     {
                         (foldersModalOpened || inputsValues.folder) && (
                             <FoldersList
-                                selected={inputsValues.folder}
+                                selected={folderSelected}
                                 onSelect={onFolderSelected}
                             />
                         )
