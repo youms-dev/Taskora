@@ -77,5 +77,9 @@
     "create_form_folder_default": "Default",
     "create_form_folders_modal": "Select a folder",
     "create_no_folders": "No folders yet,\ncreate a folder first to use it",
-    "sqlite_error": "An error occurred"
+    "sqlite_error": "An error occurred",
+    "[id]_archived": "Archived",
+    "[id]_remaining_time": "remaining",
+    "[id]_task_done": "Done",
+    "[id]_submit": "Mark as done"
 }

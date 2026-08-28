@@ -77,5 +77,9 @@
     "create_form_folder_default": "Par défaut",
     "create_form_folders_modal": "Sélectionnez un dossier",
     "create_no_folders": "Aucun dossier pour l'instant,\ncréez en un pour pourvoir l'utiliser",
-    "sqlite_error": "Une erreur est survenue"
+    "sqlite_error": "Une erreur est survenue",
+    "[id]_archived": "Archivée",
+    "[id]_remaining_time": "restant{{many}}",
+    "[id]_task_done": "Faite",
+    "[id]_submit": "Marquer comme faite"
 }

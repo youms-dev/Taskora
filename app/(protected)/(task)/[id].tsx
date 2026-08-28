@@ -1,20 +1,66 @@
 import { Container } from "@/components/container";
+import { Icon } from "@/components/icon";
 import { Loader } from "@/components/loader";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { daysTranslation, monthsTranslation } from "@/constants/calendar";
+import { COLORS } from "@/constants/colors";
+import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { TaskType } from "@/types/task";
-import { Entypo, FontAwesome, FontAwesome6 } from "@expo/vector-icons";
+import { Entypo, FontAwesome, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
+import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+
+interface Props {
+    entry: Date | number;
+}
+
+const Decrement = memo(({ entry }: Props) => {
+    const interval = useRef<ReturnType<typeof setInterval>>(null);
+    const entryFormatted = new Date(entry);
+    const [remaining, setRemaining] = useState<string>(() => String(entryFormatted.getHours()).padStart(2, "0") + " : " + String(entryFormatted.getMinutes()).padStart(2, "0"));
+
+    useEffect(() => {
+        interval.current && clearInterval(interval.current);
+
+        let hours = entryFormatted.getHours();
+        let mins = entryFormatted.getMinutes();
+
+        interval.current = setInterval(() => {
+            if (mins > 0) {
+                mins--;
+                setRemaining(String(hours).padStart(2, "0") + " : " + String(mins).padStart(2, "0"));
+            }
+            else if (hours == 0 && mins == 0) {
+                interval.current && clearInterval(interval.current);
+            }
+            else {
+                mins = 59;
+                hours > 0 ? hours -= 1 : null;
+                setRemaining(String(hours).padStart(2, "0") + " : " + String(mins).padStart(2, "0"));
+            }
+        }, 1000);
+
+        return () => {
+            interval.current && clearInterval(interval.current);
+        }
+    }, []);
+
+    return (
+        <Text>
+            {remaining}
+        </Text>
+    );
+});
 
 export default function Task() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,16 +71,26 @@ export default function Task() {
     const { theme } = useTheme();
     const { getTask } = useTasks();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const ref = useRef<Animated.ScrollView>(null);
     const mapDateFormat = "dd/MM/yyyy";
-    const dateSystem = useMemo(() => new Date(), []);
-    const taskDateFormatted = useMemo(() => new Date(task?.plannedDate ?? dateSystem), []);
+    const systemDate = useMemo(() => new Date(), []);
+    const taskDateFormatted = useMemo(() => new Date(task?.plannedDate ?? systemDate), []);
     const scrollCheckPoint = 200;
     const scrollY = useSharedValue<number>(0);
 
     console.log("\n");
     console.log("\n");
+
+    const iconData = useMemo(() => {
+        if (!task || !task.icon) return null;
+        let data = JSON.parse(task.icon) as ICON_TYPE;
+
+        if (data.name && data.packageName) {
+            return data;
+        }
+        return null;
+    }, [task]);
 
     const displayedDate = useMemo(() => {
         if (!task) return "";
@@ -52,10 +108,10 @@ export default function Task() {
 
     const days = useMemo(() => {
         if (!task) return [];
-        const start = startOfWeek(startOfMonth(dateSystem), {
+        const start = startOfWeek(startOfMonth(systemDate), {
             weekStartsOn: i18n.language == "fr" ? 1 : 0,
         });
-        const end = endOfWeek(endOfMonth(dateSystem), {
+        const end = endOfWeek(endOfMonth(systemDate), {
             weekStartsOn: i18n.language == "fr" ? 1 : 0,
         });
 
@@ -79,6 +135,17 @@ export default function Task() {
     const dayWidth = useMemo(() => {
         return screenWidth / 7;
     }, [screenWidth]);
+
+    const displayedStartTime = useMemo(() => {
+        if (!task) return "";
+        const date = new Date(task.startAt);
+
+        return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
+    }, [task]);
+
+    const taskDone = useMemo(() => {
+        return Boolean(task?.done);
+    }, [task]);
 
     if (!id) {
         if (router.canGoBack()) {
@@ -143,6 +210,37 @@ export default function Task() {
             Extrapolation.CLAMP,
         )
     }));
+
+    const displayedTimeLeft = useMemo(() => {
+        if (
+            taskDateFormatted.getMonth() > systemDate.getMonth()
+            &&
+            taskDateFormatted.getFullYear() == systemDate.getFullYear()
+        ) {
+            const diff = taskDateFormatted.getMonth() - systemDate.getMonth();
+
+            return (`${String(diff)} ${i18n.language == "fr" ? "mois" : (`month${diff > 1 ? "s" : ""}`)}`);
+        }
+        else if (taskDateFormatted.getFullYear() > systemDate.getFullYear()) {
+            const diff = taskDateFormatted.getFullYear() - systemDate.getFullYear();
+
+            return (`${String(diff)} ${i18n.language == "fr" ? (`an${diff > 1 ? "s" : ""}`) : (`year${diff > 1 ? "s" : ""}`)}`);
+        }
+        else if (
+            taskDateFormatted.getMonth() == systemDate.getMonth()
+            &&
+            taskDateFormatted.getFullYear() == systemDate.getFullYear()
+        ) {
+            const diff = taskDateFormatted.getDate() - systemDate.getDate();
+
+            if (diff > 0) {
+                return (`${String(diff)} ${i18n.language == "fr" ? (`jour${diff > 1 ? "s" : ""}`) : (`day${diff > 1 ? "s" : ""}`)}`);
+            }
+            else {
+                return <Decrement entry={Math.abs(taskDateFormatted.getTime() - systemDate.getTime())} />
+            }
+        }
+    }, []);
 
     if (loading) {
         return (
@@ -223,14 +321,31 @@ export default function Task() {
 
                             <Animated.View
                                 style={{}}
-                                className="w-[70%]"
+                                className="w-[70%] flex flex-row justify-center items-center gap-3"
                             >
-                                <TextAnimated
-                                    numberOfLines={1}
-                                    className="text-xl text-center tracking-widest"
-                                >
-                                    {displayedDate}
-                                </TextAnimated>
+                                {
+                                    iconData && (
+                                        <View className="size-[40px] dark:bg-black bg-white rounded-full">
+                                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+                                                <Icon
+                                                    library={iconData.packageName}
+                                                    name={iconData.name}
+                                                    size={20}
+                                                    color={COLORS.emerald[500]}
+                                                />
+                                            </View>
+                                        </View>
+                                    )
+                                }
+
+                                <View className={clsx(iconData && "max-w-[80%]")}>
+                                    <TextAnimated
+                                        numberOfLines={1}
+                                        className="text-xl text-center tracking-widest"
+                                    >
+                                        {displayedDate}
+                                    </TextAnimated>
+                                </View>
                             </Animated.View>
 
                             <View className="w-[10%] flex items-center">
@@ -286,7 +401,6 @@ export default function Task() {
                         >
                             {
                                 days.map((day, i) => {
-                                    const isTaskDate = format(day, mapDateFormat) == format(taskDateFormatted, mapDateFormat);
                                     const mapIndex = daysMap.get(format(taskDateFormatted, mapDateFormat))?.index ?? 0;
                                     const distance = Math.abs(i - mapIndex);
                                     const effect = Math.max(
@@ -344,27 +458,185 @@ export default function Task() {
                         style={{
                             paddingBottom: scrollCheckPoint,
                         }}
-                        className="w-full min-h-full dark:bg-black bg-white rounded-t-[40px] px-3"
+                        className="w-full min-h-full dark:bg-white/5 bg-white rounded-t-[40px] px-3"
                     >
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
-                        <View className="w-full h-[200px] bg-cyan-950 my-3"></View>
+                        <View className={clsx(
+                            "w-full flex flex-row items-center pt-3 pr-3",
+                            task.type == "event" ? "gap-6" : "justify-between",
+                        )}>
+                            <View className={clsx(
+                                "flex flex-row items-center shrink-0",
+                                task.type == "task" ? "w-[30%] gap-3" : "gap-5",
+                            )}>
+                                {
+                                    ((task.type == "task" && task.done) || (task.type == "event")) && (
+                                        <>
+                                            <View>
+                                                <MaterialCommunityIcons
+                                                    name="clock-time-four"
+                                                    size={25}
+                                                    color={COLORS.emerald[500]}
+                                                />
+                                            </View>
+
+                                            <TextAnimated className="text-lg tracking-widest opacity-80">
+                                                {displayedStartTime}
+                                            </TextAnimated>
+                                        </>
+                                    )
+                                }
+                            </View>
+
+                            <View className={clsx(
+                                "flex flex-row items-center shrink-0",
+                                task.type == "event" && "gap-5",
+                            )}>
+                                {
+                                    task.type == "task" && taskDone && (
+                                        <View className="flex flex-row items-center gap-3">
+                                            <View>
+                                                <Text
+                                                    numberOfLines={1}
+                                                    className="text-lg text-emerald-500"
+                                                >
+                                                    {t("[id]_task_done")}
+                                                </Text>
+                                            </View>
+
+                                            <View>
+                                                <Entypo
+                                                    name="check"
+                                                    size={25}
+                                                    color={COLORS.emerald[500]}
+                                                />
+                                            </View>
+                                        </View>
+                                    )
+                                }
+
+                                {
+                                    task.type == "event" && (
+                                        <>
+                                            <View>
+                                                <FontAwesome6
+                                                    name="arrow-right"
+                                                    size={25}
+                                                    color={COLORS.emerald[500]}
+                                                />
+                                            </View>
+
+                                            <TextAnimated className="text-lg tracking-widest opacity-80">
+                                                {displayedStartTime}
+                                            </TextAnimated>
+                                        </>
+                                    )
+                                }
+                            </View>
+
+                            {
+                                task.type == "task" && (
+                                    <View className="flex justify-center items-center px-3 pb-2 dark:bg-white/10 bg-black/5 rounded-2xl border dark:border-white/5 border-black/5 pr-4 pt-4">
+                                        <View
+                                            style={{
+                                                transform: [
+                                                    {
+                                                        translateX: -5
+                                                    }
+                                                ]
+                                            }}
+                                            className="absolute right-0 top-0 opacity-60"
+                                        >
+                                            <Entypo
+                                                name="price-tag"
+                                                size={15}
+                                                color={COLORS.emerald[500]}
+                                            />
+                                        </View>
+
+                                        <TextAnimated
+                                            numberOfLines={1}
+                                            className="opacity-60"
+                                        >
+                                            {t("[id]_archived")}
+                                        </TextAnimated>
+                                    </View>
+                                )
+                            }
+                        </View>
+
+                        <View className={clsx(
+                            "w-full flex flex-row flex-wrap items-center gap-2 pt-3 pr-3 mb-3",
+                            task.type == "task" && !taskDone && "justify-between",
+                            task.type == "event" && !taskDone && "justify-end",
+                        )}>
+                            {
+                                task.type == "task" && !taskDone && (
+                                    <View className="w-[30%] flex flex-row items-center gap-3 shrink-0">
+                                        <View>
+                                            <MaterialCommunityIcons
+                                                name="clock-time-four"
+                                                size={25}
+                                                color={COLORS.emerald[500]}
+                                            />
+                                        </View>
+
+                                        <TextAnimated className="text-lg tracking-widest opacity-80">
+                                            {displayedStartTime}
+                                        </TextAnimated>
+                                    </View>
+                                )
+                            }
+
+                            {
+                                !taskDone && (
+                                    <View className="flex flex-row justify-end gap-3 border-l-2 border-emerald-500 pl-3">
+                                        <View className="flex flex-row items-center gap-2">
+                                            <View>
+                                                <MaterialCommunityIcons
+                                                    name="timer-sand"
+                                                    size={25}
+                                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                />
+                                            </View>
+
+                                            <Text className="dark:text-white/80 text-black/90 text-lg tracking-widest opacity-80">
+                                                {displayedTimeLeft ?? ""}
+                                            </Text>
+                                        </View>
+
+                                        <View className="flex flex-row items-center">
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                className="text-lg tracking-widest"
+                                            >
+                                                {t("[id]_remaining_time")}
+                                            </TextAnimated>
+                                        </View>
+                                    </View>
+                                )
+                            }
+                        </View>
+
+                        {
+                            task.title && (
+                                <View className="w-full mt-5 border-b-2 dark:border-white/10 border-black/10 pb-3 px-2">
+                                    <TextAnimated className="text-lg">
+                                        {task.title}
+                                    </TextAnimated>
+                                </View>
+                            )
+                        }
+
+                        {
+                            task.content && (
+                                <View className="w-full mt-5 border-b-2 dark:border-white/10 border-black/10 pb-3 px-2">
+                                    <TextAnimated className="text-lg">
+                                        {task.content}
+                                    </TextAnimated>
+                                </View>
+                            )
+                        }
+                        {/* <View className="w-full h-[200px] bg-cyan-950 my-3"></View> */}
                     </View>
                 </Animated.ScrollView>
 
@@ -372,15 +644,52 @@ export default function Task() {
                     style={{
                         transform: [
                             {
-                                translateY: 15,
+                                translateX: -20,
+                            },
+                            {
+                                translateY: -50,
+                            },
+                        ]
+                    }}
+                    className="absolute right-0 bottom-0 z-[20]"
+                >
+                    <PressableAnimated
+                        scale={.95}
+                        className="flex items-center rounded-2xl"
+                    >
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    }
+                                ],
+                                filter: "blur(5px)",
+                            }}
+                            className="absolute size-full bg-black/50 rounded-2xl"
+                        />
+
+                        <View className="flex flex-row justify-center items-center bg-emerald-500 border-2 border-black/10 px-5 py-3 rounded-2xl">
+                            <Text className="text-black font-bold text-2xl tracking-widest">
+                                {t("[id]_submit")}
+                            </Text>
+                        </View>
+                    </PressableAnimated>
+                </View>
+
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 20,
                             }
                         ]
                     }}
-                    className="absolute left-0 bottom-0 w-full h-[50px]"
+                    className="absolute left-0 bottom-0 w-full h-[40px]"
                 >
                     <LinearGradient
                         colors={theme == "dark" ?
-                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .8)", "rgba(0, 0, 0, 0)"]
+                            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
                             :
                             ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", " rgba(255, 255, 255, 0)"]
                         }
@@ -388,7 +697,19 @@ export default function Task() {
                         end={{ x: 0, y: 0 }}
                         locations={[0, .6, 1]}
                         className="size-full"
-                    />
+                    >
+                        <LinearGradient
+                            colors={theme == "dark" ?
+                                ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
+                                :
+                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", " rgba(255, 255, 255, 0)"]
+                            }
+                            start={{ x: 0, y: 1 }}
+                            end={{ x: 0, y: 0 }}
+                            locations={[0, .6, 1]}
+                            className="size-full"
+                        />
+                    </LinearGradient>
                 </View>
             </View>
         </Container>
