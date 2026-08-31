@@ -203,7 +203,7 @@ export default function CreateTaskPage() {
                 title: event.title ?? null,
                 desc: event.content ?? null,
                 icon: iconData,
-                date: new Date(event.plannedDate),
+                date: new Date(event.startAt),
                 startAt: `${String(startAt.getHours()).padStart(2, "0")} : ${String(startAt.getMinutes()).padStart(2, "0")}`,
                 endAt: endAt ?
                     `${String(endAt.getHours() == 0 ? 0 : endAt.getHours()).padStart(2, "0")} : ${String(endAt.getMinutes()).padStart(2, "0")}`

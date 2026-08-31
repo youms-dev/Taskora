@@ -91,6 +91,16 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             }>
                 <Pressable
                     delayLongPress={150}
+                    onPress={() => {
+                        if (selected) return;
+                        router.navigate({
+                            pathname: "/(protected)/(task)/[id]",
+                            params: {
+                                id: event.idTask,
+                            }
+                        });
+                        handleClose();
+                    }}
                     onLongPress={(e) => {
                         const { pageX, pageY } = e.nativeEvent;
 
@@ -226,7 +236,6 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
-            console.log(e);
         }
     }, [loading, i18n.language, targetDate, event]);
 
@@ -239,7 +248,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             setEventsCount(data);
         }
         catch (e) {
-            console.log(e);
+            setToast(t("sqlite_error"), "error");
         }
     }, [loading, i18n.language, targetDate]);
 
@@ -387,17 +396,17 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         );
     }, []);
 
-    const handlePress = useCallback((entry: "edit" | "duplicate") => {
+    const handleContextMenuButtonPress = useCallback((entry: "edit" | "duplicate") => {
         if (!selected) return;
         router.navigate({
             pathname: "/(protected)/(task)/create",
             params: {
                 target: "event",
                 action: entry,
-                date: selected.plannedDate,
+                date: selected.startAt.toString(),
                 data: JSON.stringify(selected),
             }
-        })
+        });
     }, [selected]);
 
     return (
@@ -554,7 +563,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
 
                     <View className="size-full flex items-center gap-3 px-3 py-5 dark:bg-white/10 bg-white rounded-2xl border-2 dark:border-white/5 border-black/5">
                         <PressableAnimated
-                            onPress={() => handlePress("edit")}
+                            onPress={() => handleContextMenuButtonPress("edit")}
                             className="w-full flex flex-row items-center"
                         >
                             <View className="w-[30%]">
@@ -579,7 +588,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             <View className="w-[30%]">
                                 <Entypo
                                     name="trash"
-                                    size={25}
+                                    size={20}
                                     color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                 />
                             </View>
@@ -592,13 +601,13 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                         </PressableAnimated>
 
                         <PressableAnimated
-                            onPress={() => handlePress("duplicate")}
+                            onPress={() => handleContextMenuButtonPress("duplicate")}
                             className="w-full flex flex-row items-center"
                         >
                             <View className="w-[30%]">
                                 <Ionicons
                                     name="duplicate"
-                                    size={23}
+                                    size={20}
                                     color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                 />
                             </View>

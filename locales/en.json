@@ -81,5 +81,9 @@
     "[id]_archived": "Archived",
     "[id]_remaining_time": "remaining",
     "[id]_task_done": "Done",
-    "[id]_submit": "Mark as done"
+    "[id]_submit": "Mark as done",
+    "[id]_years": "year{{many}}",
+    "[id]_months": "month{{many}}",
+    "[id]_days": "day{{many}}",
+    "[id]_hours": "hour{{many}}"
 }

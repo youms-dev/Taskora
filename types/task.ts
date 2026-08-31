@@ -6,7 +6,6 @@ export type TaskType = {
     content?: string;
     done?: boolean;
     archived: boolean;
-    plannedDate: number;
     startAt: Date;
     endAt?: Date;
     type: "event" | "task";
@@ -21,10 +20,9 @@ export type SQLiteTaskType = {
     title?: string;
     icon?: string;
     content?: string;
-    done?: boolean;
-    archived: boolean;
-    planned_date: number;
-    start_at: Date;
+    done?: number;
+    archived: number;
+    start_at: number;
     end_at?: Date;
     type: "event" | "task";
     remind_before?: number;

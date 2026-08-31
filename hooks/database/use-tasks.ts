@@ -42,15 +42,16 @@ export const useTasks = () => {
             }
 
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, planned_date, id_folder, start_at, end_at, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, done, start_at, end_at, archived, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
-                    plannedDate: planned_date,
-                    startAt: start_at,
+                    startAt: new Date(start_at),
                     endAt: end_at,
+                    archived: Boolean(archived),
+                    done: Boolean(done),
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -69,17 +70,18 @@ export const useTasks = () => {
         const end = endOfDay(date).getTime();
 
         try {
-            const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND planned_date >= ? AND planned_date <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
+            const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, planned_date, id_folder, start_at, end_at, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, start_at, end_at, archived, done, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
-                    plannedDate: planned_date,
-                    startAt: start_at,
+                    startAt: new Date(start_at),
                     endAt: end_at,
+                    archived: Boolean(archived),
+                    done: Boolean(done),
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -118,7 +120,7 @@ export const useTasks = () => {
         const end = endOfDay(date).getTime();
 
         try {
-            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND planned_date >= ? AND planned_date <= ?", ["event", start, end]) as { count: number };
+            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND start_at >= ? AND start_at <= ?", ["event", start, end]) as { count: number };
 
             return data.count ?? 0;
         }
@@ -157,14 +159,15 @@ export const useTasks = () => {
             }
 
             const dataParsed = data.length > 0 ? data.map(item => {
-                const { id_task, planned_date, start_at, end_at, created_at, updated_at, ...rest } = item;
+                const { id_task, start_at, end_at, archived, done, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
-                    plannedDate: planned_date,
-                    startAt: start_at,
+                    startAt: new Date(start_at),
                     endAt: end_at,
+                    archived: Boolean(archived),
+                    done: Boolean(done),
                     createdAt: created_at,
                     updatedAt: updated_at,
                 } as TaskType);
@@ -208,22 +211,35 @@ export const useTasks = () => {
         }
     }
 
-    async function getTask(id: TaskType["idTask"], type: TaskType["type"] = "task"): Promise<TaskType | unknown> {
+    async function getTask(id: TaskType["idTask"], type: TaskType["type"] | null = null): Promise<TaskType | unknown> {
         if (!db) return;
         try {
-            const task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.type = ?", [id, type]) as SQLiteTaskType & {
+            let task: SQLiteTaskType & {
                 folder_title: FolderType["title"];
             };
-            const { id_task, id_folder, folder_title, planned_date, start_at, end_at, remind_before, created_at, updated_at, ...rest } = task;
-            
+
+            if (type) {
+                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.type = ?", [id, type]) as SQLiteTaskType & {
+                    folder_title: FolderType["title"];
+                }
+            }
+            else {
+                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ?", [id]) as SQLiteTaskType & {
+                    folder_title: FolderType["title"];
+                };
+            }
+
+            const { id_task, id_folder, folder_title, start_at, archived, end_at, done, remind_before, created_at, updated_at, ...rest } = task;
+
             return {
                 ...rest,
                 idTask: id_task,
                 idFolder: id_folder,
                 folderTitle: folder_title,
-                plannedDate: planned_date,
-                startAt: start_at,
+                startAt: new Date(start_at),
                 endAt: end_at,
+                archived: Boolean(archived),
+                done: Boolean(done),
                 remindBefore: remind_before,
                 createdAt: created_at,
                 updatedAt: updated_at,

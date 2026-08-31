@@ -202,7 +202,7 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
                                     numberOfLines={1}
                                     className="font-medium opacity-80"
                                 >
-                                    {parseDate(task.plannedDate)}
+                                    {parseDate(task.startAt)}
                                 </TextAnimated>
                             </View>
                         </View>

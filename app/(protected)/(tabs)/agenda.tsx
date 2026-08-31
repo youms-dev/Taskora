@@ -102,13 +102,7 @@ export default function Agenda() {
                 setTargetDate={setDateEvents}
             />
 
-            <CalendarSearch
-                active={searchSectionActive}
-                mutation={mutation}
-                context={context}
-                flatListRef={flatListRef}
-                animationRef={animationRef}
-            />
+            <CalendarSearch active={searchSectionActive} />
         </Container>
     );
 }

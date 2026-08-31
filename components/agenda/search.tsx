@@ -6,11 +6,12 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
+import { FontAwesome } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { memo, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
@@ -20,14 +21,12 @@ import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./day-events";
-import { FontAwesome } from "@expo/vector-icons";
 
-interface EventCardProps extends PressableProps {
+interface EventCardProps {
     task: TaskType;
-    index: number;
 }
 
-const EventCard = memo(({ task, index, ...rest }: EventCardProps) => {
+const EventCard = memo(({ task }: EventCardProps) => {
     let iconData: ICON_TYPE | null = null;
 
     if (task.icon) {
@@ -120,13 +119,9 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props {
     active: SharedValue<boolean>;
-    context: Pick<CalendarType, "generateMonths" | "months">
-    mutation: RefObject<"append" | "prepend" | "generate" | null>;
-    flatListRef: RefObject<FlatList | null>;
-    animationRef: RefObject<boolean>;
 }
 
-export const CalendarSearch = memo(({ active, context, mutation, flatListRef: calendar, animationRef }: Props) => {
+export const CalendarSearch = memo(({ active }: Props) => {
     const { theme } = useTheme();
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useAnimatedRef<Animated.FlatList>();
@@ -146,18 +141,7 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     const { t, i18n } = useTranslation();
     const eventsGap = 20;
     const textInputWidth = useSharedValue<number>(0);
-    const { generateMonths, months } = context;
-
-    const monthsMap = useMemo(() => {
-        return (
-            new Map(
-                months.map((m, i) => [format(m, "MMMM yyyy"), {
-                    data: m,
-                    index: i,
-                }]),
-            )
-        );
-    }, [months]);
+    const router = useRouter();
 
     const tasksMap = useMemo(() => {
         return (
@@ -269,9 +253,6 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
     }, [tasksMap]);
 
     const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
-        const targetDate = new Date(event.plannedDate);
-        const mapData = monthsMap.get(format(targetDate, "MMMM yyyy"));
-
         return (
             <AnimatedPressable
                 entering={FadeInUp
@@ -286,27 +267,20 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
                     .easing(Easing.inOut(Easing.quad))
                 }
                 onPress={() => {
-                    if (mapData) {
-                        calendar.current?.scrollToIndex({
-                            index: mapData.index,
-                        });
-                    }
-                    else {
-                        animationRef.current = true;
-                        mutation.current = "generate";
-                        generateMonths("month", targetDate.getMonth());
-                    }
+                    router.navigate({
+                        pathname: "/(protected)/(task)/[id]",
+                        params: {
+                            id: event.idTask,
+                        }
+                    });
                     handleClose();
                 }}
                 className="w-full"
             >
-                <EventCard
-                    task={event}
-                    index={index}
-                />
+                <EventCard task={event} />
             </AnimatedPressable>
         )
-    }, [monthsMap]);
+    }, []);
 
     const listFooterComponent = useCallback(() => {
         if (loading) {
@@ -596,6 +570,4 @@ export const CalendarSearch = memo(({ active, context, mutation, flatListRef: ca
             </View>
         </Animated.View>
     );
-}, (prev, next) => (
-    Object.is(prev.context.months, next.context.months)
-));
+});

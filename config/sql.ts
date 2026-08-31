@@ -27,7 +27,7 @@ function genData(): {
 
     for (let i = 0; i < tasksCount; i++) {
         const nb = Math.random();
-        let entry = {};
+        let entry: Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">;
         const date = new Date();
 
         if (nb > .75) {
@@ -36,15 +36,14 @@ function genData(): {
             entry = {
                 id_task: createId(),
                 title: faker.lorem.sentence({ min: 5, max: 20 }),
-                content: onb > .5 ? faker.lorem.text() : null,
+                content: onb > .5 ? faker.lorem.text() : undefined,
                 icon: onb > .2 ? JSON.stringify({
                     name: "activity",
                     packageName: "Feather",
-                }) : null,
-                done: null,
-                planned_date: Date.now(),
-                start_at: date,
-                end_at: date,
+                }) : undefined,
+                done: undefined,
+                start_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, date.getMinutes(), date.getSeconds()).getTime(),
+                end_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 5, date.getMinutes(), date.getSeconds()),
                 remind_before: 30,
                 type: "event",
             }
@@ -59,14 +58,14 @@ function genData(): {
                 icon: onb > .6 ? JSON.stringify({
                     name: "briefcase",
                     packageName: "Entypo",
-                }) : null,
-                done: onb > 0.8,
-                planned_date: Date.now(),
-                start_at: date,
+                }) : undefined,
+                done: Number(onb > 0.8),
+                start_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, date.getMinutes(), date.getSeconds()).getTime(),
                 type: "task",
             }
         }
-        tasks.push(entry as Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">);
+
+        tasks.push(entry);
     }
 
     tasks = tasks.map((task) => {
@@ -95,7 +94,7 @@ const init = `
 ).join("")}
     ;
 
-    INSERT INTO task(id_task, id_folder, title, content, icon, done, planned_date, start_at, end_at, type, remind_before) VALUES
+    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before) VALUES
     ${tasks.map((task, i) =>
     `(
         "${task.id_task}", 
@@ -103,8 +102,7 @@ const init = `
         ${task.title ? `"${escapeSql(task.title)}"` : null}, 
         ${task.content ? `"${escapeSql(task.content)}"` : null}, 
         ${task.icon ? `"${escapeSql(task.icon)}"` : null}, 
-        ${task.done ? 1 : 0}, 
-        ${task.planned_date},
+        ${task.done ? 1 : 0},
         "${task.start_at}",
         ${task.end_at ? `"${task.end_at}"` : null},
         "${task.type}",
@@ -134,8 +132,7 @@ export const INIT_DATABASE = `
         icon TEXT NULL,
         done BOOLEAN DEFAULT NULL,
         archived BOOLEAN DEFAULT 0,
-        planned_date INTEGER NOT NULL,
-        start_at TIMESTAMP NOT NULL,
+        start_at INTEGER NOT NULL,
         end_at TIMESTAMP DEFAULT NULL,
         type TEXT NOT NULL CHECK (type IN ('event', 'task')),
         remind_before INTEGER DEFAULT NULL,
@@ -147,7 +144,7 @@ export const INIT_DATABASE = `
     
     CREATE INDEX IF NOT EXISTS task_id_folder_id_index ON task(id_task, id_folder);
     CREATE INDEX IF NOT EXISTS task_title_index ON task(title);
-    CREATE INDEX IF NOT EXISTS task_planned_date_index ON task(planned_date);
+    CREATE INDEX IF NOT EXISTS task_start_at_index ON task(start_at);
     
     CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
 

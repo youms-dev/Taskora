@@ -236,7 +236,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                                     numberOfLines={1}
                                     className="font-medium opacity-80"
                                 >
-                                    {parseDate(task.plannedDate)}
+                                    {parseDate(task.startAt)}
                                 </TextAnimated>
                             </View>
                         </View>
