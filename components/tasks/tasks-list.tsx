@@ -30,6 +30,10 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     const loadingShared = useSharedValue<boolean>(false);
     const filtering = useSharedValue<boolean>(false);
 
+    console.log("\n");
+    console.log("\n");
+    // console.log("task list tasks :", context.tasks);
+
     const selectMap = useMemo(() => {
         return new Map(
             tasksSelected.map(t => [t.idTask, t])

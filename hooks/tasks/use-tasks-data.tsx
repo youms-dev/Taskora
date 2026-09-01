@@ -43,6 +43,10 @@ export const useTasksData = () => {
         return tasks;
     }, [tasks, currentFilter]);
 
+    console.log("\n");
+    console.log("\n");
+    // console.log(displayedTasks);
+
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
         try {
@@ -73,15 +77,19 @@ export const useTasksData = () => {
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
+            console.log("\n");
+            console.log("\n");
+            // console.log(data);
+
             if (!synced.current) syncData(data.length);
             setLoading(false);
         }
         catch (e) {
             setLoading(false);
-            setToast("Aucune connexion internet", "error");
+            setToast(t("sqlite_error"), "error");
             console.log(e);
         }
-    }, [tasks]);
+    }, [tasks, i18n.language]);
 
     const handleGetTasksCount = useCallback(async () => {
         try {
@@ -92,9 +100,9 @@ export const useTasksData = () => {
         catch (e) {
             console.log(e);
             setLoading(false);
-            setToast("Aucune connexion internet", "error");
+            setToast(t("sqlite_error"), "error");
         }
-    }, []);
+    }, [i18n.language]);
 
     useEffect(() => {
         loadingRef.current = loading;
@@ -163,38 +171,41 @@ export const useTasksData = () => {
             setTasksCount(prev => prev + selected.length);
             tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
             tasksTmp.current = [];
-            setToast("Une erreur s'est produite", "error");
+            setToast(t("sqlite_error"), "error");
         }
     }, [tasksSelected, tasks, tasksCount, i18n.language]);
 
     const handleArchiveTask = useCallback(async (task: TaskType) => {
-        if (loadingRef.current) return;
-        setLoading(true);
-        tasksTmp.current = [...tasks];
-        setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
-        setTasksCount(prev => prev - 1);
+        // console.log("task hook archiving :", task.idTask);
+        console.log("task hook archiving");
+        // if (loadingRef.current) return;
+        // setLoading(true);
+        // tasksTmp.current = [...tasks];
+        // setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
+        // setTasksCount(prev => prev - 1);
 
-        try {
-            await toggleArchiveTasks([task.idTask], true);
-            setToast(t("tasks_archived"));
-            tasksTmp.current = [];
-            if (tasks.length <= tasksCount) {
-                setLoading(false);
-                loadingRef.current = false;
-                handleGetTasks(true);
-            }
-            else {
-                setLoading(false);
-            }
-        }
-        catch (e) {
-            console.log(e);
-            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
-            tasksTmp.current = [];
-            setTasksCount(prev => prev + 1);
-            setToast("Une erreur s'est produite", "error");
-        }
-    }, [tasks, tasksCount]);
+        // try {
+        //     await toggleArchiveTasks([task.idTask], true);
+        //     setToast(t("tasks_archived"));
+        //     tasksTmp.current = [];
+        //     if (tasks.length <= tasksCount) {
+        //         setLoading(false);
+        //         loadingRef.current = false;
+        //         handleGetTasks(true);
+        //     }
+        //     else {
+        //         setLoading(false);
+        //     }
+        // }
+        // catch (e) {
+        //     console.log(e);
+        //     tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+        //     tasksTmp.current = [];
+        //     setTasksCount(prev => prev + 1);
+        //     setToast(t("sqlite_error"), "error");
+        // }
+        // }, [tasks, tasksCount, i18n.language]);
+    }, []);
 
     useEffect(() => {
         if (tasksSelected.length > 0) {
@@ -269,9 +280,9 @@ export const useTasksData = () => {
             setTasksCount(prev => prev + data.length);
             tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
             tasksTmp.current = [];
-            setToast("Une erreur s'est produite", "error");
+            setToast(t("sqlite_error"), "error");
         }
-    }, [tasksSelected, tasks, tasksCount]);
+    }, [tasksSelected, tasks, tasksCount, i18n.language]);
 
     const handleDeleteTask = useCallback(async (task: TaskType, init: boolean = true, data: TaskType | null = null) => {
         if (loadingRef.current && !data) return;
@@ -318,11 +329,18 @@ export const useTasksData = () => {
             setTasksCount(prev => prev + 1);
             tasksTmp.current = [];
             setLoading(false);
-            setToast("Une erreur s'est produite", "error");
+            setToast(t("sqlite_error"), "error");
         }
-    }, [tasks, tasksCount]);
+    }, [tasks, tasksCount, i18n.language]);
+
+    const test = useCallback((v: any, task: any = null) => {
+        // const test = useCallback((v: any) => {
+        console.log("text task hook archiving");
+        console.log(v, task);
+    }, []);
 
     return ({
+        test,
         tasks: displayedTasks,
         folders,
         currentFolder,

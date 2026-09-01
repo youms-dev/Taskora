@@ -8,6 +8,10 @@ import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 export default function Tasks() {
     const context = useTasksData();
 
+    console.log("\n")
+    console.log("\n");
+    // console.log("index data :", context.tasks);
+
     return (
         <Container centerX>
             <TasksHeader context={context} />

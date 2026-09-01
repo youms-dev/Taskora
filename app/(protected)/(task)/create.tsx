@@ -177,43 +177,41 @@ export default function CreateTaskPage() {
     console.log("\n");
     console.log("\n");
 
-    if (paramTarget == "event") {
-        if (paramDate && paramDate.length > 0 && paramAction == "create") {
-            initialInputsValues = {
-                ...initialInputsValues,
-                date: new Date(paramDate),
+    if (paramDate && paramDate.length > 0 && paramAction == "create") {
+        initialInputsValues = {
+            ...initialInputsValues,
+            date: new Date(paramDate),
+        }
+    }
+    else if (paramEntry) {
+        const task = JSON.parse(paramEntry) as TaskType;
+        let iconData: ICON_TYPE | null = null;
+        const startAt = new Date(task.startAt);
+        const endAt = task.endAt ? new Date(task.endAt) : null;
+
+        if (task.icon) {
+            const data = JSON.parse(task.icon) as ICON_TYPE;
+
+            if (data.name && data.packageName) {
+                iconData = data;
             }
         }
-        else if (paramEntry) {
-            const event = JSON.parse(paramEntry) as TaskType;
-            let iconData: ICON_TYPE | null = null;
-            const startAt = new Date(event.startAt);
-            const endAt = event.endAt ? new Date(event.endAt) : null;
-            const archived = Boolean(event.archived);
 
-            if (event.icon) {
-                const data = JSON.parse(event.icon) as ICON_TYPE;
-
-                if (data.name && data.packageName) {
-                    iconData = data;
-                }
-            }
-
-            initialInputsValues = {
-                title: event.title ?? null,
-                desc: event.content ?? null,
-                icon: iconData,
-                date: new Date(event.startAt),
-                startAt: `${String(startAt.getHours()).padStart(2, "0")} : ${String(startAt.getMinutes()).padStart(2, "0")}`,
-                endAt: endAt ?
-                    `${String(endAt.getHours() == 0 ? 0 : endAt.getHours()).padStart(2, "0")} : ${String(endAt.getMinutes()).padStart(2, "0")}`
-                    :
-                    `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`
-                ,
-                remindBefore: event.remindBefore ?? 30,
-                archive: archived,
-                folder: event.idFolder ?? null,
-            }
+        initialInputsValues = {
+            ...initialInputsValues,
+            title: task.title ?? null,
+            desc: task.content ?? null,
+            icon: iconData,
+            date: startAt,
+            startAt: `${String(startAt.getHours()).padStart(2, "0")} : ${String(startAt.getMinutes()).padStart(2, "0")}`,
+            endAt: endAt ?
+                `${String(endAt.getHours() == 0 ? 0 : endAt.getHours()).padStart(2, "0")} : ${String(endAt.getMinutes()).padStart(2, "0")}`
+                :
+                `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`
+            ,
+            remindBefore: null,
+            archive: task.archived,
+            folder: task.idFolder ?? null,
         }
     }
 

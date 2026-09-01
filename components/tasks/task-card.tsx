@@ -16,7 +16,7 @@ import { SELECT_LIMIT } from "./footer";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
-    context: Pick<TasksDataContext, "tasksSelected" | "setTasksSelected" | "handleArchiveTask" | "handleDeleteTask" | "loading">;
+    context: TasksDataContext;
 }
 
 export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
@@ -25,7 +25,7 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     const selection = useSharedValue<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
-    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading } = context;
+    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading, test } = context;
     const router = useRouter();
 
     const iconData = useMemo(() => {
@@ -53,6 +53,14 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
         ]
     }));
 
+    const handleArchiveTaskById = useCallback((_taskId: string) => {
+        return handleArchiveTask(task);
+    }, [task, handleArchiveTask]);
+
+    const handleDeleteTaskById = useCallback((_taskId: string) => {
+        return handleDeleteTask(task);
+    }, [task, handleDeleteTask]);
+
     const gesture = useMemo(() => {
         return (
             Gesture.Pan()
@@ -73,14 +81,14 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
                     if (selection.value || loadingShared.value) return;
 
                     if (x <= -100) {
-                        runOnJS(handleArchiveTask)(task);
+                        runOnJS(handleArchiveTaskById)(task.idTask);
                     }
                     else if (x >= 100) {
-                        runOnJS(handleDeleteTask)(task);
+                        runOnJS(handleDeleteTaskById)(task.idTask);
                     }
                 })
-        )
-    }, []);
+        );
+    }, [task, handleArchiveTaskById, handleDeleteTaskById, selection, loadingShared, translateX]);
 
     const opacityAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
@@ -163,6 +171,7 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
 
         return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
     }, []);
+
 
     return (
         <GestureDetector gesture={gesture}>
@@ -262,8 +271,6 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
                     </Animated.View>
                 </View>
 
-                {/* Select View */}
-
                 <Animated.View
                     style={selectContainerAnimation}
                     className="absolute w-full h-full flex justify-center items-center z-[20] dark:bg-black/70 bg-white/70 border dark:border-black border-black/10 rounded-2xl"
@@ -279,14 +286,4 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
             </Pressable>
         </GestureDetector>
     );
-}, (prev, next) => (
-    Object.is(prev.context.handleArchiveTask, next.context.handleArchiveTask)
-    &&
-    Object.is(prev.context.handleDeleteTask, next.context.handleDeleteTask)
-    &&
-    Object.is(prev.context.loading, next.context.loading)
-    &&
-    Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
-    &&
-    Object.is(prev.context.tasksSelected, next.context.tasksSelected)
-));
+});
