@@ -1,6 +1,5 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
-import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -9,13 +8,13 @@ import { TaskType } from "@/types/task";
 import { FontAwesome } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { memo, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, runOnJS, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -415,10 +414,10 @@ export const CalendarSearch = memo(({ active }: Props) => {
         () => active.value,
         (next, prev) => {
             if (next != prev && !next) {
-                runOnJS(handleClose)();
+                scheduleOnRN(handleClose);
             }
             else if (next != prev && next) {
-                runOnJS(handleFocus)();
+                scheduleOnRN(handleFocus);
             }
         }
     )

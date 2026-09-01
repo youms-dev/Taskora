@@ -27,10 +27,6 @@ export const TasksPager = memo(({ context }: Props) => {
         ...folders,
     ], [folders]);
 
-    console.log("\n");
-    console.log("\n");
-    // console.log("pager tasks :", context.tasks);
-
     const foldersMap = useMemo(() => {
         return (
             new Map(

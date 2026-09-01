@@ -4,7 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 interface Props {
     height: number;
@@ -60,7 +61,7 @@ export const TimePager = memo(({ height, onIndexChanged, initialIndex, target = 
                 .maxDeltaY(5)
                 .onEnd((_event, success) => {
                     if (success) {
-                        runOnJS(changeIndex)(index);
+                        scheduleOnRN(changeIndex, index);
                     }
                 })
         );

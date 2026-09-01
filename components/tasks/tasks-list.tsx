@@ -7,7 +7,8 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, FadeIn, FadeInUp, FadeOutUp, runOnJS, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInUp, FadeOutUp, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 import { TaskCard } from "./task-card";
@@ -29,10 +30,6 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     const areTasksSelected = useSharedValue<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const filtering = useSharedValue<boolean>(false);
-
-    console.log("\n");
-    console.log("\n");
-    // console.log("task list tasks :", context.tasks);
 
     const selectMap = useMemo(() => {
         return new Map(
@@ -101,7 +98,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
                             duration: 300,
                             easing: Easing.inOut(Easing.quad),
                         });
-                        runOnJS(handleGetTasks)(true);
+                        scheduleOnRN(handleGetTasks, true);
                     };
                 })
         );

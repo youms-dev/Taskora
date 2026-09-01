@@ -22,7 +22,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { Extrapolation, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
@@ -161,20 +162,20 @@ export default function Settings() {
     const onMomentumScrollEnd = useAnimatedProps(() => ({
         onMomentumScrollEnd: () => {
             if (scrollY.value >= (headerHeight - minHeaderHeight) * .6) {
-                runOnJS(setChange)(true);
+                scheduleOnRN(setChange, true);
             }
             else {
-                runOnJS(setChange)(false);
+                scheduleOnRN(setChange, false);
             }
 
             if (scrollY.value > 0 && scrollY.value < Math.round((headerHeight - minHeaderHeight) / 2)) {
-                runOnJS(setChange)(false);
+                scheduleOnRN(setChange, false);
                 scrollViewRef.current?.scrollTo({
                     y: 0,
                 });
             }
             else if (scrollY.value > 0 && scrollY.value < Math.round(headerHeight - minHeaderHeight)) {
-                runOnJS(setChange)(true);
+                scheduleOnRN(setChange, true);
                 scrollViewRef.current?.scrollTo({
                     y: headerHeight - minHeaderHeight,
                 });

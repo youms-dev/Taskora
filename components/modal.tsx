@@ -2,7 +2,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { memo, ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, runOnJS, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 interface Props {
     height?: DimensionValue;
@@ -171,7 +172,7 @@ export const Modal = memo(({
                         });
                         return;
                     }
-                    runOnJS(handleClose)();
+                    scheduleOnRN(handleClose);
                 })
         );
     }, [handleClose, closable]);

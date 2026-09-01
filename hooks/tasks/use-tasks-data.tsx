@@ -43,10 +43,6 @@ export const useTasksData = () => {
         return tasks;
     }, [tasks, currentFilter]);
 
-    console.log("\n");
-    console.log("\n");
-    // console.log(displayedTasks);
-
     const syncData = async (position: number = 0) => {
         if (syncLoading.current || synced.current) return;
         try {
@@ -76,10 +72,6 @@ export const useTasksData = () => {
 
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
-
-            console.log("\n");
-            console.log("\n");
-            // console.log(data);
 
             if (!synced.current) syncData(data.length);
             setLoading(false);
@@ -176,36 +168,33 @@ export const useTasksData = () => {
     }, [tasksSelected, tasks, tasksCount, i18n.language]);
 
     const handleArchiveTask = useCallback(async (task: TaskType) => {
-        // console.log("task hook archiving :", task.idTask);
-        console.log("task hook archiving");
-        // if (loadingRef.current) return;
-        // setLoading(true);
-        // tasksTmp.current = [...tasks];
-        // setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
-        // setTasksCount(prev => prev - 1);
+        if (loadingRef.current) return;
+        setLoading(true);
+        tasksTmp.current = [...tasks];
+        setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
+        setTasksCount(prev => prev - 1);
 
-        // try {
-        //     await toggleArchiveTasks([task.idTask], true);
-        //     setToast(t("tasks_archived"));
-        //     tasksTmp.current = [];
-        //     if (tasks.length <= tasksCount) {
-        //         setLoading(false);
-        //         loadingRef.current = false;
-        //         handleGetTasks(true);
-        //     }
-        //     else {
-        //         setLoading(false);
-        //     }
-        // }
-        // catch (e) {
-        //     console.log(e);
-        //     tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
-        //     tasksTmp.current = [];
-        //     setTasksCount(prev => prev + 1);
-        //     setToast(t("sqlite_error"), "error");
-        // }
-        // }, [tasks, tasksCount, i18n.language]);
-    }, []);
+        try {
+            await toggleArchiveTasks([task.idTask], true);
+            setToast(t("tasks_archived"));
+            tasksTmp.current = [];
+            if (tasks.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            console.log(e);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+            tasksTmp.current = [];
+            setTasksCount(prev => prev + 1);
+            setToast(t("sqlite_error"), "error");
+        }
+        }, [tasks, tasksCount, i18n.language]);
 
     useEffect(() => {
         if (tasksSelected.length > 0) {
@@ -333,14 +322,7 @@ export const useTasksData = () => {
         }
     }, [tasks, tasksCount, i18n.language]);
 
-    const test = useCallback((v: any, task: any = null) => {
-        // const test = useCallback((v: any) => {
-        console.log("text task hook archiving");
-        console.log(v, task);
-    }, []);
-
     return ({
-        test,
         tasks: displayedTasks,
         folders,
         currentFolder,

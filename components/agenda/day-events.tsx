@@ -15,7 +15,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, FadeIn, FadeInUp, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -382,7 +383,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             (y < position.value.y || (y > (position.value.y + contextMenuHeight)))
                         )
                     ) {
-                        runOnJS(setSelected)(null);
+                        scheduleOnRN(setSelected, null);
                         position.value = null;
                     }
                     else if (
@@ -390,7 +391,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                         ||
                         (y < viewLayout.value.y || (y > (viewLayout.value.y + viewLayout.value.height)))
                     ) {
-                        runOnJS(handleClose)();
+                        scheduleOnRN(handleClose);
                     }
                 })
         );

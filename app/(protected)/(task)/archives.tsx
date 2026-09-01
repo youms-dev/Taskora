@@ -22,7 +22,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Pressable, PressableProps, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOutUp, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -124,7 +125,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         Gesture.LongPress()
             .minDuration(150)
             .onStart(() => {
-                runOnJS(handleLongPressLocal)();
+                scheduleOnRN(handleLongPressLocal);
             }),
         Gesture.Pan()
             .activeOffsetX([-5, 5])
@@ -142,10 +143,10 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
 
                 if (x <= -100) {
-                    runOnJS(handleArchive)();
+                    scheduleOnRN(handleArchive);
                 }
                 else if (x >= 100) {
-                    runOnJS(handleDelete)();
+                    scheduleOnRN(handleDelete);
                 }
             })
     ), [handleLongPressLocal, handleArchive, handleDelete]);

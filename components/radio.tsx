@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { View } from "react-native";
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
  * @returns The radio component
  */
 
-export const Radio = ({ active = false, size = 30 }: Props) => {
+export const Radio = memo(({ active = false, size = 30 }: Props) => {
     return (
         <View
             style={{
@@ -32,4 +33,4 @@ export const Radio = ({ active = false, size = 30 }: Props) => {
             }
         </View>
     );
-}
+});

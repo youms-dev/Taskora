@@ -8,7 +8,8 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BackHandler, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useTheme } from "./use-theme";
 
 type ToastType = "success" | "error" | "warning" | "default";
@@ -120,7 +121,7 @@ export const ToastProvider = ({ children }: Props) => {
                 })
                 .onEnd(({ translationY: y }) => {
                     if (y <= -10) {
-                        runOnJS(handleClose)();
+                        scheduleOnRN(handleClose);
                         return;
                     }
                     translateY.value = 0;
@@ -200,7 +201,7 @@ export const ToastProvider = ({ children }: Props) => {
                 })
                 .onEnd(({ translationY: y }) => {
                     if (y >= 10) {
-                        runOnJS(handleCloseDismiss)(true);
+                        scheduleOnRN(handleCloseDismiss, true);
                         return;
                     }
                     dismissTranslateY.value = 0;

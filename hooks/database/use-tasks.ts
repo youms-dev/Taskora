@@ -51,10 +51,8 @@ export const useTasks = () => {
                         idFolder: id_folder,
                         startAt: new Date(start_at),
                         endAt: end_at ? new Date(end_at) : null,
-                        // archived: Boolean(archived),
-                        // done: Boolean(done),
-                        archived: false,
-                        done: false,
+                        archived: Boolean(archived),
+                        done: Boolean(done),
                         createdAt: created_at,
                         updatedAt: updated_at,
                     });
@@ -62,11 +60,7 @@ export const useTasks = () => {
                 :
                 [];
 
-            // console.log(dataParsed[dataParsed.length - 1]);
-            console.log("\n");
-            console.log("\n");
-
-            return [dataParsed[dataParsed.length - 1]];
+            return dataParsed;
         }
         catch (e) {
             throw e;
@@ -116,8 +110,7 @@ export const useTasks = () => {
                 data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task") as { count: number };
             }
 
-            // return data.count ?? 0;
-            return 0;
+            return data.count ?? 0;
         }
         catch (e) {
             throw e;
@@ -195,17 +188,16 @@ export const useTasks = () => {
 
     async function toggleArchiveTasks(data: Array<TaskType["idTask"]>, archived: boolean = false): Promise<boolean | unknown> {
         if (!db) return;
-        console.log("database hook :", data.length);
-        // if (data.length == 0) return true;
-        // const placeholder = Array(data.length).fill(0).map((_) => "?").join(",");
+        if (data.length == 0) return true;
+        const placeholder = Array(data.length).fill(0).map((_) => "?").join(",");
 
-        // try {
-        //     await db.runAsync(`UPDATE task set archived = ? WHERE id_task IN (${placeholder})`, [archived ? 1 : 0, ...data]);
-        //     return true;
-        // }
-        // catch (e) {
-        //     throw e;
-        // }
+        try {
+            await db.runAsync(`UPDATE task set archived = ? WHERE id_task IN (${placeholder})`, [archived ? 1 : 0, ...data]);
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
     }
 
     async function deleteTasks(data: Array<TaskType["idTask"]>): Promise<boolean | unknown> {
