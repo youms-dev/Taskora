@@ -85,5 +85,10 @@
     "[id]_years": "year{{many}}",
     "[id]_months": "month{{many}}",
     "[id]_days": "day{{many}}",
-    "[id]_hours": "hour{{many}}"
+    "[id]_hours": "hour{{many}}",
+    "create_folder_title": "Create a new folder",
+    "create_folder_form_title": "Title",
+    "create_folder_form_title_length": "Field length",
+    "create_folder_form_submit": "Create",
+    "create_folder_form_add_tasks": "Add tasks"
 }

@@ -8,6 +8,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
@@ -69,6 +70,7 @@ export const TasksHeader = memo(({ context }: Props) => {
     const loadingShared = useSharedValue<boolean>(loading);
     const refreshPosition = useSharedValue<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
+    const router = useRouter();
 
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
@@ -325,7 +327,11 @@ export const TasksHeader = memo(({ context }: Props) => {
                                                     locations={[0, .6, 1]}
                                                     className="w-full h-full flex justify-center items-center pr-3 pl-6 py-1"
                                                 >
-                                                    <PressableAnimated>
+                                                    <PressableAnimated onPress={() => {
+                                                        router.navigate({
+                                                            pathname: "/(protected)/(folder)/create",
+                                                        });
+                                                    }}>
                                                         <FontAwesome5
                                                             name="folder-plus"
                                                             size={25}

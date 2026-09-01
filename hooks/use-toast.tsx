@@ -53,6 +53,7 @@ export const ToastProvider = ({ children }: Props) => {
     const screenWidthShared = useSharedValue<number>(0);
     const screenWHeightShared = useSharedValue<number>(0);
     const typeShared = useSharedValue<typeof type>("default");
+    const availableShared = useSharedValue<boolean>(true);
 
     const setToast = useCallback((value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
@@ -96,7 +97,9 @@ export const ToastProvider = ({ children }: Props) => {
                     Extrapolation.CLAMP,
                 ),
             }
-        ]
+        ],
+        opacity: textValue.value.length > 0 ? 1 : 0,
+        pointerEvents: textValue.value.length > 0 ? "auto" : "none",
     }));
 
     const handleClose = useCallback(() => {
@@ -175,7 +178,9 @@ export const ToastProvider = ({ children }: Props) => {
                     Extrapolation.CLAMP,
                 ),
             }
-        ]
+        ],
+        opacity: !availableShared.value ? 1 : 0,
+        pointerEvents: !availableShared.value ? "auto" : "none",
     }));
 
     const handleCloseDismiss = useCallback((reverse: boolean = false) => {
@@ -211,7 +216,7 @@ export const ToastProvider = ({ children }: Props) => {
 
     useEffect(() => {
         const onBackPress = () => {
-            if (count > 0) {
+            if (!available) {
                 handleCloseDismiss(true);
                 return true;
             }
@@ -219,8 +224,10 @@ export const ToastProvider = ({ children }: Props) => {
         }
         const { remove } = BackHandler.addEventListener("hardwareBackPress", onBackPress);
 
+        availableShared.value = available;
+
         return () => remove();
-    }, [count]);
+    }, [available]);
 
     useEffect(() => {
         screenWidthShared.value = screenWidth;

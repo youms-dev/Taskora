@@ -85,5 +85,10 @@
     "[id]_years": "an{{many}}",
     "[id]_months": "mois",
     "[id]_days": "jour{{many}}",
-    "[id]_hours": "heure{{many}}"
+    "[id]_hours": "heure{{many}}",
+    "create_folder_title": "Créez un nouveau dossier",
+    "create_folder_form_title": "Titre",
+    "create_folder_form_title_length": "Longueur",
+    "create_folder_form_submit": "Soumettre",
+    "create_folder_form_add_tasks": "Ajouter des tâches"
 }
