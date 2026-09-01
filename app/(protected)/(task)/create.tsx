@@ -209,12 +209,11 @@ export default function CreateTaskPage() {
                 :
                 `${String(date.getHours() == 0 ? 0 : date.getHours() + 2).padStart(2, "0")} : ${String(date.getMinutes()).padStart(2, "0")}`
             ,
-            remindBefore: null,
+            remindBefore: task.remindBefore ?? 30,
             archive: task.archived,
             folder: task.idFolder ?? null,
         }
     }
-
 
     const { t, i18n } = useTranslation();
     const [target, setTarget] = useState<"task" | "event">(paramTarget ?? "task");

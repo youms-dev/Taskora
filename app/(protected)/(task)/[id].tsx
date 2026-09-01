@@ -79,9 +79,6 @@ export default function Task() {
     const scrollY = useSharedValue<number>(0);
     const contextMenuActive = useSharedValue<boolean>(false);
 
-    console.log("\n");
-    console.log("\n");
-
     const iconData = useMemo(() => {
         if (!task || !task.icon) return null;
         let data = JSON.parse(task.icon) as ICON_TYPE;

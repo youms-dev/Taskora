@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { eachDayOfInterval, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Text } from "react-native";
@@ -29,7 +29,8 @@ export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: P
     const renderItem = useCallback(({ item: date }: { item: Date; index: number }) => {
         const day = date.getDate();
         const isPartOfThisMonth = date.getMonth() == month.getMonth();
-        const selected = targetDate.toLocaleString() == date.toLocaleString();
+        const formatPattern = "dd/MMMM/yyyy";
+        const selected = format(targetDate, formatPattern) == format(date, formatPattern);
 
         return (
             <PressableAnimated
