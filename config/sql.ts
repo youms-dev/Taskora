@@ -17,6 +17,7 @@ function genData(): {
     let tasks: Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">[] = [];
     const tasksCount = 50;
     const foldersCount = 5;
+    let pinnedCount: number = 0;
 
     for (let i = 0; i < foldersCount; i++) {
         folders.push({
@@ -53,15 +54,20 @@ function genData(): {
 
             entry = {
                 id_task: createId(),
-                title: onb > 0.8 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
+                title: onb > 0.6 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
                 content: faker.lorem.text(),
                 icon: onb > .6 ? JSON.stringify({
                     name: "briefcase",
                     packageName: "Entypo",
                 }) : undefined,
-                done: Number(onb > 0.8),
+                done: Number(onb > 0.7),
                 start_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, date.getMinutes(), date.getSeconds()).getTime(),
                 type: "task",
+                pinned: pinnedCount < 3 ? 1 : 0,
+            }
+
+            if (pinnedCount < 3) {
+                pinnedCount++;
             }
         }
 
@@ -94,7 +100,7 @@ const init = `
 ).join("")}
     ;
 
-    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before) VALUES
+    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before, pinned) VALUES
     ${tasks.map((task, i) =>
     `(
         "${task.id_task}", 
@@ -106,7 +112,8 @@ const init = `
         "${task.start_at}",
         ${task.end_at ? `"${task.end_at}"` : null},
         "${task.type}",
-        ${task.remind_before ?? "NULL"}
+        ${task.remind_before ?? "NULL"},
+        ${task.pinned ? 1 : 0}
     )${i < tasks.length - 1 ? "," : ""}`
 ).join("")}
     ON CONFLICT (id_task)
@@ -118,14 +125,14 @@ export const INIT_DATABASE = `
     DROP TABLE IF EXISTS folder;
 
     CREATE TABLE if NOT EXISTS folder (
-        id_folder TEXT PRIMARY KEY,
+        id_folder TEXT PRIMARY KEY NOT NULL,
         title TEXT,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
     ); 
     
     CREATE TABLE if NOT EXISTS task (
-        id_task TEXT PRIMARY KEY,
+        id_task TEXT PRIMARY KEY NOT NULL,
         id_folder TEXT DEFAULT NULL,
         title TEXT DEFAULT NULL,
         content TEXT DEFAULT NULL,
@@ -136,6 +143,7 @@ export const INIT_DATABASE = `
         end_at TIMESTAMP DEFAULT NULL,
         type TEXT NOT NULL CHECK (type IN ('event', 'task')),
         remind_before INTEGER DEFAULT NULL,
+        pinned BOOLEAN DEFAULT 0,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
 

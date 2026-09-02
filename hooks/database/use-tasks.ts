@@ -53,6 +53,7 @@ export const useTasks = () => {
                         endAt: end_at ? new Date(end_at) : null,
                         archived: Boolean(archived),
                         done: Boolean(done),
+                        pinned: Boolean(item.pinned),
                         createdAt: created_at,
                         updatedAt: updated_at,
                     });
@@ -85,6 +86,7 @@ export const useTasks = () => {
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
                     done: Boolean(done),
+                    pinned: Boolean(item.pinned),
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -104,10 +106,10 @@ export const useTasks = () => {
             let data: { count: number } = { count: 0 };
 
             if (archived != null) {
-                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ?", [archived ? 1 : 0]) as { count: number };
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ? AND type = ?", [archived ? 1 : 0, "task"]) as { count: number };
             }
             else {
-                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task") as { count: number };
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ?", ["task"]) as { count: number };
             }
 
             return data.count ?? 0;
@@ -255,6 +257,20 @@ export const useTasks = () => {
         }
     }
 
+    async function togglePinTask(tasks: TaskType["idTask"][], pin: boolean = false): Promise<boolean | unknown> {
+        if (!db) return;
+        const placeholder = tasks.map(() => "?").join(",");
+
+        try {
+            await db.runAsync(`UPDATE task SET pinned = ? WHERE id_task IN (${placeholder}) AND type = ?`, [Number(pin), ...tasks, "task"]);
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         syncTasks,
         getTasks,
@@ -265,5 +281,6 @@ export const useTasks = () => {
         toggleArchiveTasks,
         getTasksCountByDate,
         getTask,
+        togglePinTask,
     }
 }

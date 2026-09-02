@@ -90,5 +90,6 @@
     "create_folder_form_title": "Titre",
     "create_folder_form_title_length": "Longueur",
     "create_folder_form_submit": "Soumettre",
-    "create_folder_form_add_tasks": "Ajouter des tâches"
+    "create_folder_form_add_tasks": "Ajouter des tâches",
+    "create_folder_success": "Dossier créé"
 }

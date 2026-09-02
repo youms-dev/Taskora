@@ -1,5 +1,7 @@
 import { useDatabase } from "@/hooks/database/use-database";
 import { FolderType, SQLiteFolderType } from "@/types/folder";
+import { TaskType } from "@/types/task";
+import { createId } from "@paralleldrive/cuid2";
 
 export const useFolders = () => {
     const { db } = useDatabase();
@@ -61,9 +63,33 @@ export const useFolders = () => {
         }
     }
 
+    async function createFolder(title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
+        if (!db) return;
+
+        try {
+            await db.withTransactionAsync(async () => {
+                const folderId = createId();
+
+                await db.runAsync("INSERT INTO folder (id_folder, title) VALUES (?, ?)", [folderId, title]);
+
+                if (tasks.length > 0) {
+                    const placeholder = tasks.map(() => '?').join(",");
+
+                    await db.runAsync(`UPDATE task SET id_folder = ? WHERE id_task IN (${placeholder})`, [folderId, ...tasks]);
+                }
+            });
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         getFolders,
         getFoldersCount,
         deleteFolder,
+        createFolder,
     }
 }

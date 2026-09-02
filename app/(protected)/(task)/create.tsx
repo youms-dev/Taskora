@@ -23,7 +23,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -32,13 +32,12 @@ interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
     onBlur?: (e?: BlurEvent) => void;
     value?: string;
-    ref?: RefObject<TextInput>;
     label?: string;
     rounded?: number;
     multiline?: boolean;
 }
 
-const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded = 16, multiline = false, ...rest }: Props) => {
+const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, inputRef) => {
     const { theme, themeShared } = useTheme();
     const ref = useRef<TextInput>(null);
     const focus = useSharedValue<boolean>(false);
@@ -86,6 +85,17 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
         valueShared.value = value;
     }, [value]);
 
+    const handleRef = useCallback((entry: TextInput | null) => {
+        ref.current = entry;
+
+        if (typeof inputRef == "function") {
+            inputRef(entry);
+        }
+        else if (inputRef) {
+            inputRef.current = entry;
+        }
+    }, [inputRef]);
+
     return (
         <Animated.View
             style={[
@@ -98,14 +108,7 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
         >
             <TextInput
                 {...rest}
-                ref={(e) => {
-                    if (!inputRef?.current && e) {
-                        ref.current = e;
-                    }
-                    else if (inputRef?.current) {
-                        ref.current = inputRef.current;
-                    }
-                }}
+                ref={handleRef}
                 onFocus={(e) => {
                     focus.value = true;
                     onFocus?.(e);
@@ -138,7 +141,7 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
             }
         </Animated.View>
     );
-};
+});
 
 type InputsValuesType = {
     title: string | null;

@@ -14,6 +14,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
 import { SELECT_LIMIT } from "./footer";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -243,6 +244,20 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
                                 </TextAnimated>
                             </View>
                         </View>
+
+                        {
+                            task.pinned && (
+                                <View className="absolute right-0 bottom-0 size-[30px] dark:bg-black bg-white rounded-full">
+                                    <View className="size-full flex justify-center items-center dark:bg-black bg-black/5 rounded-full border-2 dark:border-white/10 border-black/5">
+                                        <AntDesign
+                                            name="pushpin"
+                                            size={15}
+                                            color={COLORS.emerald[500]}
+                                        />
+                                    </View>
+                                </View>
+                            )
+                        }
                     </View>
                 </Animated.View>
 

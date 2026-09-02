@@ -5,29 +5,33 @@ import { Select } from "@/components/select";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { useFolders } from "@/hooks/database/use-folders";
+import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
+import { event, FOLDER_CREATED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, TextInputProps, Vibration, View } from "react-native";
+import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, TextInputProps, Vibration, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
     onBlur?: (e?: BlurEvent) => void;
     value?: string;
-    ref?: RefObject<TextInput | null>;
     label?: string;
     rounded?: number;
     multiline?: boolean;
 }
 
-const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded = 16, multiline = false, ...rest }: Props) => {
+const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, ref) => {
     const { theme, themeShared } = useTheme();
-    const ref = useRef<TextInput>(null);
+    const inputRef = useRef<TextInput>(null);
     const focus = useSharedValue<boolean>(false);
     const valueShared = useSharedValue<string>("");
 
@@ -54,7 +58,7 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
 
     useEffect(() => {
         const onHide = () => {
-            ref.current?.blur();
+            inputRef.current?.blur();
         }
         const { remove } = Keyboard.addListener("keyboardDidHide", onHide);
 
@@ -73,6 +77,16 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
         valueShared.value = value;
     }, [value]);
 
+    const handleRef = useCallback((input: TextInput | null) => {
+        inputRef.current = input;
+
+        if (typeof ref === "function") {
+            ref(input);
+        } else if (ref) {
+            ref.current = input;
+        }
+    }, [ref]);
+
     return (
         <Animated.View
             style={[
@@ -85,14 +99,15 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
         >
             <TextInput
                 {...rest}
-                ref={(e) => {
-                    if (!inputRef?.current && e) {
-                        ref.current = e;
-                    }
-                    else if (inputRef?.current) {
-                        ref.current = inputRef.current;
-                    }
-                }}
+                // ref={(e) => {
+                //     if (!inputRef?.current && e) {
+                //         ref.current = e;
+                //     }
+                //     else if (inputRef?.current) {
+                //         ref.current = inputRef.current;
+                //     }
+                // }}
+                ref={handleRef}
                 onFocus={(e: FocusEvent) => {
                     focus.value = true;
                     onFocus?.(e);
@@ -125,7 +140,7 @@ const Input = ({ onFocus, onBlur, value = "", ref: inputRef, label = "", rounded
             }
         </Animated.View>
     );
-};
+});
 
 export default function CreateFolderPager() {
     const { theme } = useTheme();
@@ -146,12 +161,39 @@ export default function CreateFolderPager() {
     const taskHeight = 60;
     const tasksGap = 10;
     const [tasksCount, setTasksCount] = useState<number>(0);
+    const [tasks, setTasks] = useState<TaskType[]>([]);
+    const { getTasks, getTasksCount } = useTasks();
+    const { setToast } = useToast();
+    const { createFolder } = useFolders();
+
+    const selectMap = useMemo(() => {
+        return (
+            new Map(
+                inputsValues.tasks.map(t => [t.idTask, t]),
+            )
+        )
+    }, [inputsValues.tasks]);
 
     const getItemLayout = useCallback((_data: ArrayLike<TaskType> | null | undefined, index: number) => ({
         length: taskHeight + tasksGap,
         offset: index * (taskHeight + tasksGap),
         index,
     }), []);
+
+    const handlePress = useCallback((task: TaskType) => {
+        if (selectMap.has(task.idTask)) {
+            setInputsValues(prev => ({
+                ...prev,
+                tasks: [...prev.tasks.filter(t => t.idTask != task.idTask)],
+            }));
+        }
+        else {
+            setInputsValues(prev => ({
+                ...prev,
+                tasks: [...prev.tasks, task],
+            }));
+        }
+    }, [selectMap]);
 
     const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => {
         return (
@@ -166,26 +208,32 @@ export default function CreateFolderPager() {
                 }}
                 className="w-full"
             >
-                <View className="w-[75] border-2 border-red-500">
-                    <TextAnimated
-                        numberOfLines={1}
-                        className="text-lg"
-                    >
-                        {task.title ?? task.content ?? ""}
-                    </TextAnimated>
-                </View>
+                <Pressable
+                    onPress={() => handlePress(task)}
+                    className="w-full h-full flex flex-row justify-between items-center"
+                >
+                    <View className="w-[85%]">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-lg"
+                        >
+                            {task.title ?? task.content ?? ""}
+                        </TextAnimated>
+                    </View>
 
-                <Checkbox
-                    checked={index % 2 == 0}
-                    onPress={() => { }}
-                />
+                    <Checkbox
+                        checked={selectMap.has(task.idTask)}
+                        borderRadius={5}
+                        size={30}
+                        onPress={() => handlePress(task)}
+                    />
+                </Pressable>
             </Animated.View>
         );
-    }, []);
+    }, [selectMap, handlePress]);
 
     const listFooterComponent = useCallback(() => {
-        // if (loading) {
-        if (true) {
+        if (loading) {
             return (
                 <View
                     style={{
@@ -218,7 +266,6 @@ export default function CreateFolderPager() {
     }, [loading]);
 
     const listEmptyComponent = useCallback(() => {
-        return null;
         if (!loading) {
             return (
                 <View className="w-full flex justify-center items-center gap-4 pt-10">
@@ -236,6 +283,70 @@ export default function CreateFolderPager() {
         return null;
     }, [loading, i18n.language, theme]);
 
+    const handleGetTasks = useCallback(async () => {
+        if (loading) return;
+
+        try {
+            setLoading(true);
+            const data = await getTasks(fetchLimit, tasks.length, null, "task") as TaskType[];
+
+            setTasks(prev => {
+                return [...prev, ...data.filter(t => !prev.find(task => task.idTask == t.idTask))];
+            });
+            setLoading(false);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [i18n.language, tasks.length, loading]);
+
+    const handleGetTasksCount = useCallback(async () => {
+        try {
+            const count = await getTasksCount(null) as number;
+
+            setTasksCount(count);
+        }
+        catch (e) {
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [i18n.language, tasks.length]);
+
+    const onEdnReached = useCallback(async () => {
+        if (loading || tasks.length >= tasksCount) return;
+        handleGetTasks();
+    }, [i18n.language, tasks.length]);
+
+    useEffect(() => {
+        handleGetTasksCount();
+        handleGetTasks();
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        if (loading) return;
+        if (inputsValues.title.trim().length == 0) {
+            inputRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            await createFolder(inputsValues.title.trim().slice(0, titleLengthLimit), inputsValues.tasks.map(t => t.idTask));
+
+            setLoading(false);
+            event.emit(FOLDER_CREATED);
+            setToast(t("create_folder_success"), "success");
+            setInputsValues(initialInputValues);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [loading, inputsValues]);
 
     return (
         <Container centerX>
@@ -279,7 +390,10 @@ export default function CreateFolderPager() {
             >
                 <View className="w-full dark:bg-white/10 bg-white rounded-2xl">
                     <Input
-                        ref={inputRef}
+                        // ref={inputRef}
+                        ref={(e) => {
+                            inputRef.current = e;
+                        }}
                         label={t("create_folder_form_title")}
                         value={inputsValues.title}
                         onChangeText={(e) => {
@@ -322,26 +436,80 @@ export default function CreateFolderPager() {
                             </View>
                         )}
                     >
-                        <View className="w-full h-[400px] dark:bg-white/10 bg-white rounded-xl">
+                        <View className="w-full h-[400px] dark:bg-white/10 bg-white rounded-xl overflow-hidden">
+                            <View className="absolute left-0 top-0 w-full h-[30px] z-[1]">
+                                <LinearGradient
+                                    colors={theme == "dark" ?
+                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                        :
+                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                    }
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 0, y: 1 }}
+                                    locations={[0, .6, 1]}
+                                    className="size-full"
+                                >
+                                    <LinearGradient
+                                        colors={theme == "dark" ?
+                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
+                                            :
+                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                        }
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 0, y: 1 }}
+                                        locations={[0, .6, 1]}
+                                        className="size-full"
+                                    />
+                                </LinearGradient>
+                            </View>
+
                             <FlatList
                                 horizontal={false}
                                 showsVerticalScrollIndicator={false}
-                                data={inputsValues.tasks}
+                                data={tasks}
                                 keyExtractor={(task) => task.idTask}
                                 updateCellsBatchingPeriod={0}
                                 scrollEventThrottle={16}
+                                onEndReachedThreshold={.1}
                                 initialNumToRender={fetchLimit}
                                 maxToRenderPerBatch={fetchLimit}
                                 getItemLayout={getItemLayout}
                                 renderItem={renderItem}
                                 ListEmptyComponent={listEmptyComponent}
                                 ListFooterComponent={listFooterComponent}
+                                onEndReached={onEdnReached}
                                 className="w-full h-full"
                                 contentContainerStyle={{
                                     gap: tasksGap,
                                 }}
-                                contentContainerClassName="w-full flex px-3 py-10"
+                                contentContainerClassName="w-full flex px-3 py-5"
                             />
+
+                            <View className="absolute left-0 bottom-0 w-full h-[30px] z-[1]">
+                                <LinearGradient
+                                    colors={theme == "dark" ?
+                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                        :
+                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                    }
+                                    start={{ x: 0, y: 1 }}
+                                    end={{ x: 0, y: 0 }}
+                                    locations={[0, .6, 1]}
+                                    className="size-full"
+                                >
+                                    <LinearGradient
+                                        colors={theme == "dark" ?
+                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
+                                            :
+                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                        }
+                                        start={{ x: 0, y: 1 }}
+                                        end={{ x: 0, y: 0 }}
+                                        locations={[0, .6, 1]}
+                                        className="size-full"
+                                    />
+                                </LinearGradient>
+                            </View>
                         </View>
                     </Select>
                 </View>
@@ -349,6 +517,7 @@ export default function CreateFolderPager() {
                 <PressableAnimated
                     disabled={loading}
                     scale={.95}
+                    onPress={() => handleSubmit()}
                     className={clsx(
                         "w-[200px] h-[50px] flex flex-row justify-center items-center bg-emerald-500 px-3 rounded-2xl mt-10",
                         loading && "opacity-60",

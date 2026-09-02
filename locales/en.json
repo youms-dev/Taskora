@@ -90,5 +90,6 @@
     "create_folder_form_title": "Title",
     "create_folder_form_title_length": "Field length",
     "create_folder_form_submit": "Create",
-    "create_folder_form_add_tasks": "Add tasks"
+    "create_folder_form_add_tasks": "Add tasks",
+    "create_folder_success": "Folder created"
 }

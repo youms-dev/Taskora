@@ -1,4 +1,4 @@
-import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
+import { event, FOLDER_CREATED, TASKS_UNARCHIVED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -40,7 +40,11 @@ export const useTasksData = () => {
     const displayedTasks = useMemo(() => {
         if (currentFilter === 2) return tasks.filter(t => t.done);
         if (currentFilter === 3) return tasks.filter(t => !t.done);
-        return tasks;
+
+        return [
+            ...tasks.filter(t => t.pinned),
+            ...tasks.filter(t => !t.pinned),
+        ];
     }, [tasks, currentFilter]);
 
     const syncData = async (position: number = 0) => {
@@ -74,8 +78,10 @@ export const useTasksData = () => {
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
             if (!synced.current) syncData(data.length);
+            console.log(data.filter(t => t.pinned).length);
             setLoading(false);
         }
+
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
@@ -194,7 +200,7 @@ export const useTasksData = () => {
             setTasksCount(prev => prev + 1);
             setToast(t("sqlite_error"), "error");
         }
-        }, [tasks, tasksCount, i18n.language]);
+    }, [tasks, tasksCount, i18n.language]);
 
     useEffect(() => {
         if (tasksSelected.length > 0) {
@@ -209,14 +215,20 @@ export const useTasksData = () => {
 
     useEffect(() => {
         const onTaskUnArchived = () => {
-            handleGetTasksCount();
+        }
+        const onFolderCreated = () => {
             handleGetTasks(true);
+            handleGetFolders();
+            handleGetTasksCount();
+            handleGetFoldersCount();
         }
 
         event.addListener(TASKS_UNARCHIVED, onTaskUnArchived);
+        event.addListener(FOLDER_CREATED, onFolderCreated);
 
         return () => {
             event.removeListener(TASKS_UNARCHIVED);
+            event.removeListener(FOLDER_CREATED);
         }
     }, []);
 
