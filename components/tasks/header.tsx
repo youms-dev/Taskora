@@ -3,6 +3,7 @@ import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
+import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Octicons from "@expo/vector-icons/Octicons";
@@ -12,7 +13,7 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -56,11 +57,12 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 interface Props {
-    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected">;
+    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected">;
+    foldersModalActive: SharedValue<boolean>;
 }
 
-export const TasksHeader = memo(({ context }: Props) => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected } = context;
+export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -71,6 +73,8 @@ export const TasksHeader = memo(({ context }: Props) => {
     const refreshPosition = useSharedValue<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
     const router = useRouter();
+    const tasksSelectedShared = useSharedValue<boolean>(false);
+    const contextMenuActive = useSharedValue<boolean>(false);
 
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
@@ -189,6 +193,63 @@ export const TasksHeader = memo(({ context }: Props) => {
         ]);
     }, [i18n.language]);
 
+    const pageTitleSelectAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: withTiming(tasksSelectedShared.value ? 0 : 1, {
+                    duration: 300,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            }
+        ],
+        opacity: withTiming(tasksSelectedShared.value ? 0 : 1, {
+            duration: 300,
+            easing: Easing.inOut(Easing.quad),
+        }),
+    }));
+
+    const selectAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: withTiming(tasksSelectedShared.value ? 1 : 0, {
+                    duration: 300,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            }
+        ],
+        opacity: withTiming(tasksSelectedShared.value ? 1 : 0, {
+            duration: 300,
+            easing: Easing.inOut(Easing.quad),
+        }),
+        pointerEvents: tasksSelectedShared.value ? "auto" : "none",
+    }));
+
+    useEffect(() => {
+        tasksSelectedShared.value = tasksSelected.length > 0;
+    }, [tasksSelected]);
+
+    const contextMenuContainerAnimation = useAnimatedStyle(() => ({
+        pointerEvents: contextMenuActive.value ? "auto" : "none",
+    }));
+
+    const contextMenuAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateX: -15,
+            },
+            {
+                translateY: 40,
+            },
+            {
+                scale: withTiming((contextMenuActive.value && tasksSelectedShared.value) ? 1 : 0, {
+                    duration: 300,
+                    easing: Easing.inOut(Easing.quad),
+                }),
+            },
+        ],
+        pointerEvents: (contextMenuActive.value && tasksSelectedShared.value) ? "auto" : "none",
+    }));
+
     return (
         <View className="absolute w-full z-[50]">
             <LinearGradient
@@ -216,21 +277,139 @@ export const TasksHeader = memo(({ context }: Props) => {
                     {/* Header */}
 
                     <View className="w-full flex items-center">
-                        <PageTitle>
-                            <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                                <FontAwesome6
-                                    name="list-check"
-                                    size={20}
-                                    color={COLORS.emerald[500]}
-                                />
-                                <Text
-                                    numberOfLines={1}
-                                    className="text-2xl text-emerald-500 font-bold"
+                        <Animated.View
+                            style={pageTitleSelectAnimation}
+                            className="w-full flex flex-row items-center"
+                        >
+                            <PageTitle>
+                                <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                                    <FontAwesome6
+                                        name="list-check"
+                                        size={20}
+                                        color={COLORS.emerald[500]}
+                                    />
+                                    <Text
+                                        numberOfLines={1}
+                                        className="text-2xl text-emerald-500 font-bold"
+                                    >
+                                        {t("tasks_page_title")}
+                                    </Text>
+                                </View>
+                            </PageTitle>
+                        </Animated.View>
+
+                        <Animated.View
+                            style={selectAnimation}
+                            className="absolute left-0 top-0 w-full dark:bg-black bg-white z-[10]"
+                        >
+
+                            <View className="w-full flex flex-row justify-end px-5 py-2 dark:bg-black bg-black/5">
+                                <PressableAnimated
+                                    onPress={() => {
+                                        contextMenuActive.value = true;
+                                    }}
+                                    className="w-[10%] h-full flex justify-center items-center"
                                 >
-                                    {t("tasks_page_title")}
-                                </Text>
+                                    <FontAwesome6
+                                        name="ellipsis-vertical"
+                                        size={25}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                    />
+                                </PressableAnimated>
                             </View>
-                        </PageTitle>
+                        </Animated.View>
+
+                        <Animated.View
+                            style={contextMenuContainerAnimation}
+                            className="absolute left-0 top-0 w-screen h-screen z-[100]"
+                        >
+                            <Pressable
+                                onPress={() => {
+                                    contextMenuActive.value = false;
+                                }}
+                                className="size-full"
+                            />
+
+                            <Animated.View
+                                style={contextMenuAnimation}
+                                className="absolute right-0 top-0 w-[200px] rounded-xl dark:bg-black bg-white"
+                            >
+                                <View
+                                    style={{
+                                        transform: [
+                                            {
+                                                translateY: 8,
+                                            }
+                                        ],
+                                        filter: "blur(5px)"
+                                    }}
+                                    className="absolute size-full dark:bg-black/50 bg-black/30 rounded-xl"
+                                />
+
+                                <View className="size-full flex items-center gap-5 py-5 px-3 rounded-xl dark:bg-white/10 bg-white border-2 dark:border-white/5 border-black/5">
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => {
+                                            foldersModalActive.value = true;
+                                            event.emit(HIDE_NAVBAR);
+                                        }}
+                                        className="w-full flex flex-row items-center gap-5"
+                                    >
+                                        <View>
+                                            <MaterialCommunityIcons
+                                                name="folder-move-outline"
+                                                size={25}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <View className="w-[70%]">
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_header_move_to")}
+                                            </TextAnimated>
+                                        </View>
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        scale={.95}
+                                        className="w-full flex flex-row items-center gap-5"
+                                    >
+                                        <View>
+                                            <AntDesign
+                                                name="check"
+                                                size={23}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <View className="w-[70%]">
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_header_mark_done")}
+                                            </TextAnimated>
+                                        </View>
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        scale={.95}
+                                        className="w-full flex flex-row items-center gap-5"
+                                    >
+                                        <View>
+                                            <AntDesign
+                                                name="pushpin"
+                                                size={23}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <View className="w-[70%]">
+                                            <TextAnimated className="text-lg">
+                                                {t("tasks_header_pin")}
+                                            </TextAnimated>
+                                        </View>
+                                    </PressableAnimated>
+                                </View>
+                            </Animated.View>
+                        </Animated.View>
                     </View>
 
                     {/* Fake search input */}
@@ -523,5 +702,7 @@ export const TasksHeader = memo(({ context }: Props) => {
         Object.is(prev.context.setSearchSectionActive, next.context.setSearchSectionActive)
         &&
         Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
+        &&
+        Object.is(prev.context.tasksSelected, next.context.tasksSelected)
     );
 });

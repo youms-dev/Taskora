@@ -479,8 +479,7 @@ export default function Task() {
                             >
                                 <View className="w-[20%]">
                                     <MaterialCommunityIcons
-                                        // name={task.type == "task" ? "playlist-edit" : "calendar-edit"}
-                                        name={"calendar-edit"}
+                                        name={task.type == "task" ? "playlist-edit" : "calendar-edit"}
                                         size={25}
                                         color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                     />

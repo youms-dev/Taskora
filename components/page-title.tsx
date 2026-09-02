@@ -1,4 +1,3 @@
-import { COLORS } from "@/constants/colors";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -6,7 +5,6 @@ import { api } from "@/lib/axios";
 import { supabase } from "@/lib/supabase";
 import { fileDatas } from "@/utils/tools";
 import Entypo from "@expo/vector-icons/Entypo";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { createId } from "@paralleldrive/cuid2";
 import { decode } from "base64-arraybuffer";
 import { File } from "expo-file-system";
@@ -154,27 +152,13 @@ export const PageTitle = ({ children, ...rest }: Props) => {
                     <View className="size-full flex flex-row justify-end items-center gap-6 px-3 pl-6">
                         {
                             !["/settings"].includes(pathname) && (
-                                <>
-                                    {
-                                        !["/"].includes(pathname) && (
-                                            <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/create")}>
-                                                <FontAwesome6
-                                                    name="plus"
-                                                    size={25}
-                                                    color={COLORS.emerald[500]}
-                                                />
-                                            </PressableAnimated>
-                                        )
-                                    }
-
-                                    <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
-                                        <Entypo
-                                            name="archive"
-                                            size={25}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                        />
-                                    </PressableAnimated>
-                                </>
+                                <PressableAnimated onPress={() => router.navigate("/(protected)/(task)/archives")}>
+                                    <Entypo
+                                        name="archive"
+                                        size={25}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                    />
+                                </PressableAnimated>
                             )
                         }
 

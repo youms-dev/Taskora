@@ -4,15 +4,23 @@ import { TasksHeader } from "@/components/tasks/header";
 import { TasksPager } from "@/components/tasks/pager";
 import { TasksSearch } from "@/components/tasks/search";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { useSharedValue } from "react-native-reanimated";
 
 export default function Tasks() {
     const context = useTasksData();
+    const foldersModalActive = useSharedValue<boolean>(false);
 
     return (
         <Container centerX>
-            <TasksHeader context={context} />
+            <TasksHeader
+                context={context}
+                foldersModalActive={foldersModalActive}
+            />
 
-            <TasksPager context={context} />
+            <TasksPager
+                context={context}
+                foldersModalActive={foldersModalActive}
+            />
 
             <TasksSearch context={context} />
 

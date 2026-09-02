@@ -78,7 +78,6 @@ export const useTasksData = () => {
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
             if (!synced.current) syncData(data.length);
-            console.log(data.filter(t => t.pinned).length);
             setLoading(false);
         }
 
