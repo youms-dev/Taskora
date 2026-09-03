@@ -318,6 +318,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     const handleClose = useCallback(() => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
         active.value = false;
+        position.value = null;
         closeTimeout.current = setTimeout(() => {
             setTargetDate(null);
             setEvents([]);
