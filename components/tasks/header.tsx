@@ -10,7 +10,7 @@ import Octicons from "@expo/vector-icons/Octicons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -57,12 +57,12 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 export const scrollCheckPoint = 100;
 
 interface Props {
-    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected">;
+    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected" | "handleTogglePinTasks" | "handleMarkDone">;
     foldersModalActive: SharedValue<boolean>;
 }
 
 export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected } = context;
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -75,6 +75,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
     const router = useRouter();
     const tasksSelectedShared = useSharedValue<boolean>(false);
     const contextMenuActive = useSharedValue<boolean>(false);
+    const [taskNotPinned, setTaskNotPinned] = useState<boolean>(false);
 
     const onFolderPress = useCallback((folder: FolderType, index: number) => {
         if ((!currentFolder && index == 0) || (currentFolder && folder.idFolder == currentFolder)) return;
@@ -226,6 +227,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
 
     useEffect(() => {
         tasksSelectedShared.value = tasksSelected.length > 0;
+        setTaskNotPinned(tasksSelected.some(item => !item.pinned));
     }, [tasksSelected]);
 
     const contextMenuContainerAnimation = useAnimatedStyle(() => ({
@@ -372,6 +374,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
 
                                     <PressableAnimated
                                         scale={.95}
+                                        onPress={() => handleMarkDone()}
                                         className="w-full flex flex-row items-center gap-5"
                                     >
                                         <View>
@@ -391,6 +394,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
 
                                     <PressableAnimated
                                         scale={.95}
+                                        onPress={() => handleTogglePinTasks(taskNotPinned)}
                                         className="w-full flex flex-row items-center gap-5"
                                     >
                                         <View>
@@ -403,7 +407,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
 
                                         <View className="w-[70%]">
                                             <TextAnimated className="text-lg">
-                                                {t("tasks_header_pin")}
+                                                {taskNotPinned ? t("tasks_header_pin") : t("tasks_header_unpin")}
                                             </TextAnimated>
                                         </View>
                                     </PressableAnimated>
@@ -704,5 +708,9 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
         Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
         &&
         Object.is(prev.context.tasksSelected, next.context.tasksSelected)
+        &&
+        Object.is(prev.context.handleTogglePinTasks, next.context.handleTogglePinTasks)
+        &&
+        Object.is(prev.context.handleMarkDone, next.context.handleMarkDone)
     );
 });

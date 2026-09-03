@@ -10,6 +10,6 @@ export const MINIMIZE_NAVBAR =  "minimize-navbar";
 
 export const EXPAND_NAVBAR =  "expand-navbar";
 
-export const TASKS_UNARCHIVED =  "tasks-unarchived";
+export const TASKS_EDITED =  "tasks-edited";
 
 export const FOLDER_CREATED =  "folder-created";

@@ -408,6 +408,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                 data: JSON.stringify(selected),
             }
         });
+        handleClose();
     }, [selected]);
 
     return (

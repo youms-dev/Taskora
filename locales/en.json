@@ -38,6 +38,7 @@
     "tasks_header_mark_done": "Mark as done",
     "tasks_header_pin": "Pin",
     "tasks_header_unpin": "Unpin",
+    "tasks_add_folder": "Create a folder",
     "archives_description": "All the events you archive will be found here and you will not be notified of them",
     "archives_title": "Archives",
     "archives_no_archives": "Nothing has been archived yet",

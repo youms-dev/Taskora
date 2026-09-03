@@ -2,7 +2,7 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_UNARCHIVED } from "@/lib/event-emitter";
+import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_EDITED } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -88,7 +88,7 @@ export default function Layout() {
             event.removeAllListeners(SHOW_NAVBAR);
             event.removeAllListeners(MINIMIZE_NAVBAR);
             event.removeAllListeners(EXPAND_NAVBAR);
-            event.removeAllListeners(TASKS_UNARCHIVED);
+            event.removeAllListeners(TASKS_EDITED);
         }
     }, []);
 

@@ -486,7 +486,6 @@ export default function CreateTaskPage() {
 
                         <View className="w-full mt-6">
                             <Select
-                                // open
                                 duration={500}
                                 header={(
                                     <View className="w-full flex gap-3 pt-[2px]">

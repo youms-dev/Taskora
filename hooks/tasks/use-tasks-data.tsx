@@ -1,4 +1,4 @@
-import { event, FOLDER_CREATED, TASKS_UNARCHIVED } from "@/lib/event-emitter";
+import { event, FOLDER_CREATED, TASKS_EDITED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,7 +16,7 @@ export const useTasksData = () => {
     const scrollY = useSharedValue<number>(0);
     const [currentFilter, setCurrentFilter] = useState<1 | 2 | 3>(1);
     const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-    const { getTasks, syncTasks, getTasksCount, toggleArchiveTasks, deleteTasks } = useTasks();
+    const { getTasks, syncTasks, getTasksCount, toggleArchiveTasks, deleteTasks, moveTasks, togglePinTask, markTasksDone } = useTasks();
     const loadingRef = useRef<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const { setToast, setDismiss } = useToast();
@@ -66,11 +66,12 @@ export const useTasksData = () => {
         if (loadingRef.current) return;
 
         setTasksSelected([]);
-        setCurrentFilter(1);
         tasksCountTmp.current = 0;
         tasksTmp.current = [];
 
         setLoading(true);
+        if (refresh) loadingRef.current = true;
+
         try {
             const data = await getTasks(refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length, false) as TaskType[];
 
@@ -86,7 +87,7 @@ export const useTasksData = () => {
             setToast(t("sqlite_error"), "error");
             console.log(e);
         }
-    }, [tasks, i18n.language]);
+    }, [tasks, i18n.language, setToast]);
 
     const handleGetTasksCount = useCallback(async () => {
         try {
@@ -99,7 +100,7 @@ export const useTasksData = () => {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language]);
+    }, [i18n.language, setToast]);
 
     useEffect(() => {
         loadingRef.current = loading;
@@ -127,12 +128,6 @@ export const useTasksData = () => {
         }
     }, []);
 
-    useEffect(() => {
-        handleGetTasksCount();
-        handleGetFoldersCount();
-        handleGetTasks();
-        handleGetFolders();
-    }, []);
 
     const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
         if (loadingRef.current) return;
@@ -170,7 +165,7 @@ export const useTasksData = () => {
             tasksTmp.current = [];
             setToast(t("sqlite_error"), "error");
         }
-    }, [tasksSelected, tasks, tasksCount, i18n.language]);
+    }, [tasksSelected, tasks, tasksCount, i18n.language, setToast, handleGetTasks]);
 
     const handleArchiveTask = useCallback(async (task: TaskType) => {
         if (loadingRef.current) return;
@@ -199,7 +194,7 @@ export const useTasksData = () => {
             setTasksCount(prev => prev + 1);
             setToast(t("sqlite_error"), "error");
         }
-    }, [tasks, tasksCount, i18n.language]);
+    }, [tasks, tasksCount, i18n.language, setToast, handleGetTasks]);
 
     useEffect(() => {
         if (tasksSelected.length > 0) {
@@ -213,7 +208,9 @@ export const useTasksData = () => {
     }, [tasksSelected]);
 
     useEffect(() => {
-        const onTaskUnArchived = () => {
+        const onTasksEdited = () => {
+            handleGetTasks(true);
+            handleGetTasksCount();
         }
         const onFolderCreated = () => {
             handleGetTasks(true);
@@ -222,11 +219,11 @@ export const useTasksData = () => {
             handleGetFoldersCount();
         }
 
-        event.addListener(TASKS_UNARCHIVED, onTaskUnArchived);
+        event.addListener(TASKS_EDITED, onTasksEdited);
         event.addListener(FOLDER_CREATED, onFolderCreated);
 
         return () => {
-            event.removeListener(TASKS_UNARCHIVED);
+            event.removeListener(TASKS_EDITED);
             event.removeListener(FOLDER_CREATED);
         }
     }, []);
@@ -282,7 +279,7 @@ export const useTasksData = () => {
             tasksTmp.current = [];
             setToast(t("sqlite_error"), "error");
         }
-    }, [tasksSelected, tasks, tasksCount, i18n.language]);
+    }, [tasksSelected, tasks, tasksCount, i18n.language, setDismiss, setToast, handleGetTasks]);
 
     const handleDeleteTask = useCallback(async (task: TaskType, init: boolean = true, data: TaskType | null = null) => {
         if (loadingRef.current && !data) return;
@@ -296,6 +293,7 @@ export const useTasksData = () => {
             setDismiss(
                 () => handleDeleteTask(task, false, task),
                 () => {
+                    console.log("Cancelled solo");
                     setTasksCount(prev => prev + 1);
                     tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
                     tasksTmp.current = [];
@@ -331,7 +329,74 @@ export const useTasksData = () => {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [tasks, tasksCount, i18n.language]);
+    }, [tasks, tasksCount, i18n.language, setDismiss, setToast, handleGetTasks]);
+
+    const handleMoveTasks = useCallback(async (folder: FolderType["idFolder"] | null) => {
+        if (loadingRef.current || !selectMap.current || selectMap.current.size == 0) return;
+        setLoading(true);
+        const selected = [...tasksSelected];
+
+        setTasksSelected([]);
+
+        try {
+            await moveTasks(selected.map(t => t.idTask), folder);
+            loadingRef.current = false;
+            handleGetTasks(true);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
+
+    const handleTogglePinTasks = useCallback(async (pin: boolean) => {
+        if (loadingRef.current || !selectMap.current || selectMap.current.size == 0) return;
+        setLoading(true);
+        const selected = [...tasksSelected];
+
+        setTasksSelected([]);
+
+        try {
+            await togglePinTask(selected.map(t => t.idTask), pin);
+            loadingRef.current = false;
+            handleGetTasks(true);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
+
+    const handleMarkDone = useCallback(async () => {
+        if (loadingRef.current || !selectMap.current || selectMap.current.size == 0) return;
+        const selected = [...tasksSelected];
+        const notDoneTask = selected.some(t => !t.done);
+
+        if (!notDoneTask) return;
+
+        setLoading(true);
+        setTasksSelected([]);
+
+        try {
+            await markTasksDone(selected.map(t => t.idTask));
+            loadingRef.current = false;
+            handleGetTasks(true);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
+
+    useEffect(() => {
+        handleGetTasksCount();
+        handleGetFoldersCount();
+        handleGetTasks();
+        handleGetFolders();
+    }, []);
 
     return ({
         tasks: displayedTasks,
@@ -356,6 +421,9 @@ export const useTasksData = () => {
         handleDeleteTasks,
         handleArchiveTask,
         handleDeleteTask,
+        handleMoveTasks,
+        handleTogglePinTasks,
+        handleMarkDone,
     });
 };
 

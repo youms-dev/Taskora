@@ -9,7 +9,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, TASKS_UNARCHIVED } from "@/lib/event-emitter";
+import { event, TASKS_EDITED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -96,7 +96,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setToast(t("archives_unarchive_tasks"), "default", 2000);
             setLoading(false);
             onRefresh();
-            event.emit(TASKS_UNARCHIVED);
+            event.emit(TASKS_EDITED);
         }
         catch (e) {
             onRefresh(true);
@@ -584,7 +584,7 @@ export default function Archives() {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], false);
             setProcessing(false);
             handleGetTasks(true);
-            event.emit(TASKS_UNARCHIVED);
+            event.emit(TASKS_EDITED);
             setToast(t("archives_unarchive_tasks", { many: tab.length > 1 ? "s" : "" }));
         }
         catch (e) {

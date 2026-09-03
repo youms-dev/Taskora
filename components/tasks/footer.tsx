@@ -129,7 +129,7 @@ export const TasksFooter = memo(({ context }: Props) => {
         }
     }, [tasksSelected, tasks, selectMap]);
 
-    const deleteTasks = useCallback(() => handleDeleteTasks(), []);
+    const deleteTasks = useCallback(() => handleDeleteTasks(), [handleDeleteTasks]);
 
     return (
         <View className="w-full flex items-center">

@@ -271,6 +271,34 @@ export const useTasks = () => {
         }
     }
 
+    async function moveTasks(tasks: TaskType["idTask"][], folder: FolderType["idFolder"] | null): Promise<boolean | unknown> {
+        if (!db) return;
+        const placeholder = tasks.map(() => "?").join(",");
+
+        try {
+            await db.runAsync(`UPDATE task SET id_folder = ? WHERE id_task IN (${placeholder}) AND type = ?`, [folder ? folder : null, ...tasks, "task"]);
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
+    async function markTasksDone(tasks: TaskType["idTask"][]): Promise<boolean | unknown> {
+        if (!db) return;
+        const placeholder = tasks.map(() => "?").join(",");
+
+        try {
+            await db.runAsync(`UPDATE task SET done = ? WHERE id_task IN (${placeholder}) AND type = ?`, [1, ...tasks, "task"]);
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         syncTasks,
         getTasks,
@@ -282,5 +310,7 @@ export const useTasks = () => {
         getTasksCountByDate,
         getTask,
         togglePinTask,
+        moveTasks,
+        markTasksDone,
     }
 }

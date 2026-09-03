@@ -65,12 +65,13 @@ export const useFolders = () => {
 
     async function createFolder(title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
         if (!db) return;
+        const titleFormatted = (title.charAt(0).toUpperCase() + title.slice(1)).trim();
 
         try {
             await db.withTransactionAsync(async () => {
                 const folderId = createId();
 
-                await db.runAsync("INSERT INTO folder (id_folder, title) VALUES (?, ?)", [folderId, title]);
+                await db.runAsync("INSERT INTO folder (id_folder, title) VALUES (?, ?)", [folderId, titleFormatted]);
 
                 if (tasks.length > 0) {
                     const placeholder = tasks.map(() => '?').join(",");

@@ -81,7 +81,8 @@ const PressableAnimated = Animated.createAnimatedComponent(Pressable);
  * 
  * @param dragHandlerBackground
  * 
- * @param scrollableContent Define whether the children should be wrapped with à ScrollView or not
+ * @param scrollableContent When true the content is wrapped within a ScrollView
+ * @default true
  * 
  * @returns Modal component 
  */

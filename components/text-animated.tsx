@@ -18,17 +18,17 @@ interface Props extends TextProps {
  * @default rgba(255, 255, 255, .8)
  * 
  * @param light Text animated light color
- * @default rgba(0, 0, 0, .0)
+ * @default rgba(0, 0, 0, .8)
  * 
  * @param style Text animated style
  * @returns Text animated component
  */
 
-export const TextAnimated = ({ children, dark: darkColor = "rgba(255, 255, 255, .8)", light: lightColor = "rgba(0, 0, 0, .0)", style, ...rest }: Props) => {
+export const TextAnimated = ({ children, dark: darkColor = "rgba(255, 255, 255, .8)", light: lightColor = "rgba(0, 0, 0, .8)", style, ...rest }: Props) => {
     const { theme: appTheme } = useTheme();
     const theme = useSharedValue<typeof appTheme>("dark");
-    const dark = useSharedValue<typeof darkColor>("rgba(255, 255, 255, .8)");
-    const light = useSharedValue<typeof lightColor>("rgba(0, 0, 0, .0)");
+    const dark = useSharedValue<typeof darkColor>(darkColor);
+    const light = useSharedValue<typeof lightColor>(lightColor);
 
     useEffect(() => {
         theme.value = appTheme;

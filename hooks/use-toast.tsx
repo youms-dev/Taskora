@@ -165,7 +165,7 @@ export const ToastProvider = ({ children }: Props) => {
             }
             i -= i == duration ? 2 : 1;
         }, 800);
-    }, []);
+    }, [available]);
 
     const dismissAnimation = useAnimatedStyle(() => ({
         left: dismissPosition.value,
@@ -227,7 +227,7 @@ export const ToastProvider = ({ children }: Props) => {
         availableShared.value = available;
 
         return () => remove();
-    }, [available]);
+    }, [available, handleCloseDismiss]);
 
     useEffect(() => {
         screenWidthShared.value = screenWidth;
