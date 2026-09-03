@@ -5,10 +5,11 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { Radio } from "@/components/radio";
 import { Select } from "@/components/select";
 import { TextAnimated } from "@/components/text-animated";
+import { TextGradient } from "@/components/text-gradient";
 import { ThemeCard } from "@/components/theme-card";
 import { Toggle } from "@/components/toggle";
 import { COLORS } from "@/constants/colors";
-import { CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
+import { APP_NAME, CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -19,9 +20,9 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -96,7 +97,7 @@ export default function Settings() {
         ],
     }));
 
-    const handleConfirmToggle = async () => {
+    const handleConfirmToggle = useCallback(async () => {
         const { setItem, removeItem } =
             useAsyncStorage(CONFIRM_STORAGE);
 
@@ -108,7 +109,7 @@ export default function Settings() {
             await setItem("true");
             setConfirm(true);
         }
-    };
+    }, [confirm]);
 
     useEffect(() => {
         appTheme.value = theme;
@@ -135,6 +136,8 @@ export default function Settings() {
     }));
 
     const changeLanguage = async (value: string | null) => {
+        if (currentLanguage == value) return;
+
         const { setItem, removeItem } = useAsyncStorage(LANGUAGE_STORAGE);
         const lng = locales.languageTag.trim().split("-").shift()?.toLowerCase() ?? "en";
 
@@ -193,11 +196,10 @@ export default function Settings() {
     }));
 
     return (
-        <Container safeArea={false}>
-            <StatusBar
-                style={change ? (theme == "dark" ? "light" : "dark") : "light"}
-                translucent
-            />
+        <Container
+            safeArea={false}
+            statusBarColor={change ? (theme == "dark" ? "light" : "dark") : "light"}
+        >
 
             <View className="flex-1 dark:bg-black bg-white/10">
                 <Animated.View
@@ -303,6 +305,9 @@ export default function Settings() {
                     }}
                     contentContainerClassName="pb-[300px] px-3"
                 >
+
+                    {/* Appearance */}
+
                     <View className="w-full flex flex-col gap-3">
                         <View className="w-full">
                             <TextAnimated className="opacity-50">
@@ -343,7 +348,10 @@ export default function Settings() {
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
-                                        <Radio active={target == "light"} />
+                                        <Radio
+                                            size={24}
+                                            active={target == "light"}
+                                        />
                                     </View>
 
                                     <ThemeCard value="light" />
@@ -355,7 +363,10 @@ export default function Settings() {
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
-                                        <Radio active={target == "dark"} />
+                                        <Radio
+                                            size={24}
+                                            active={target == "dark"}
+                                        />
                                     </View>
 
                                     <ThemeCard value="dark" />
@@ -367,7 +378,10 @@ export default function Settings() {
                                     className="size-[110px] flex flex-col self-start items-center gap-2 p-3 mb-10"
                                 >
                                     <View className="w-full">
-                                        <Radio active={target == "system"} />
+                                        <Radio
+                                            size={24}
+                                            active={target == "system"}
+                                        />
                                     </View>
 
                                     <ThemeCard value="system" />
@@ -375,6 +389,8 @@ export default function Settings() {
                             </ScrollView>
                         </View>
                     </View>
+
+                    {/* System */}
 
                     <View className="w-full flex flex-col gap-3 mt-6">
                         <View className="w-full">
@@ -401,7 +417,7 @@ export default function Settings() {
                             >
                                 <View className="w-full flex items-center gap-5 py-2 px-5">
                                     <PressableAnimated
-                                        scale={1}
+                                        scale={.98}
                                         onPress={() => changeLanguage("fr")}
                                         className="w-full flex flex-row justify-between"
                                     >
@@ -410,13 +426,13 @@ export default function Settings() {
                                         </TextAnimated>
 
                                         <Radio
-                                            size={20}
+                                            size={24}
                                             active={currentLanguage == "fr"}
                                         />
                                     </PressableAnimated>
 
                                     <PressableAnimated
-                                        scale={1}
+                                        scale={.98}
                                         onPress={() => changeLanguage("en")}
                                         className="w-full flex flex-row justify-between"
                                     >
@@ -425,13 +441,13 @@ export default function Settings() {
                                         </TextAnimated>
 
                                         <Radio
-                                            size={20}
+                                            size={24}
                                             active={currentLanguage == "en"}
                                         />
                                     </PressableAnimated>
 
                                     <PressableAnimated
-                                        scale={1}
+                                        scale={.98}
                                         onPress={() => changeLanguage(null)}
                                         className="w-full flex flex-row justify-between"
                                     >
@@ -440,7 +456,7 @@ export default function Settings() {
                                         </TextAnimated>
 
                                         <Radio
-                                            size={20}
+                                            size={24}
                                             active={!currentLanguage}
                                         />
                                     </PressableAnimated>
@@ -468,7 +484,7 @@ export default function Settings() {
 
                             <PressableAnimated
                                 scale={1}
-                                className="w-full flex flex-row justify-between"
+                                className="w-full flex flex-row justify-between items-center"
                             >
                                 <View className="w-[70%] pr-3">
                                     <TextAnimated className="text-lg">
@@ -476,17 +492,17 @@ export default function Settings() {
                                     </TextAnimated>
                                 </View>
 
-                                <View className="w-[20%] flex items-center shrink-0">
+                                <View className="w-[20%] h-full flex items-center shrink-0">
                                     <Toggle
                                         active={confirm}
-                                        onPress={() =>
-                                            handleConfirmToggle()
-                                        }
+                                        onPress={handleConfirmToggle}
                                     />
                                 </View>
                             </PressableAnimated>
                         </View>
                     </View>
+
+                    {/* Notifications */}
 
                     <View className="w-full flex flex-col gap-3 mt-6">
                         <View className="w-full">
@@ -495,7 +511,7 @@ export default function Settings() {
                             </TextAnimated>
                         </View>
 
-                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                        {/* <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
                             <Select
                                 open
                                 header={(
@@ -597,7 +613,45 @@ export default function Settings() {
                                     />
                                 </View>
                             </PressableAnimated>
+                        </View> */}
+                    </View>
+
+                    {/* Management */}
+
+                    <View className="w-full flex flex-col gap-3 mt-6">
+                        <View className="w-full">
+                            <TextAnimated className="opacity-50">
+                                {t("settings_management")}
+                            </TextAnimated>
                         </View>
+
+                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                            <Pressable className="flex flex-row items-center gap-5 self-start">
+                                <View>
+                                    <MaterialCommunityIcons
+                                        name="folder-cog"
+                                        size={28}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"} />
+                                </View>
+
+                                <TextAnimated className="text-lg">
+                                    {t("settings_management_folders")}
+                                </TextAnimated>
+                            </Pressable>
+                        </View>
+                    </View>
+
+                    <View className="w-full flex items-center gap-2 pt-10">
+                        <TextGradient
+                            colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
+                            className="text-xl"
+                        >
+                            {APP_NAME}
+                        </TextGradient>
+
+                        <TextAnimated>
+                            V0.0
+                        </TextAnimated>
                     </View>
                 </Animated.ScrollView>
             </View>

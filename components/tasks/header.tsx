@@ -359,7 +359,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
                                     >
                                         <View>
                                             <MaterialCommunityIcons
-                                                name="folder-move-outline"
+                                                name="folder-move"
                                                 size={25}
                                                 color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                             />

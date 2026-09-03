@@ -9,6 +9,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { event, TASKS_EDITED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -17,7 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, BackHandler, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props {
@@ -61,14 +62,14 @@ const Decrement = memo(({ entry }: Props) => {
     );
 });
 
-export default function Task() {
+export default function TaskPage() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(true);
     const { setToast } = useToast();
     const [task, setTask] = useState<TaskType | null>(null);
     const { theme } = useTheme();
-    const { getTask } = useTasks();
+    const { getTask, markTasksDone } = useTasks();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { t, i18n } = useTranslation();
     const ref = useRef<Animated.ScrollView>(null);
@@ -79,6 +80,17 @@ export default function Task() {
     const scrollY = useSharedValue<number>(0);
     const contextMenuActive = useSharedValue<boolean>(false);
 
+    if (!id) {
+        if (router.canGoBack()) {
+            router.back();
+        }
+        else {
+            router.navigate({
+                pathname: "/(protected)/(tabs)",
+            });
+        }
+    }
+    
     const iconData = useMemo(() => {
         if (!task || !task.icon) return null;
         let data = JSON.parse(task.icon) as ICON_TYPE;
@@ -155,16 +167,6 @@ export default function Task() {
         return Boolean(task?.archived);
     }, [task]);
 
-    if (!id) {
-        if (router.canGoBack()) {
-            router.back();
-        }
-        else {
-            router.navigate({
-                pathname: "/(protected)/(tabs)",
-            });
-        }
-    }
 
     const handleGetTask = useCallback(async () => {
         try {
@@ -320,7 +322,31 @@ export default function Task() {
         return () => remove();
     }, []);
 
-    if (loading) {
+    const handleMarkDone = useCallback(async () => {
+        if (loading || !task) return;
+        try {
+            setLoading(true);
+            await markTasksDone([task.idTask]);
+            setTask(prev => {
+                if (prev) {
+                    return ({
+                        ...prev,
+                        done: true,
+                    });
+                }
+
+                return prev;
+            });
+            setLoading(false);
+            event.emit(TASKS_EDITED);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error", 5000);
+        }
+    }, [loading, setToast, i18n.language]);
+
+    if (loading && !task) {
         return (
             <Container centerX>
                 <View className="size-full flex justify-center items-center">
@@ -851,7 +877,11 @@ export default function Task() {
                         >
                             <PressableAnimated
                                 scale={.95}
-                                className="flex items-center rounded-2xl"
+                                onPress={handleMarkDone}
+                                className={clsx(
+                                    "flex items-center rounded-2xl",
+                                    loading && "opacity-60"
+                                )}
                             >
                                 <View
                                     style={{
@@ -865,10 +895,22 @@ export default function Task() {
                                     className="absolute size-full bg-black/50 rounded-2xl"
                                 />
 
-                                <View className="flex flex-row justify-center items-center bg-emerald-500 border-2 border-black/10 px-5 py-3 rounded-2xl">
-                                    <Text className="text-black font-bold text-2xl tracking-widest">
-                                        {t("[id]_submit")}
-                                    </Text>
+                                <View className="min-w-[200px] h-[50px] flex flex-row justify-center items-center bg-emerald-500 border-2 border-black/10 px-5 rounded-2xl">
+                                    {
+                                        loading ?
+                                            (
+                                                <ActivityIndicator
+                                                    size={30}
+                                                    color="black"
+                                                />
+                                            )
+                                            :
+                                            (
+                                                <Text className="text-black font-bold text-xl tracking-widest">
+                                                    {t("[id]_mark_done")}
+                                                </Text>
+                                            )
+                                    }
                                 </View>
                             </PressableAnimated>
                         </View>

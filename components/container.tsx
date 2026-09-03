@@ -41,27 +41,31 @@ interface Props {
  */
 
 export const Container = ({ children, center, centerX, centerY, safeArea = true, background: bg, statusBarColor }: Props) => {
-  const { theme } = useTheme();
-  const appTheme = useSharedValue<typeof theme>("dark");
+  const { theme, themeShared } = useTheme();
   const background = useSharedValue<typeof bg>(bg);
 
   useEffect(() => {
-    appTheme.value = theme;
     background.value = bg;
-  }, [theme, bg]);
+  }, [bg]);
 
   const viewAnimation = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(background.value ? (appTheme.value == "dark" ? background.value.dark : background.value.light) : "transparent", {
-      duration: 300,
-      easing: Easing.inOut(Easing.quad),
-    }),
+    backgroundColor: withTiming(background.value ?
+      (themeShared.value == "dark" ? background.value.dark : background.value.light)
+      :
+      "rgba(0, 0, 0, 0)",
+      {
+        duration: 300,
+        easing: Easing.inOut(Easing.quad),
+      }),
   }));
+
   const Render = (
     <>
       <StatusBar
         style={statusBarColor ? statusBarColor : (theme == "dark" ? "light" : "dark")}
         animated
       />
+
       <Animated.View
         style={viewAnimation}
         className={clsx(
