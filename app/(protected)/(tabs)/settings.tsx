@@ -12,7 +12,7 @@ import { COLORS } from "@/constants/colors";
 import { APP_NAME, CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
-import { FontAwesome, Octicons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -21,6 +21,7 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -40,6 +41,7 @@ export default function Settings() {
     const [currentLanguage, setCurrentLanguage] = useState<string | null>(null);
     const [locales] = useLocales();
     const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
+    const router = useRouter();
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
@@ -533,7 +535,12 @@ export default function Settings() {
                         </View>
 
                         <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
-                            <Pressable className="flex flex-row items-center gap-5 self-start">
+                            <Pressable
+                                onPress={() => router.navigate({
+                                    pathname: "/(protected)/(folder)/list",
+                                })}
+                                className="flex flex-row items-center gap-5 self-start"
+                            >
                                 <View>
                                     <MaterialCommunityIcons
                                         name="folder-cog"
