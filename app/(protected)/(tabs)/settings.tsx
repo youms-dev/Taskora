@@ -12,14 +12,15 @@ import { COLORS } from "@/constants/colors";
 import { APP_NAME, CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
+import { FontAwesome, Octicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
-import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -322,6 +323,7 @@ export default function Settings() {
                                     size={25}
                                     color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                 />
+
                                 <TextAnimated className="text-lg">
                                     {t("theme")} :
                                 </TextAnimated>
@@ -465,25 +467,6 @@ export default function Settings() {
 
                             <PressableAnimated
                                 scale={1}
-                                className="flex self-start flex-row gap-5"
-                            >
-                                <FontAwesome5
-                                    name="user-lock"
-                                    size={20}
-                                    color={
-                                        theme == "dark"
-                                            ? "rgba(255, 255, 255, .3)"
-                                            : "rgba(0, 0, 0, .3)"
-                                    }
-                                />
-
-                                <TextAnimated className="max-w-[90%] text-lg">
-                                    {t("lock_app")}
-                                </TextAnimated>
-                            </PressableAnimated>
-
-                            <PressableAnimated
-                                scale={1}
                                 className="w-full flex flex-row justify-between items-center"
                             >
                                 <View className="w-[70%] pr-3">
@@ -511,109 +494,33 @@ export default function Settings() {
                             </TextAnimated>
                         </View>
 
-                        {/* <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
-                            <Select
-                                open
-                                header={(
-                                    <View className="w-full flex flex-row items-center gap-6">
-                                        <Entypo
-                                            name="language"
-                                            size={20}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                        />
-                                        <TextAnimated className="text-lg">
-                                            {t("settings_language")}
-                                        </TextAnimated>
-                                    </View>
-                                )}
-                            >
-                                <View className="w-full flex items-center gap-5 py-2 px-5">
-                                    <PressableAnimated
-                                        scale={1}
-                                        onPress={() => changeLanguage("fr")}
-                                        className="w-full flex flex-row justify-between"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("settings_french")}
-                                        </TextAnimated>
-
-                                        <Radio
-                                            size={20}
-                                            active={currentLanguage == "fr"}
-                                        />
-                                    </PressableAnimated>
-
-                                    <PressableAnimated
-                                        scale={1}
-                                        onPress={() => changeLanguage("en")}
-                                        className="w-full flex flex-row justify-between"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("settings_english")}
-                                        </TextAnimated>
-
-                                        <Radio
-                                            size={20}
-                                            active={currentLanguage == "en"}
-                                        />
-                                    </PressableAnimated>
-
-                                    <PressableAnimated
-                                        scale={1}
-                                        onPress={() => changeLanguage(null)}
-                                        className="w-full flex flex-row justify-between"
-                                    >
-                                        <TextAnimated className="text-lg">
-                                            {t("settings_system")}
-                                        </TextAnimated>
-
-                                        <Radio
-                                            size={20}
-                                            active={!currentLanguage}
-                                        />
-                                    </PressableAnimated>
-                                </View>
-                            </Select>
-
-                            <PressableAnimated
-                                scale={1}
-                                className="flex self-start flex-row gap-5"
-                            >
-                                <FontAwesome5
-                                    name="user-lock"
-                                    size={20}
-                                    color={
-                                        theme == "dark"
-                                            ? "rgba(255, 255, 255, .3)"
-                                            : "rgba(0, 0, 0, .3)"
-                                    }
-                                />
-
-                                <TextAnimated className="max-w-[90%] text-lg">
-                                    {t("lock_app")}
-                                </TextAnimated>
-                            </PressableAnimated>
-
-                            <PressableAnimated
-                                scale={1}
-                                className="w-full flex flex-row justify-between"
-                            >
-                                <View className="w-[70%] pr-3">
-                                    <TextAnimated className="text-lg">
-                                        {t("deleting_setting")}
-                                    </TextAnimated>
-                                </View>
-
-                                <View className="w-[20%] flex items-center shrink-0">
-                                    <Toggle
-                                        active={confirm}
-                                        onPress={() =>
-                                            handleConfirmToggle()
-                                        }
+                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                            <Pressable className="w-full flex flex-row gap-5">
+                                <View>
+                                    <MaterialCommunityIcons
+                                        name="music-note"
+                                        size={25}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
                                     />
                                 </View>
-                            </PressableAnimated>
-                        </View> */}
+
+                                <View className="max-w-[80%] flex gap-3">
+                                    <View>
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_sound")}
+                                        </TextAnimated>
+                                    </View>
+
+                                    <View className={clsx(
+                                        "dark:bg-white/10 bg-black/5 px-3 py-1 rounded-xl border dark:border-white/10 border-black/10",
+                                    )}>
+                                        <TextAnimated className="text-lg opacity-80">
+                                            {t("settings_default_sound")}
+                                        </TextAnimated>
+                                    </View>
+                                </View>
+                            </Pressable>
+                        </View>
                     </View>
 
                     {/* Management */}
@@ -637,6 +544,117 @@ export default function Settings() {
                                 <TextAnimated className="text-lg">
                                     {t("settings_management_folders")}
                                 </TextAnimated>
+                            </Pressable>
+                        </View>
+                    </View>
+
+                    {/* Security */}
+
+                    <View className="w-full flex flex-col gap-3 mt-6">
+                        <View className="w-full">
+                            <TextAnimated className="opacity-50">
+                                {t("settings_security")}
+                            </TextAnimated>
+                        </View>
+
+                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                            <PressableAnimated
+                                scale={1}
+                                className="flex self-start flex-row gap-5"
+                            >
+                                <FontAwesome5
+                                    name="user-lock"
+                                    size={20}
+                                    color={
+                                        theme == "dark"
+                                            ? "rgba(255, 255, 255, .3)"
+                                            : "rgba(0, 0, 0, .3)"
+                                    }
+                                />
+
+                                <TextAnimated className="max-w-[90%] text-lg">
+                                    {t("lock_app")}
+                                </TextAnimated>
+                            </PressableAnimated>
+
+                            <View className="w-full flex items-center gap-3">
+                                <View className="w-full flex flex-row justify-between items-center gap-2">
+                                    <View className="w-[75%] flex flex-row items-center gap-4">
+                                        <FontAwesome5
+                                            name="user-shield"
+                                            size={22}
+                                            color={
+                                                theme == "dark"
+                                                    ? "rgba(255, 255, 255, .3)"
+                                                    : "rgba(0, 0, 0, .3)"
+                                            }
+                                        />
+
+                                        <View className="w-[80%] flex justify-center">
+                                            <TextAnimated className="text-lg">
+                                                {t("settings_2FA")}
+                                            </TextAnimated>
+                                        </View>
+                                    </View>
+
+                                    <Toggle
+
+                                    />
+                                </View>
+
+                                <View className="w-full px-2">
+                                    <TextAnimated className="text-lg opacity-50">
+                                        {t("settings_2FA_description")}
+                                    </TextAnimated>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Other */}
+
+                    <View className="w-full flex flex-col gap-3 mt-6">
+                        <View className="w-full">
+                            <TextAnimated className="opacity-50">
+                                {t("settings_other")}
+                            </TextAnimated>
+                        </View>
+
+                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                            <Pressable
+                                className="flex self-start flex-row items-center gap-5"
+                            >
+                                <View>
+                                    <FontAwesome
+                                        name="file-text"
+                                        size={23}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                    />
+                                </View>
+
+                                <View className="max-w-[85%]">
+                                    <TextAnimated className="text-lg">
+                                        {t("settings_policy")}
+                                    </TextAnimated>
+                                </View>
+                            </Pressable>
+
+                            <Pressable
+                                className="flex self-start flex-row gap-5"
+                            >
+                                <View>
+                                    <FontAwesome5
+                                        name="sync"
+                                        size={22}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                    />
+                                </View>
+
+                                <View className="max-w-[85%]">
+                                    <TextAnimated className="text-lg">
+                                        {t("settings_check_updates")}
+                                    </TextAnimated>
+                                </View>
                             </Pressable>
                         </View>
                     </View>
