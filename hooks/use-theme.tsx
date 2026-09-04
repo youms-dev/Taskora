@@ -1,7 +1,7 @@
 import { THEME_STORAGE } from "@/constants/names";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
-import { useColorScheme } from "nativewind";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { Appearance, useColorScheme } from "react-native";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 
 type ThemeType = "light" | "dark";
@@ -16,63 +16,82 @@ type ContextType = {
 const Context = createContext<ContextType | null>(null);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-    const { colorScheme, setColorScheme } = useColorScheme();
-    const [theme, setTheme] = useState<ThemeType>(colorScheme == "dark" ? "dark" : "light");
+    const colorScheme = useColorScheme();
+
+    const [theme, setTheme] = useState<ThemeType>(
+        colorScheme === "dark" ? "dark" : "light"
+    );
+
     const [target, setTarget] = useState<ThemeType | "system">("system");
-    const themeShared = useSharedValue<ThemeType>(colorScheme == "dark" ? "dark" : "light");
+
+    const themeShared = useSharedValue<ThemeType>(
+        colorScheme === "dark" ? "dark" : "light"
+    );
 
     const changeTheme = useCallback(async (value: ThemeType | "system") => {
-        const { setItem } = useAsyncStorage(THEME_STORAGE);
+        const { setItem, removeItem } = useAsyncStorage(THEME_STORAGE);
 
-        setColorScheme(value);
-        await setItem(value);
         if (value === "system") {
-            setTheme(colorScheme as ThemeType);
+            Appearance.setColorScheme(null);
             setTarget("system");
+            await removeItem();
+
+            return;
+        }
+
+        await setItem(value);
+        setTarget(value);
+        setTheme(value);
+        Appearance.setColorScheme(value);
+    }, []);
+
+    const handleThemeSaved = useCallback(async () => {
+        const { getItem, removeItem } = useAsyncStorage(THEME_STORAGE);
+        const themeSaved = await getItem();
+
+        if (
+            themeSaved
+            &&
+            ["light", "dark"].includes(themeSaved)
+        ) {
+            Appearance.setColorScheme(themeSaved as ThemeType);
+            setTheme(themeSaved as ThemeType);
+            setTarget(themeSaved as ThemeType);
         }
         else {
-            setTarget(colorScheme == "light" ? "light" : "dark");
-            setTheme(colorScheme == "light" ? "light" : "dark");
+            await removeItem();
+            Appearance.setColorScheme(null);
+            setTarget("system");
         }
     }, []);
 
     useEffect(() => {
-        (async () => {
-            const { getItem, removeItem } = useAsyncStorage(THEME_STORAGE);
-            const themeSaved = await getItem();
+        handleThemeSaved();
+    }, []);
 
-            if (themeSaved && ["light", "dark", "system"].includes(themeSaved)) {
-                setColorScheme(themeSaved as ThemeType | "system");
-                if (themeSaved == "system") {
-                    setTheme(colorScheme! as ThemeType);
-                    setTarget("system");
-                }
-                else {
-                    setTarget(themeSaved == "light" ? "light" : "dark");
-                    setTheme(themeSaved == "light" ? "light" : "dark");
-                }
-            }
-            else {
-                await removeItem();
-            }
-        })();
-    }, [colorScheme]);
+    useEffect(() => {
+        if (target === "system") {
+            setTheme(colorScheme === "dark" ? "dark" : "light");
+        }
+    }, [colorScheme, target]);
 
     useEffect(() => {
         themeShared.value = theme;
-    }, [theme]);
+    }, [theme, themeShared]);
 
     return (
-        <Context.Provider value={{
-            theme,
-            target,
-            setTheme: changeTheme,
-            themeShared,
-        }}>
+        <Context.Provider
+            value={{
+                theme,
+                target,
+                setTheme: changeTheme,
+                themeShared,
+            }}
+        >
             {children}
         </Context.Provider>
     );
-}
+};
 
 export const useTheme = () => {
     const ctx = useContext(Context);
