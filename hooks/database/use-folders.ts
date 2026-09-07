@@ -114,11 +114,26 @@ export const useFolders = () => {
         }
     }
 
+    async function updateFolder(id: FolderType["idFolder"], title: string): Promise<boolean | unknown> {
+        if (!db) return;
+        const titleFormatted = (title.charAt(0).toUpperCase() + title.slice(1)).trim();
+
+        try {
+            await db.runAsync("UPDATE folder SET title = ? WHERE id_folder = ?", [titleFormatted, id]);
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         getFolders,
         getFoldersCount,
         deleteFolder,
         createFolder,
-        deleteFolders
+        deleteFolders,
+        updateFolder,
     }
 }

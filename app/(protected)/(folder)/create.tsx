@@ -178,7 +178,7 @@ export default function CreateFolderPager() {
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const { getTasks, getTasksCount } = useTasks();
     const { setToast } = useToast();
-    const { createFolder } = useFolders();
+    const { createFolder, updateFolder } = useFolders();
 
     const selectMap = useMemo(() => {
         return (
@@ -350,11 +350,23 @@ export default function CreateFolderPager() {
         try {
             setLoading(true);
 
-            await createFolder(inputsValues.title.trim().slice(0, titleLengthLimit), inputsValues.tasks.map(t => t.idTask));
+            if (paramAction && paramAction == "edit") {
+                const folderFormatted = JSON.parse(paramFolder) as FolderType;
 
+                await updateFolder(folderFormatted.idFolder, inputsValues.title.trim().slice(0, titleLengthLimit));
+            }
+            else {
+                await createFolder(inputsValues.title.trim().slice(0, titleLengthLimit), inputsValues.tasks.map(t => t.idTask));
+            }
+            
             setLoading(false);
             event.emit(FOLDERS_CHANGED);
-            setToast(t("create_folder_success"), "success");
+            if (paramAction && paramAction == "edit") {
+                setToast(t("create_folder_edit_success"), "success");
+            }
+            else {
+                setToast(t("create_folder_success"), "success");
+            }
             setInputsValues(initialInputValues);
         }
         catch (e) {

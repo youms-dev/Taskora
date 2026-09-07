@@ -107,6 +107,7 @@
     "create_folder_form_submit": "Soumettre",
     "create_folder_form_add_tasks": "Ajouter des tâches",
     "create_folder_success": "Dossier créé",
+    "create_folder_edit_success": "Modification effectuée",
     "create_folder_form_edit": "Modifier",
     "create_folder_title_edit": "Modifiez votre dossier",
     "folders_list_title": "Dossiers",

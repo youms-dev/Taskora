@@ -109,6 +109,7 @@
     "create_folder_success": "Folder created",
     "create_folder_form_edit": "Edit",
     "create_folder_title_edit": "Edit your folder",
+    "create_folder_edit_success": "Edited successfully",
     "folders_list_title": "Folders",
     "folders_list_empty": "No folder yet",
     "folders_list_select": "Select",
