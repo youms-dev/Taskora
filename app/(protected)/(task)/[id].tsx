@@ -9,7 +9,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, TASKS_EDITED } from "@/lib/event-emitter";
+import { event, TASKS_CHANGED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -338,7 +338,7 @@ export default function TaskPage() {
                 return prev;
             });
             setLoading(false);
-            event.emit(TASKS_EDITED);
+            event.emit(TASKS_CHANGED);
         }
         catch (e) {
             setLoading(false);

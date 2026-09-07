@@ -107,6 +107,14 @@
     "create_folder_form_submit": "Soumettre",
     "create_folder_form_add_tasks": "Ajouter des tâches",
     "create_folder_success": "Dossier créé",
+    "create_folder_form_edit": "Modifier",
+    "create_folder_title_edit": "Modifiez votre dossier",
     "folders_list_title": "Dossiers",
-    "folders_list_empty": "Aucun dossier pour l'instant"
+    "folders_list_empty": "Aucun dossier pour l'instant",
+    "folders_list_select": "Sélectionner",
+    "folders_list_edit": "Modifier",
+    "folders_list_duplicate": "Dupliquer",
+    "folders_list_delete": "Supprimer",
+    "folders_list_selected_count": "Sélectionné{{many}}",
+    "folders_list_folders_deleted": "Supprimé{{many}} avec succès"
 }

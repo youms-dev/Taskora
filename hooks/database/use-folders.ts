@@ -50,18 +50,31 @@ export const useFolders = () => {
         }
     }
 
-    async function deleteFolder(id: FolderType["idFolder"]): Promise<boolean | unknown> {
+    async function deleteFolder(id: FolderType["idFolder"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
         if (!db) return;
         if (id.trim().length == 0) return false;
 
         try {
-            await db.runAsync("DELETE FROM folder WHERE id_folder = ?", [id]);
+            if (tasks.length > 0) {
+                const placeholders = tasks.map(() => "?").join(",");
+
+                await db.withTransactionAsync(async () => {
+                    await db.runAsync(`DELETE FROM task WHERE id_task IN (${placeholders}) AND type = ?`, [...tasks, "task"]);
+
+                    await db.runAsync("DELETE FROM folder WHERE id_folder = ?", [id]);
+                });
+            }
+            else {
+                await db.runAsync("DELETE FROM folder WHERE id_folder = ?", [id]);
+            }
+
             return true;
         }
         catch (e) {
             throw e;
         }
     }
+
 
     async function createFolder(title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
         if (!db) return;
@@ -87,10 +100,25 @@ export const useFolders = () => {
         }
     }
 
+    async function deleteFolders(folders: FolderType["idFolder"][]): Promise<boolean | unknown> {
+        if (!db) return;
+        const placeholders = folders.map(() => "?").join(",");
+
+        try {
+            await db.runAsync(`DELETE FROM folder WHERE id_folder IN (${placeholders})`, [...folders]);
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         getFolders,
         getFoldersCount,
         deleteFolder,
         createFolder,
+        deleteFolders
     }
 }

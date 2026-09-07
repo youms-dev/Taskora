@@ -9,12 +9,13 @@ import { useFolders } from "@/hooks/database/use-folders";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, FOLDER_CREATED } from "@/lib/event-emitter";
+import { event, FOLDERS_CHANGED } from "@/lib/event-emitter";
+import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { Entypo, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, TextInputProps, Vibration, View } from "react-native";
@@ -143,17 +144,30 @@ const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label
 });
 
 export default function CreateFolderPager() {
-    const { theme } = useTheme();
-    const router = useRouter();
-    const { t, i18n } = useTranslation();
-    const inputRef = useRef<TextInput>(null);
-    const initialInputValues: {
+    const { action: paramAction, folder: paramFolder } = useLocalSearchParams<{ action: "edit" | "duplicate"; folder: string }>();
+    let initialInputValues: {
         title: string;
         tasks: TaskType[];
     } = {
         title: "",
         tasks: [],
     };
+
+    if (paramAction && paramFolder) {
+        const folderFormatted = JSON.parse(paramFolder) as FolderType;
+
+        if (folderFormatted.idFolder && folderFormatted.title) {
+            initialInputValues = {
+                ...initialInputValues,
+                title: folderFormatted.title,
+            }
+        }
+    }
+
+    const { theme } = useTheme();
+    const router = useRouter();
+    const { t, i18n } = useTranslation();
+    const inputRef = useRef<TextInput>(null);
     const [inputsValues, setInputsValues] = useState<typeof initialInputValues>(initialInputValues);
     const titleLengthLimit = 50;
     const [loading, setLoading] = useState<boolean>(false);
@@ -320,8 +334,10 @@ export default function CreateFolderPager() {
     }, [i18n.language, tasks.length]);
 
     useEffect(() => {
-        handleGetTasksCount();
-        handleGetTasks();
+        if (!paramAction || paramAction != "edit") {
+            handleGetTasksCount();
+            handleGetTasks();
+        }
     }, []);
 
     const handleSubmit = useCallback(async () => {
@@ -337,7 +353,7 @@ export default function CreateFolderPager() {
             await createFolder(inputsValues.title.trim().slice(0, titleLengthLimit), inputsValues.tasks.map(t => t.idTask));
 
             setLoading(false);
-            event.emit(FOLDER_CREATED);
+            event.emit(FOLDERS_CHANGED);
             setToast(t("create_folder_success"), "success");
             setInputsValues(initialInputValues);
         }
@@ -379,7 +395,12 @@ export default function CreateFolderPager() {
                         numberOfLines={1}
                         className="text-xl text-center"
                     >
-                        {t("create_folder_title")}
+                        {
+                            paramAction && paramAction == "edit" ?
+                                t("create_folder_title_edit")
+                                :
+                                t("create_folder_title")
+                        }
                     </TextAnimated>
                 </View>
             </View>
@@ -426,93 +447,97 @@ export default function CreateFolderPager() {
                     </Text>
                 </View>
 
-                <View className="w-full mt-5 px-3">
-                    <Select
-                        header={(
-                            <View className="w-full">
-                                <TextAnimated className="text-lg">
-                                    {t("create_folder_form_add_tasks")}
-                                </TextAnimated>
-                            </View>
-                        )}
-                    >
-                        <View className="w-full h-[400px] dark:bg-white/10 bg-white rounded-xl overflow-hidden">
-                            <View className="absolute left-0 top-0 w-full h-[30px] z-[1]">
-                                <LinearGradient
-                                    colors={theme == "dark" ?
-                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
-                                        :
-                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                    }
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 0, y: 1 }}
-                                    locations={[0, .6, 1]}
-                                    className="size-full"
-                                >
-                                    <LinearGradient
-                                        colors={theme == "dark" ?
-                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
-                                            :
-                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                        }
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 0, y: 1 }}
-                                        locations={[0, .6, 1]}
-                                        className="size-full"
-                                    />
-                                </LinearGradient>
-                            </View>
+                {
+                    (!paramAction || paramAction != "edit") && (
+                        <View className="w-full mt-5 px-3">
+                            <Select
+                                header={(
+                                    <View className="w-full">
+                                        <TextAnimated className="text-lg">
+                                            {t("create_folder_form_add_tasks")}
+                                        </TextAnimated>
+                                    </View>
+                                )}
+                            >
+                                <View className="w-full h-[400px] dark:bg-white/10 bg-white rounded-xl overflow-hidden">
+                                    <View className="absolute left-0 top-0 w-full h-[30px] z-[1]">
+                                        <LinearGradient
+                                            colors={theme == "dark" ?
+                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                :
+                                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 0, y: 1 }}
+                                            locations={[0, .6, 1]}
+                                            className="size-full"
+                                        >
+                                            <LinearGradient
+                                                colors={theme == "dark" ?
+                                                    ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
+                                                    :
+                                                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                }
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 0, y: 1 }}
+                                                locations={[0, .6, 1]}
+                                                className="size-full"
+                                            />
+                                        </LinearGradient>
+                                    </View>
 
-                            <FlatList
-                                horizontal={false}
-                                showsVerticalScrollIndicator={false}
-                                data={tasks}
-                                keyExtractor={(task) => task.idTask}
-                                updateCellsBatchingPeriod={0}
-                                scrollEventThrottle={16}
-                                onEndReachedThreshold={.1}
-                                initialNumToRender={fetchLimit}
-                                maxToRenderPerBatch={fetchLimit}
-                                getItemLayout={getItemLayout}
-                                renderItem={renderItem}
-                                ListEmptyComponent={listEmptyComponent}
-                                ListFooterComponent={listFooterComponent}
-                                onEndReached={onEdnReached}
-                                className="w-full h-full"
-                                contentContainerStyle={{
-                                    gap: tasksGap,
-                                }}
-                                contentContainerClassName="w-full flex px-3 py-5"
-                            />
-
-                            <View className="absolute left-0 bottom-0 w-full h-[30px] z-[1]">
-                                <LinearGradient
-                                    colors={theme == "dark" ?
-                                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
-                                        :
-                                        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                    }
-                                    start={{ x: 0, y: 1 }}
-                                    end={{ x: 0, y: 0 }}
-                                    locations={[0, .6, 1]}
-                                    className="size-full"
-                                >
-                                    <LinearGradient
-                                        colors={theme == "dark" ?
-                                            ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
-                                            :
-                                            ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
-                                        }
-                                        start={{ x: 0, y: 1 }}
-                                        end={{ x: 0, y: 0 }}
-                                        locations={[0, .6, 1]}
-                                        className="size-full"
+                                    <FlatList
+                                        horizontal={false}
+                                        showsVerticalScrollIndicator={false}
+                                        data={tasks}
+                                        keyExtractor={(task) => task.idTask}
+                                        updateCellsBatchingPeriod={0}
+                                        scrollEventThrottle={16}
+                                        onEndReachedThreshold={.1}
+                                        initialNumToRender={fetchLimit}
+                                        maxToRenderPerBatch={fetchLimit}
+                                        getItemLayout={getItemLayout}
+                                        renderItem={renderItem}
+                                        ListEmptyComponent={listEmptyComponent}
+                                        ListFooterComponent={listFooterComponent}
+                                        onEndReached={onEdnReached}
+                                        className="w-full h-full"
+                                        contentContainerStyle={{
+                                            gap: tasksGap,
+                                        }}
+                                        contentContainerClassName="w-full flex px-3 py-5"
                                     />
-                                </LinearGradient>
-                            </View>
+
+                                    <View className="absolute left-0 bottom-0 w-full h-[30px] z-[1]">
+                                        <LinearGradient
+                                            colors={theme == "dark" ?
+                                                ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+                                                :
+                                                ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                            }
+                                            start={{ x: 0, y: 1 }}
+                                            end={{ x: 0, y: 0 }}
+                                            locations={[0, .6, 1]}
+                                            className="size-full"
+                                        >
+                                            <LinearGradient
+                                                colors={theme == "dark" ?
+                                                    ["rgba(255, 255, 255, .1)", "rgba(255, 255, 255, .1)", "rgba(255, 255, 255, 0)"]
+                                                    :
+                                                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+                                                }
+                                                start={{ x: 0, y: 1 }}
+                                                end={{ x: 0, y: 0 }}
+                                                locations={[0, .6, 1]}
+                                                className="size-full"
+                                            />
+                                        </LinearGradient>
+                                    </View>
+                                </View>
+                            </Select>
                         </View>
-                    </Select>
-                </View>
+                    )
+                }
 
                 <PressableAnimated
                     disabled={loading}
@@ -539,13 +564,18 @@ export default function CreateFolderPager() {
                                             numberOfLines={1}
                                             className="text-2xl text-black font-bold"
                                         >
-                                            {t("create_folder_form_submit")}
+                                            {
+                                                paramAction && paramAction == "edit" ? t
+                                                    ("create_folder_form_edit")
+                                                    :
+                                                    t("create_folder_form_submit")
+                                            }
                                         </Text>
                                     </View>
 
                                     <View>
                                         <MaterialCommunityIcons
-                                            name="folder-plus"
+                                            name={paramAction && paramAction == "edit" ? "folder-edit" : "folder-plus"}
                                             size={30}
                                             color="black"
                                         />

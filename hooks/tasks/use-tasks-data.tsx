@@ -1,4 +1,4 @@
-import { event, FOLDER_CREATED, TASKS_EDITED } from "@/lib/event-emitter";
+import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -219,12 +219,12 @@ export const useTasksData = () => {
             handleGetFoldersCount();
         }
 
-        event.addListener(TASKS_EDITED, onTasksEdited);
-        event.addListener(FOLDER_CREATED, onFolderCreated);
+        event.addListener(TASKS_CHANGED, onTasksEdited);
+        event.addListener(FOLDERS_CHANGED, onFolderCreated);
 
         return () => {
-            event.removeListener(TASKS_EDITED);
-            event.removeListener(FOLDER_CREATED);
+            event.removeListener(TASKS_CHANGED);
+            event.removeListener(FOLDERS_CHANGED);
         }
     }, []);
 
