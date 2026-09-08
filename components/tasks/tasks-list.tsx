@@ -106,7 +106,6 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
 
     const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), []);
 
-
     useEffect(() => {
         areTasksSelected.value = selectMap.size > 0;
     }, [selectMap]);

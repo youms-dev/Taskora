@@ -1,4 +1,3 @@
-import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -207,27 +206,6 @@ export const useTasksData = () => {
         }
     }, [tasksSelected]);
 
-    useEffect(() => {
-        const onTasksEdited = () => {
-            handleGetTasks(true);
-            handleGetTasksCount();
-        }
-        const onFolderCreated = () => {
-            handleGetTasks(true);
-            handleGetFolders();
-            handleGetTasksCount();
-            handleGetFoldersCount();
-        }
-
-        event.addListener(TASKS_CHANGED, onTasksEdited);
-        event.addListener(FOLDERS_CHANGED, onFolderCreated);
-
-        return () => {
-            event.removeListener(TASKS_CHANGED);
-            event.removeListener(FOLDERS_CHANGED);
-        }
-    }, []);
-
     const handleDeleteTasks = useCallback(async (init: boolean = true, data: TaskType[] | null = null) => {
         if (loadingRef.current && !data) return;
 
@@ -359,15 +337,36 @@ export const useTasksData = () => {
 
         try {
             await togglePinTask(selected.map(t => t.idTask), pin);
-            loadingRef.current = false;
-            handleGetTasks(true);
+
+            if (pin) {
+                setTasks(prev => [
+                    ...selected.map(t => ({
+                        ...t,
+                        pinned: true,
+                    })),
+                    ...prev.filter(t => !selected.some(task => task.idTask == t.idTask)),
+                ]);
+            }
+            else {
+                const tasksFormatted = [...selected.map(t => ({
+                    ...t,
+                    pinned: false,
+                }))];
+
+                setTasks(prev => [
+                    ...prev.filter(t => !tasksFormatted.some(task => task.idTask == t.idTask) && t.pinned),
+                    ...tasksFormatted,
+                    ...prev.filter(t => !tasksFormatted.some(task => task.idTask == t.idTask) && !t.pinned),
+                ]);
+            }
+            setLoading(false);
         }
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
             console.log(e);
         }
-    }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
+    }, [tasksSelected, i18n.language, setToast, loading]);
 
     const handleMarkDone = useCallback(async () => {
         if (loadingRef.current || !selectMap.current || selectMap.current.size == 0) return;
@@ -407,6 +406,8 @@ export const useTasksData = () => {
         loading,
         handleGetTasks,
         handleGetFolders,
+        handleGetTasksCount,
+        handleGetFoldersCount,
         tasksCount,
         foldersCount,
         refreshTranslateY: refreshTranslate,

@@ -4,11 +4,34 @@ import { TasksHeader } from "@/components/tasks/header";
 import { TasksPager } from "@/components/tasks/pager";
 import { TasksSearch } from "@/components/tasks/search";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
+import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
+import { useEffect } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
 export default function Tasks() {
     const context = useTasksData();
     const foldersModalActive = useSharedValue<boolean>(false);
+
+    useEffect(() => {
+        const onTasksEdited = () => {
+            context.handleGetTasks(true);
+            context.handleGetTasksCount();
+        }
+        const onFolderCreated = () => {
+            context.handleGetTasks(true);
+            context.handleGetFolders();
+            context.handleGetTasksCount();
+            context.handleGetFoldersCount();
+        }
+
+        event.addListener(TASKS_CHANGED, onTasksEdited);
+        event.addListener(FOLDERS_CHANGED, onFolderCreated);
+
+        return () => {
+            event.removeListener(TASKS_CHANGED);
+            event.removeListener(FOLDERS_CHANGED);
+        }
+    }, []);
 
     return (
         <Container centerX>

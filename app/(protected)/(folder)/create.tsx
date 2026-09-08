@@ -358,7 +358,7 @@ export default function CreateFolderPager() {
             else {
                 await createFolder(inputsValues.title.trim().slice(0, titleLengthLimit), inputsValues.tasks.map(t => t.idTask));
             }
-            
+
             setLoading(false);
             event.emit(FOLDERS_CHANGED);
             if (paramAction && paramAction == "edit") {
@@ -366,6 +366,13 @@ export default function CreateFolderPager() {
             }
             else {
                 setToast(t("create_folder_success"), "success");
+            }
+
+            if (paramAction && paramAction == "edit") {
+                initialInputValues = {
+                    ...initialInputValues,
+                    title: inputsValues.title,
+                }
             }
             setInputsValues(initialInputValues);
         }

@@ -304,8 +304,21 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
                             style={selectAnimation}
                             className="absolute left-0 top-0 w-full dark:bg-black bg-white z-[10]"
                         >
+                            <View className="w-full flex flex-row justify-between items-center px-3 dark:bg-black bg-black/5">
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => setTasksSelected([])}
+                                    className="size-[50px] dark:bg-black bg-white rounded-full"
+                                >
+                                    <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+                                        <FontAwesome6
+                                            name="xmark"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                        />
+                                    </View>
+                                </PressableAnimated>
 
-                            <View className="w-full flex flex-row justify-end px-5 py-2 dark:bg-black bg-black/5">
                                 <PressableAnimated
                                     onPress={() => {
                                         contextMenuActive.value = true;
@@ -320,6 +333,8 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
                                 </PressableAnimated>
                             </View>
                         </Animated.View>
+
+                        {/* Context menu */}
 
                         <Animated.View
                             style={contextMenuContainerAnimation}

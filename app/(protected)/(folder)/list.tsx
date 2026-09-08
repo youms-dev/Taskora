@@ -202,14 +202,19 @@ export default function FolderList() {
         return null;
     }, [loading, i18n.language, theme]);
 
-    const handleGetFolders = useCallback(async () => {
+    const handleGetFolders = useCallback(async (refresh: boolean = false) => {
         if (loading || deleteLoading.current) return;
 
         try {
             setLoading(true);
-            const data = await getFolders(folders.length, fetchLimit) as FolderType[];
+            const data = await getFolders(refresh ? 0 : folders.length, fetchLimit) as FolderType[];
 
-            setFolders(prev => [...prev, ...data.filter(item => !prev.includes(item))]);
+            if (refresh) {
+                setFolders(data);
+            }
+            else {
+                setFolders(prev => [...prev, ...data.filter(item => !prev.includes(item))]);
+            }
             setLoading(false);
         }
         catch (e) {
@@ -230,10 +235,6 @@ export default function FolderList() {
         }
     }, [loading, i18n.language, folders.length]);
 
-    useEffect(() => {
-        handleGetFoldersCount();
-        handleGetFolders();
-    }, []);
 
     const onEndReached = useCallback(async () => {
         if (loading || folders.length >= foldersCount) return;
@@ -528,6 +529,22 @@ export default function FolderList() {
         });
         handleClose();
     }, [folderSelected]);
+
+    useEffect(() => {
+        handleGetFoldersCount();
+        handleGetFolders();
+
+        const onFoldersChanged = () => {
+            handleGetFolders(true);
+            handleGetFoldersCount();
+        }
+
+        event.addListener(FOLDERS_CHANGED, onFoldersChanged);
+
+        return () => {
+            event.removeListener(FOLDERS_CHANGED);
+        }
+    }, []);
 
     return (
         <Container centerX>
