@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
+import { event, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
@@ -32,16 +33,23 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
     const dayWidth = useMemo(() => (width / 7) - 3, [width]);
     const loading = useRef<boolean>(false);
     const { getTasksByDate } = useTasks();
-    const limit = 10;
     const [tasks, setTasks] = useState<Map<string, TaskType[]>>(new Map());
     const timeout = useRef<ReturnType<typeof setTimeout>>(0);
-    const daysHeight = useMemo(() => {
-        return (height / (days.length / 7));
-    }, [height, days.length]);
     const daysGap = 5;
     const router = useRouter();
+    const eventHeight = 30;
 
-    const renderItem = useCallback(({ item: day, index }: { item: Date; index: number }) => {
+    const daysHeight = useMemo(() => {
+        return (height / (days.length / 7)) - daysGap * 2;
+    }, [height, days.length]);
+
+    const eventsContainerHeight = useMemo(() => {
+        return (daysHeight * .8);
+    }, [daysHeight]);
+
+    const prevEventsContainerHeight = useRef<number>(eventsContainerHeight);
+
+    const renderItem = useCallback(({ item: day }: { item: Date }) => {
         const today = isToday(day);
         const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
 
@@ -52,6 +60,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                 onPress={() => {
                     if (data.length > 0) {
                         setTargetDate(day);
+                        event.emit(UNTOUCHABLE_NAVBAR);
                     }
                     else {
                         router.navigate({
@@ -66,23 +75,30 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                 }}
                 style={{
                     width: dayWidth,
-                    height: daysHeight - daysGap * 2,
+                    height: daysHeight,
                 }}
                 className={clsx(
                     "flex items-center gap-1 py-2 overflow-hidden rounded-xl border",
                     data.length > 0 && !isNotPartOfThisMonth ? "dark:bg-white/10 bg-white dark:border-white/10 border-black/10" : "dark:bg-white/5 bg-white/40 dark:border-white/5 border-black/5",
                 )}
             >
-                <Text className={clsx(
-                    today && "font-bold tracking-widest text-emerald-500",
-                    day.getDay() == 0 && !today && "dark:text-red-500/50 text-red-500/70",
-                    !today && day.getDay() > 0 && "dark:text-white/80 text-black/90",
-                    isNotPartOfThisMonth && "opacity-40",
-                )}>
-                    {day.getDate()}
-                </Text>
+                <View className="w-full h-[25px] flex items-center">
+                    <Text className={clsx(
+                        today && "font-bold tracking-widest text-emerald-500",
+                        day.getDay() == 0 && !today && "dark:text-red-500/50 text-red-500/70",
+                        !today && day.getDay() > 0 && "dark:text-white/80 text-black/90",
+                        isNotPartOfThisMonth && "opacity-40",
+                    )}>
+                        {day.getDate()}
+                    </Text>
+                </View>
 
-                <View className="w-full flex items-center gap-1">
+                <View
+                    style={{
+                        height: eventsContainerHeight,
+                    }}
+                    className="w-full flex items-center gap-1"
+                >
                     {
                         data.length > 0 && data.map(task => {
                             let iconData: ICON_TYPE | null = null;
@@ -98,8 +114,11 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                             return (
                                 <View
                                     key={task.idTask}
+                                    style={{
+                                        height: eventHeight,
+                                    }}
                                     className={clsx(
-                                        "w-full h-[30px] flex flex-row gap-1 overflow-hidden",
+                                        "w-full flex flex-row gap-1 overflow-hidden",
                                         isNotPartOfThisMonth && "opacity-60",
                                     )}
                                 >
@@ -140,45 +159,48 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                 </View>
             </Pressable>
         );
-    }, [tasks, dayWidth, daysHeight]);
+    }, [tasks, dayWidth, daysHeight, eventsContainerHeight]);
 
     const handleGetTasks = useCallback(async () => {
-        if (loading.current || tasks.size > 0) return;
+        if ((loading.current || tasks.size > 0) && eventsContainerHeight == prevEventsContainerHeight.current) return;
         timeout.current && clearTimeout(timeout.current);
 
         timeout.current = setTimeout(async () => {
             loading.current = true;
             try {
-                const tasks: [string, TaskType[]][] = [];
-                await Promise.all(days.map(async (day, index) => {
+                const tab: [string, TaskType[]][] = [];
+                await Promise.all(days.map(async (day) => {
                     const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
 
                     if (isNotPartOfThisMonth) {
                         return;
                     }
-                    const data = await getTasksByDate(day, 2, 0) as TaskType[];
+                    const data = await getTasksByDate(day, Math.floor(eventsContainerHeight / eventHeight), 0) as TaskType[];
 
-                    tasks.push([format(day, "dd MMMM yyyy"), data]);
+                    tab.push([format(day, "dd MMMM yyyy"), data]);
                 }));
 
-                setTasks(new Map(tasks));
+                setTasks(new Map(tab));
                 loading.current = false;
             }
             catch (e) {
                 loading.current = false;
-                console.log(e);
             }
         }, 100);
-    }, [month, tasks]);
+    }, [month, tasks, eventsContainerHeight]);
 
     useEffect(() => {
         if (active) {
             handleGetTasks();
         }
         else {
-            timeout.current && clearTimeout(timeout.current);
+            if (timeout.current) {
+                clearTimeout(timeout.current);
+                loading.current = false;
+            }
         }
     }, [active]);
+
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
         length: (dayWidth + daysGap),

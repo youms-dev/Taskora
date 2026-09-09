@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, GestureResponderEvent, Pressable, useWindowDimensions, View } from "react-native";
+import { BackHandler, FlatList, GestureResponderEvent, Pressable, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -80,6 +80,7 @@ export default function FolderList() {
             y,
         };
         setFolderSelect(folder);
+        Vibration.vibrate(100);
     }, [screenWidth, screenHeight]);
 
     const onFolderPress = useCallback((folder: FolderType) => {
@@ -464,7 +465,9 @@ export default function FolderList() {
                     foldersTmp.current = [];
                     setLoading(false);
                     deleteLoading.current = false;
-                }
+                },
+                5,
+                40,
             );
 
             return;

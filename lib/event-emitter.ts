@@ -13,3 +13,7 @@ export const EXPAND_NAVBAR =  "expand-navbar";
 export const TASKS_CHANGED =  "tasks-changed";
 
 export const FOLDERS_CHANGED =  "folders-changed";
+
+export const TOUCHABLE_NAVBAR =  "touchable-navbar";
+
+export const UNTOUCHABLE_NAVBAR =  "untouchable-navbar";

@@ -21,7 +21,7 @@ export const useTasksData = () => {
     const { setToast, setDismiss } = useToast();
     const synced = useRef<boolean>(false);
     const syncLoading = useRef<boolean>(false);
-    const { getFolders, getFoldersCount } = useFolders();
+    const { getFolders, getFoldersCount, deleteFolder } = useFolders();
     const [tasksCount, setTasksCount] = useState<number>(0);
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const refreshTranslateY = useSharedValue<number>(0);
@@ -35,6 +35,8 @@ export const useTasksData = () => {
     const tasksCountTmp = useRef<number>(0);
     const selectMap = useRef<Map<string, TaskType>>(null);
     const { t, i18n } = useTranslation();
+    const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
+    const foldersTmp = useRef<FolderType[]>([]);
 
     const displayedTasks = useMemo(() => {
         if (currentFilter === 2) return tasks.filter(t => t.done);
@@ -390,6 +392,60 @@ export const useTasksData = () => {
         }
     }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
 
+    const handleDeleteFolder = useCallback(async (init: boolean = true, entry: FolderType) => {
+        if (loadingRef.current && init) return;
+
+        if (init) {
+            setLoading(true);
+
+            foldersTmp.current = [...folders];
+            setFolders(prev => [...prev.filter(f => f.idFolder != entry.idFolder)]);
+            setFoldersCount(prev => prev - 1);
+            setTasks(prev => [
+                ...prev.map(t => {
+                    let data = t;
+
+                    if (t.idFolder && t.idFolder == entry.idFolder) {
+                        data = {
+                            ...t,
+                            idFolder: null,
+                        }
+                    }
+
+                    return data;
+                }),
+            ]);
+
+            setDismiss(
+                () => {
+                    handleDeleteFolder(false, entry);
+                },
+                () => {
+                    loadingRef.current = false;
+                    handleGetTasks(true);
+                    foldersTmp.current.length > 0 && setFolders([...foldersTmp.current]);
+                    setFoldersCount(prev => prev + 1);
+                    foldersTmp.current = [];
+                },
+            );
+
+            return;
+        }
+
+        try {
+            await deleteFolder(entry.idFolder);
+            setLoading(false);
+        }
+        catch (e) {
+            loadingRef.current = false;
+            handleGetTasks(true);
+            setFoldersCount(prev => prev + 1);
+            setToast(t("sqlite_error"), "error");
+            foldersTmp.current = [];
+            console.log(e);
+        }
+    }, [folders, i18n.language, setDismiss, setToast, selectMap]);
+
     useEffect(() => {
         handleGetTasksCount();
         handleGetFoldersCount();
@@ -425,6 +481,9 @@ export const useTasksData = () => {
         handleMoveTasks,
         handleTogglePinTasks,
         handleMarkDone,
+        folderSelected,
+        setFolderSelected,
+        handleDeleteFolder,
     });
 };
 

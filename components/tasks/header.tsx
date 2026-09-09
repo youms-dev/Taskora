@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
+import { event, HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -12,13 +12,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { FlatList, GestureResponderEvent, Pressable, ScrollView, Text, useWindowDimensions, Vibration, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { DEFAULT_FOLDER } from "./pager";
+import { DEFAULT_FOLDER, folderContextMenuWidth } from "./pager";
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -56,13 +56,16 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
 
 export const scrollCheckPoint = 100;
 
+export type PositionType = number | null;
+
 interface Props {
-    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected" | "handleTogglePinTasks" | "handleMarkDone">;
+    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected" | "handleTogglePinTasks" | "handleMarkDone" | "setFolderSelected">;
     foldersModalActive: SharedValue<boolean>;
+    position: SharedValue<PositionType>;
 }
 
-export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone } = context;
+export const TasksHeader = memo(({ context, foldersModalActive, position: selectPosition }: Props) => {
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone,setFolderSelected } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -83,7 +86,22 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
         foldersFlatListRef.current?.scrollToOffset({
             offset: index == 0 ? 0 : (index * foldersButtonsSizes.current[index]),
         });
-    }, [folders, currentFolder]);
+    }, [currentFolder]);
+
+    const onFolderLongPress = useCallback((e: GestureResponderEvent, folder: FolderType, index: number) => {
+        if (index == 0) return;
+        const { pageX } = e.nativeEvent;
+        let x = pageX;
+
+        if (pageX > (screenWidth / 2)) {
+            x = pageX - folderContextMenuWidth;
+        }
+
+        selectPosition.value = x;
+        setFolderSelected(folder);
+        Vibration.vibrate(100);
+        event.emit(UNTOUCHABLE_NAVBAR);
+    }, [screenWidth]);
 
     const foldersRenderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
         const isActive = index === 0 ? currentFolder === null : currentFolder === folder.idFolder;
@@ -93,12 +111,19 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
                 key={folder.idFolder}
                 active={isActive}
                 onPress={() => onFolderPress(folder, index)}
+                delayLongPress={150}
+                onLongPress={(e) => onFolderLongPress(e, folder, index)}
                 onLayout={(e) => foldersButtonsSizes.current[index] = e.nativeEvent.layout.width}
             >
-                {index == 0 ? t("tasks_all_folders") : folder.title.charAt(0).toUpperCase() + folder.title.slice(1).toLowerCase()}
+                {
+                    index == 0 ?
+                        t("tasks_all_folders")
+                        :
+                        folder.title.charAt(0).toUpperCase() + folder.title.slice(1).toLowerCase()
+                }
             </FolderButton>
         );
-    }, [folders, currentFolder, onFolderPress, i18n.language]);
+    }, [currentFolder, onFolderPress, i18n.language, onFolderLongPress]);
 
     useEffect(() => {
         screenWidthShared.value = screenWidth;
@@ -727,5 +752,7 @@ export const TasksHeader = memo(({ context, foldersModalActive }: Props) => {
         Object.is(prev.context.handleTogglePinTasks, next.context.handleTogglePinTasks)
         &&
         Object.is(prev.context.handleMarkDone, next.context.handleMarkDone)
+        &&
+        Object.is(prev.context.setFolderSelected, next.context.setFolderSelected)
     );
 });

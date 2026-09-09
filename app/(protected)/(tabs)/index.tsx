@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import { TasksFooter } from "@/components/tasks/footer";
-import { TasksHeader } from "@/components/tasks/header";
+import { PositionType, TasksHeader } from "@/components/tasks/header";
 import { TasksPager } from "@/components/tasks/pager";
 import { TasksSearch } from "@/components/tasks/search";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
@@ -11,6 +11,7 @@ import { useSharedValue } from "react-native-reanimated";
 export default function Tasks() {
     const context = useTasksData();
     const foldersModalActive = useSharedValue<boolean>(false);
+    const position = useSharedValue<PositionType>(null);
 
     useEffect(() => {
         const onTasksEdited = () => {
@@ -38,11 +39,13 @@ export default function Tasks() {
             <TasksHeader
                 context={context}
                 foldersModalActive={foldersModalActive}
+                position={position}
             />
 
             <TasksPager
                 context={context}
                 foldersModalActive={foldersModalActive}
+                position={position}
             />
 
             <TasksSearch context={context} />

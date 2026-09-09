@@ -4,6 +4,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { event as eventEmitter, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -13,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
+import { BackHandler, FlatList, GestureResponderEvent, Pressable, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -73,6 +74,29 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
 
+    const onPress = useCallback((event: TaskType) => {
+        if (selected) return;
+        router.navigate({
+            pathname: "/(protected)/(task)/[id]",
+            params: {
+                id: event.idTask,
+            }
+        });
+        handleClose();
+    }, []);
+
+    const onLongPress = useCallback((e: GestureResponderEvent, event: TaskType) => {
+        const { pageX, pageY } = e.nativeEvent;
+
+        setSelected(event);
+        !position.value && Vibration.vibrate(100);
+        position.value = {
+            x: pageX > (screenWidth / 2) ? pageX - contextMenuWidth : pageX,
+            y: pageY > (screenHeight * .7) ? pageY - (contextMenuHeight + (contextMenuHeight / 2)) : pageY,
+        };
+        eventEmitter.emit(UNTOUCHABLE_NAVBAR);
+    }, [selected, screenHeight, screenHeight]);
+
     const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
         let iconData: ICON_TYPE | null = null;
 
@@ -92,25 +116,8 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             }>
                 <Pressable
                     delayLongPress={150}
-                    onPress={() => {
-                        if (selected) return;
-                        router.navigate({
-                            pathname: "/(protected)/(task)/[id]",
-                            params: {
-                                id: event.idTask,
-                            }
-                        });
-                        handleClose();
-                    }}
-                    onLongPress={(e) => {
-                        const { pageX, pageY } = e.nativeEvent;
-
-                        setSelected(event);
-                        position.value = {
-                            x: pageX > (screenWidth / 2) ? pageX - contextMenuWidth : pageX,
-                            y: pageY > (screenHeight * .7) ? pageY - (contextMenuHeight + (contextMenuHeight / 2)) : pageY,
-                        };
-                    }}
+                    onPress={() => onPress(event)}
+                    onLongPress={(e) => onLongPress(e, event)}
                     style={{
                         height: CALENDAR_TASK_HEIGHT,
                     }}
@@ -189,7 +196,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                 </Pressable>
             </Animated.View>
         );
-    }, [screenWidth, screenHeight, selected]);
+    }, [selected, onLongPress, onPress]);
 
     const listFooterComponent = useCallback(() => {
         if (loading) {
@@ -258,10 +265,13 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             if (position.value) {
                 setSelected(null);
                 position.value = null;
+                eventEmitter.emit(TOUCHABLE_NAVBAR);
+
                 return true;
             }
             else if (active.value) {
                 handleClose();
+
                 return true;
             }
             return false;
@@ -324,6 +334,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             setEvents([]);
             setEventsCount(0);
         }, 500);
+        eventEmitter.emit(TOUCHABLE_NAVBAR);
     }, []);
 
     const contextMenuAnimation = useAnimatedStyle(() => ({

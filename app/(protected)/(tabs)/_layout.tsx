@@ -2,7 +2,7 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -60,6 +60,7 @@ export default function Layout() {
     const [minimize, setMinimize] = useState<boolean>(false);
     const navHeight = useSharedValue<number>(0);
     const tabChangeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const touchable = useSharedValue<boolean>(true);
 
     useEffect(() => {
         const onOpen = () => {
@@ -77,11 +78,22 @@ export default function Layout() {
             setMinimize(false);
         }
 
+        const onTouchable = () => {
+            touchable.value = true;
+        }
+
+        const onUntouchable = () => {
+            touchable.value = false;
+        }
+
         event.addListener(SHOW_NAVBAR, onClose);
         event.addListener(HIDE_NAVBAR, onOpen);
 
         event.addListener(MINIMIZE_NAVBAR, onMinimize);
         event.addListener(EXPAND_NAVBAR, onExpand);
+
+        event.addListener(TOUCHABLE_NAVBAR, onTouchable);
+        event.addListener(UNTOUCHABLE_NAVBAR, onUntouchable);
 
         return () => {
             event.removeAllListeners(HIDE_NAVBAR);
@@ -89,6 +101,8 @@ export default function Layout() {
             event.removeAllListeners(MINIMIZE_NAVBAR);
             event.removeAllListeners(EXPAND_NAVBAR);
             event.removeAllListeners(TASKS_CHANGED);
+            event.removeAllListeners(TOUCHABLE_NAVBAR);
+            event.removeAllListeners(UNTOUCHABLE_NAVBAR);
         }
     }, []);
 
@@ -128,6 +142,7 @@ export default function Layout() {
             }
         ],
         borderRadius: minimizeShared.value ? 9999 : 50,
+        pointerEvents: touchable.value ? "auto" : "none",
     }));
 
     useEffect(() => {
