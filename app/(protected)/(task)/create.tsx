@@ -12,6 +12,7 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
+import { TASKS_CHANNEL_ID } from "@/constants/notification";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
@@ -19,9 +20,11 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { faker } from "@faker-js/faker";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
+import { getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -321,6 +324,35 @@ export default function CreateTaskPage() {
         }));
         setFolderSelected(entry);
     }, []);
+
+    const handleSubmit = useCallback(async () => {
+        console.log("pressed");
+        const { status } = await getPermissionsAsync();
+        await requestPermissionsAsync();
+
+        console.log("status :", status);
+
+        const id = await scheduleNotificationAsync({
+            content: {
+                title: "Test de notification schedulé",
+                subtitle: target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2"),
+                body: faker.lorem.sentences({ min: 1000, max: 2000 }),
+                sound: "sound01.wav",
+            },
+            trigger: {
+                channelId: TASKS_CHANNEL_ID,
+                repeats: true,
+                second: 2,
+            },
+            // trigger: {
+            //     type: SchedulableTriggerInputTypes.DATE,
+            //     date: new Date(2026, 8, 10, 13, 3, 30),
+            // },
+            // trigger: null,
+        });
+
+        console.log("Scheduled :", id);
+    }, [target]);
 
     return (
         <Container centerX>
@@ -853,9 +885,7 @@ export default function CreateTaskPage() {
                     <PressableAnimated
                         scale={.95}
                         disabled={loading}
-                        onPress={() => {
-                            // console.log("inputs values :", inputsValues);
-                        }}
+                        onPress={() => handleSubmit()}
                         className={clsx(
                             "w-[80%] sm:w-[300px] h-[50px] dark:bg-black bg-white rounded-3xl",
                             loading && "opacity-50",

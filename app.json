@@ -76,7 +76,22 @@
           ]
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo.png",
+          "color": "#000000",
+          "defaultChannel": "default",
+          "sounds": [
+            "./assets/sounds/sound01.wav",
+            "./assets/sounds/sound02.wav",
+            "./assets/sounds/sound03.wav",
+            "./assets/sounds/sound04.wav"
+          ],
+          "enableBackgroundRemoteNotifications": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
