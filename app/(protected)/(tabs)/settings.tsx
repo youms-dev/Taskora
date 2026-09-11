@@ -8,10 +8,13 @@ import { TextAnimated } from "@/components/text-animated";
 import { TextGradient } from "@/components/text-gradient";
 import { ThemeCard } from "@/components/theme-card";
 import { Toggle } from "@/components/toggle";
+import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { COLORS } from "@/constants/colors";
-import { APP_NAME, CONFIRM_STORAGE, LANGUAGE_STORAGE } from "@/constants/names";
+import { APP_NAME } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
+import { NotificationSoundType } from "@/types/setting";
 import { FontAwesome } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -22,7 +25,7 @@ import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
@@ -31,7 +34,6 @@ import { scheduleOnRN } from "react-native-worklets";
 export default function Settings() {
     const { t, i18n } = useTranslation();
     const { theme, target, setTheme } = useTheme();
-    const [confirm, setConfirm] = useState<boolean>(false);
     const { user, loading } = useAuth();
     const scrollY = useSharedValue(0);
     const headerHeight = 250;
@@ -42,6 +44,15 @@ export default function Settings() {
     const [locales] = useLocales();
     const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
     const router = useRouter();
+    const { setting, setSetting } = useSettingsData();
+
+    const sound = useMemo(() => {
+        if (!setting || !setting.notificationSound) return null;
+        const data = JSON.parse(setting.notificationSound) as NotificationSoundType;
+
+        if (data.name && data.fileName) return data;
+        return null;
+    }, [setting]);
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
@@ -99,20 +110,6 @@ export default function Settings() {
             },
         ],
     }));
-
-    const handleConfirmToggle = useCallback(async () => {
-        const { setItem, removeItem } =
-            useAsyncStorage(CONFIRM_STORAGE);
-
-        if (confirm) {
-            await removeItem();
-            setConfirm(false);
-        }
-        else {
-            await setItem("true");
-            setConfirm(true);
-        }
-    }, [confirm]);
 
     useEffect(() => {
         appTheme.value = theme;
@@ -198,13 +195,22 @@ export default function Settings() {
         )
     }));
 
+    const handleConfirmToggle = useCallback(async () => {
+        setSetting({
+            ...setting!,
+            confirmBeforeDelete: !setting!.confirmBeforeDelete,
+        });
+    }, [setting]);
+
     return (
         <Container
             safeArea={false}
             statusBarColor={change ? (theme == "dark" ? "light" : "dark") : "light"}
         >
-
             <View className="flex-1 dark:bg-black bg-white/10">
+
+                {/* Header */}
+
                 <Animated.View
                     style={headerContainerAnimation}
                     className="absolute top-0 left-0 w-full z-[100] overflow-hidden"
@@ -295,6 +301,8 @@ export default function Settings() {
                         </LinearGradient>
                     </LinearGradient>
                 </Animated.View>
+
+                {/* Content */}
 
                 <Animated.ScrollView
                     ref={scrollViewRef}
@@ -479,7 +487,7 @@ export default function Settings() {
 
                                 <View className="w-[20%] h-full flex items-center shrink-0">
                                     <Toggle
-                                        active={confirm}
+                                        active={setting?.confirmBeforeDelete == true}
                                         onPress={handleConfirmToggle}
                                     />
                                 </View>
@@ -497,7 +505,12 @@ export default function Settings() {
                         </View>
 
                         <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
-                            <Pressable className="w-full flex flex-row gap-5">
+                            <Pressable
+                                onPress={() => router.navigate({
+                                    pathname: "/(protected)/(sounds)/list",
+                                })}
+                                className="self-start flex flex-row gap-5"
+                            >
                                 <View>
                                     <MaterialCommunityIcons
                                         name="music-note"
@@ -517,7 +530,12 @@ export default function Settings() {
                                         "dark:bg-white/10 bg-black/5 px-3 py-1 rounded-xl border dark:border-white/10 border-black/10",
                                     )}>
                                         <TextAnimated className="text-lg opacity-80">
-                                            {t("settings_default_sound")}
+                                            {
+                                                !sound ?
+                                                    t("settings_default_sound")
+                                                    :
+                                                    sound.name
+                                            }
                                         </TextAnimated>
                                     </View>
                                 </View>
@@ -579,7 +597,7 @@ export default function Settings() {
                                     }
                                 />
 
-                                <TextAnimated className="max-w-[90%] text-lg">
+                                <TextAnimated className="max-w-[85%] text-lg">
                                     {t("lock_app")}
                                 </TextAnimated>
                             </PressableAnimated>
@@ -597,7 +615,7 @@ export default function Settings() {
                                             }
                                         />
 
-                                        <View className="w-[80%] flex justify-center">
+                                        <View className="max-w-[80%] flex justify-center">
                                             <TextAnimated className="text-lg">
                                                 {t("settings_2FA")}
                                             </TextAnimated>

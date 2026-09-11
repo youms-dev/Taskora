@@ -46,6 +46,7 @@ function genData(): {
                 start_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, date.getMinutes(), date.getSeconds()).getTime(),
                 end_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 5, date.getMinutes(), date.getSeconds()),
                 remind_before: 30,
+                notification_id: createId(),
                 type: "event",
             }
         }
@@ -62,8 +63,9 @@ function genData(): {
                 }) : undefined,
                 done: Number(onb > 0.7),
                 start_at: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, date.getMinutes(), date.getSeconds()).getTime(),
-                type: "task",
                 pinned: pinnedCount < 3 ? 1 : 0,
+                notification_id: createId(),
+                type: "task",
             }
 
             if (pinnedCount < 3) {
@@ -100,7 +102,7 @@ const init = `
 ).join("")}
     ;
 
-    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before, pinned) VALUES
+    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before, pinned, notification_id) VALUES
     ${tasks.map((task, i) =>
     `(
         "${task.id_task}", 
@@ -113,17 +115,28 @@ const init = `
         ${task.end_at ? `"${task.end_at}"` : null},
         "${task.type}",
         ${task.remind_before ?? "NULL"},
-        ${task.pinned ? 1 : 0}
+        ${task.pinned ? 1 : 0},
+        "${task.notification_id}"
     )${i < tasks.length - 1 ? "," : ""}`
 ).join("")}
     ON CONFLICT (id_task)
     DO NOTHING;
+
+    INSERT INTO setting (id_setting, id_user) VALUES (
+        "${createId()}",
+        "${createId()}"
+    );
+`;
+
+const drop = `
+    DROP TABLE IF EXISTS task;
+    DROP TABLE IF EXISTS folder;
+    DROP TABLE IF EXISTS setting;
 `;
 
 export const INIT_DATABASE = `
-    DROP TABLE IF EXISTS task;
-    DROP TABLE IF EXISTS folder;
-
+    ${drop}
+    
     CREATE TABLE if NOT EXISTS folder (
         id_folder TEXT PRIMARY KEY NOT NULL,
         title TEXT,
@@ -144,10 +157,22 @@ export const INIT_DATABASE = `
         type TEXT NOT NULL CHECK (type IN ('event', 'task')),
         remind_before INTEGER DEFAULT NULL,
         pinned BOOLEAN DEFAULT 0,
+        notification_id TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-
+        
         FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL
+        );
+        
+    CREATE TABLE IF NOT EXISTS setting(
+        id_setting TEXT NOT NULL,
+        id_user TEXT NOT NULL,
+        language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),
+        confirm_before_delete BOOLEAN DEFAULT 1,
+        notification_sound TEXT DEFAULT NULL,
+        enable_2FA BOOLEAN DEFAULT 0,
+        created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+        updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
     );
     
     CREATE INDEX IF NOT EXISTS task_id_folder_id_index ON task(id_task, id_folder);

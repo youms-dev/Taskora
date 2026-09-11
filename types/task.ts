@@ -11,6 +11,7 @@ export type TaskType = {
     type: "event" | "task";
     pinned?: boolean;
     remindBefore?: number | null;
+    notificationId: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -28,6 +29,7 @@ export type SQLiteTaskType = {
     type: "event" | "task";
     pinned?: number;
     remind_before?: number | null;
+    notification_id: string;
     created_at: Date;
     updated_at: Date;
 }

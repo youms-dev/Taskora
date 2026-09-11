@@ -1,4 +1,4 @@
-import { THEME_STORAGE } from "@/constants/names";
+import { THEME_STORAGE } from "@/constants/async-storage";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Appearance, useColorScheme } from "react-native";

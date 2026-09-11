@@ -43,7 +43,7 @@ export const useTasks = () => {
 
             const dataParsed: TaskType[] = result.length > 0 ?
                 result.map((item) => {
-                    const { id_task, id_folder, done, start_at, end_at, archived, created_at, updated_at, ...rest } = item;
+                    const { id_task, id_folder, done, start_at, end_at, archived, notification_id, created_at, updated_at, ...rest } = item;
 
                     return ({
                         ...rest,
@@ -54,6 +54,7 @@ export const useTasks = () => {
                         archived: Boolean(archived),
                         done: Boolean(done),
                         pinned: Boolean(item.pinned),
+                        notificationId: notification_id,
                         createdAt: created_at,
                         updatedAt: updated_at,
                     });
@@ -76,7 +77,7 @@ export const useTasks = () => {
         try {
             const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, id_folder, start_at, end_at, archived, done, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, start_at, end_at, archived, done, notification_id, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
@@ -87,6 +88,7 @@ export const useTasks = () => {
                     archived: Boolean(archived),
                     done: Boolean(done),
                     pinned: Boolean(item.pinned),
+                    notificationId: notification_id,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -164,7 +166,7 @@ export const useTasks = () => {
             }
 
             const dataParsed = data.length > 0 ? data.map(item => {
-                const { id_task, start_at, end_at, archived, done, created_at, updated_at, ...rest } = item;
+                const { id_task, start_at, end_at, archived, done, notification_id, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
@@ -173,6 +175,7 @@ export const useTasks = () => {
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
                     done: Boolean(done),
+                    notificationId: notification_id,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 } as TaskType);
@@ -234,7 +237,7 @@ export const useTasks = () => {
                 };
             }
 
-            const { id_task, id_folder, folder_title, start_at, archived, end_at, done, remind_before, created_at, updated_at, ...rest } = task;
+            const { id_task, id_folder, folder_title, start_at, archived, end_at, done, remind_before, notification_id, created_at, updated_at, ...rest } = task;
 
             return {
                 ...rest,
@@ -246,6 +249,7 @@ export const useTasks = () => {
                 archived: Boolean(archived),
                 done: Boolean(done),
                 remindBefore: remind_before,
+                notificationId: notification_id,
                 createdAt: created_at,
                 updatedAt: updated_at,
             } as TaskType & {

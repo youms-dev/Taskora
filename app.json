@@ -91,6 +91,12 @@
           ],
           "enableBackgroundRemoteNotifications": true
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Taskora to access your microphone."
+        }
       ]
     ],
     "experiments": {

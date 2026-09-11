@@ -24,7 +24,7 @@ import { faker } from "@faker-js/faker";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import { cancelAllScheduledNotificationsAsync, getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -337,18 +337,14 @@ export default function CreateTaskPage() {
                 title: "Test de notification schedulé",
                 subtitle: target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2"),
                 body: faker.lorem.sentences({ min: 1000, max: 2000 }),
-                sound: "sound01.wav",
+                sound: "sound02.wav",
             },
             trigger: {
                 channelId: TASKS_CHANNEL_ID,
+                type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: 2,
                 repeats: true,
-                second: 2,
             },
-            // trigger: {
-            //     type: SchedulableTriggerInputTypes.DATE,
-            //     date: new Date(2026, 8, 10, 13, 3, 30),
-            // },
-            // trigger: null,
         });
 
         console.log("Scheduled :", id);

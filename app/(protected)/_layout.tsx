@@ -1,5 +1,6 @@
-import { EVENTS_CHANNEL_ID, TASKS_CHANNEL_ID } from "@/constants/notification";
-import { AndroidAudioContentType, AndroidAudioUsage, AndroidImportance, AndroidNotificationPriority, AndroidNotificationVisibility, deleteNotificationChannelAsync, getNotificationChannelAsync, getNotificationChannelsAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
+import { TASKS_CHANNEL_ID } from "@/constants/notification";
+import { SettingsProvider } from "@/hooks/settings/use-settings-data";
+import { AndroidAudioContentType, AndroidAudioUsage, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationChannelAsync, getNotificationChannelsAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack } from "expo-router";
 import { useCallback, useEffect } from "react";
 
@@ -10,13 +11,25 @@ export default function ProtectedLayout() {
     const handleNotifs = useCallback(async () => {
         const channels = await getNotificationChannelsAsync();
 
+        await cancelAllScheduledNotificationsAsync();
+
+        console.log("Channels found :", channels.length);
+
         if (channels.length > 0) {
-            console.log("Channels found :", channels.length);
-            
-            channels.forEach(async (channel) => {
-                await deleteNotificationChannelAsync(channel.id);
-            });
+            console.log("Deleting ...");
+
+            await Promise.all(
+                channels.map(async (channel) => {
+                    await deleteNotificationChannelAsync(channel.id);
+                }),
+            );
+
+            console.log("Deleting done ...");
+            const finalChannels = await getNotificationChannelsAsync();
+
+            console.log("Final channels :", finalChannels.length);
         }
+
 
         setNotificationHandler({
             handleNotification: async () => ({
@@ -31,7 +44,7 @@ export default function ProtectedLayout() {
         await setNotificationChannelAsync(TASKS_CHANNEL_ID, {
             name: "Reminders",
             importance: AndroidImportance.HIGH,
-            sound: "sound01.wav",
+            sound: "sound02.wav",
             // sound: "default",
             enableVibrate: true,
             showBadge: true,
@@ -43,31 +56,34 @@ export default function ProtectedLayout() {
             // vibrationPattern: [0, 250, 250, 250],
         });
 
-        await setNotificationChannelAsync(EVENTS_CHANNEL_ID, {
-            name: "Events",
-            importance: AndroidImportance.HIGH,
-            sound: "sound02.wav"
-        });
+
+        // await setNotificationChannelAsync(EVENTS_CHANNEL_ID, {
+        //     name: "Events",
+        //     importance: AndroidImportance.HIGH,
+        //     sound: "sound02.wav"
+        // });
     }, []);
 
     useEffect(() => {
-        handleNotifs();
+        // handleNotifs();
     }, [handleNotifs]);
 
     return (
-        <Stack
-            initialRouteName="(tabs)"
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="(tabs)" />
+        <SettingsProvider>
+            <Stack
+                initialRouteName="(tabs)"
+                screenOptions={{
+                    headerShown: false,
+                }}
+            >
+                <Stack.Screen name="(tabs)" />
 
-            <Stack.Screen name="(local-auth)" />
+                <Stack.Screen name="(local-auth)" />
 
-            <Stack.Screen name="(user)" />
+                <Stack.Screen name="(user)" />
 
-            <Stack.Screen name="(task)" />
-        </Stack>
+                <Stack.Screen name="(task)" />
+            </Stack>
+        </SettingsProvider>
     );
 }

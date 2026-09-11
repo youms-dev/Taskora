@@ -117,5 +117,8 @@
     "folders_list_duplicate": "Duplicate",
     "folders_list_delete": "Delete",
     "folders_list_selected_count": "Selected",
-    "folders_list_folders_deleted": "Deleted successfully"
+    "folders_list_folders_deleted": "Deleted successfully",
+    "sounds_list_title": "Pick a sound",
+    "sounds_list_submit": "Confirm",
+    "sounds_list_success": "Sound changed"
 }

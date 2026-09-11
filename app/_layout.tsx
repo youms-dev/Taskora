@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
-import { LANGUAGE_STORAGE } from "@/constants/names";
+import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";

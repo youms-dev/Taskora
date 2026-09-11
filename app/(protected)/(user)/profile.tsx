@@ -5,7 +5,7 @@ import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
-import { AUTH_STORAGE } from "@/constants/names";
+import { AUTH_STORAGE } from "@/constants/async-storage";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
