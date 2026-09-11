@@ -12,6 +12,7 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
@@ -242,6 +243,7 @@ export default function CreateTaskPage() {
     const [calendarMounted, setCalendarMounted] = useState<boolean>(false);
     const [foldersModalOpened, setFoldersModalOpened] = useState<boolean>(false);
     const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
+    const { setting } = useSettingsData();
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -341,7 +343,7 @@ export default function CreateTaskPage() {
             trigger: {
                 channelId: `reminder_sound01`,
                 type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: 2,
+                seconds: 5,
                 repeats: true,
             },
         });

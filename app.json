@@ -97,7 +97,8 @@
         {
           "microphonePermission": "Allow Taskora to access your microphone."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
