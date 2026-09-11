@@ -1,8 +1,16 @@
-import { TASKS_CHANNEL_ID } from "@/constants/notification";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
-import { AndroidAudioContentType, AndroidAudioUsage, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationChannelAsync, getNotificationChannelsAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
+import { AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationChannelAsync, getNotificationChannelsAsync, NotificationChannelInput, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack } from "expo-router";
 import { useCallback, useEffect } from "react";
+
+const CONFIG: NotificationChannelInput = {
+    name: "Reminders",
+    importance: AndroidImportance.HIGH,
+    sound: "sound02.wav",
+    // sound: "default",
+    enableVibrate: true,
+    showBadge: true,
+};
 
 export default function ProtectedLayout() {
     console.log("\n");
@@ -30,7 +38,6 @@ export default function ProtectedLayout() {
             console.log("Final channels :", finalChannels.length);
         }
 
-
         setNotificationHandler({
             handleNotification: async () => ({
                 shouldPlaySound: true,
@@ -41,27 +48,10 @@ export default function ProtectedLayout() {
             }),
         });
 
-        await setNotificationChannelAsync(TASKS_CHANNEL_ID, {
-            name: "Reminders",
-            importance: AndroidImportance.HIGH,
-            sound: "sound02.wav",
-            // sound: "default",
-            enableVibrate: true,
-            showBadge: true,
-            audioAttributes: {
-                usage: AndroidAudioUsage.NOTIFICATION,
-                contentType: AndroidAudioContentType.SONIFICATION,
-            }
-
-            // vibrationPattern: [0, 250, 250, 250],
-        });
-
-
-        // await setNotificationChannelAsync(EVENTS_CHANNEL_ID, {
-        //     name: "Events",
-        //     importance: AndroidImportance.HIGH,
-        //     sound: "sound02.wav"
-        // });
+        await setNotificationChannelAsync("reminder_sound01", CONFIG);
+        await setNotificationChannelAsync("reminder_sound02", CONFIG);
+        await setNotificationChannelAsync("reminder_sound03", CONFIG);
+        await setNotificationChannelAsync("reminder_sound04", CONFIG);
     }, []);
 
     useEffect(() => {

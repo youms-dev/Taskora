@@ -12,7 +12,6 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
-import { TASKS_CHANNEL_ID } from "@/constants/notification";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
@@ -24,7 +23,7 @@ import { faker } from "@faker-js/faker";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { cancelAllScheduledNotificationsAsync, getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import { getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -340,7 +339,7 @@ export default function CreateTaskPage() {
                 sound: "sound02.wav",
             },
             trigger: {
-                channelId: TASKS_CHANNEL_ID,
+                channelId: `reminder_sound01`,
                 type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                 seconds: 2,
                 repeats: true,
