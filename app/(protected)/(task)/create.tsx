@@ -34,7 +34,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "r
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "expo-crypto";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
@@ -411,18 +411,22 @@ export default function CreateTaskPage() {
                 },
             });
 
-            const task: Omit<InputsValuesType, "icon" | "startAt" | "endAt" | "archive"> & {
+            const { archive, date: d, desc, icon, ...rest } = inputsValues;
+
+            const task: Omit<InputsValuesType, "icon" | "startAt" | "endAt" | "archive" | "date" | "desc"> & {
                 idTask: string;
                 notificationId: TaskType["notificationId"];
-                icon: string;
+                content: string | null;
+                icon: string | null;
                 startAt: number;
                 endAt: Date | null;
                 archived: boolean;
                 type: typeof target;
             } = {
-                ...inputsValues,
+                ...rest,
                 idTask: randomUUID(),
-                icon: JSON.stringify(inputsValues.icon),
+                content: desc && desc.trim().length > 0 ? desc : null,
+                icon: icon ? JSON.stringify(icon) : null,
                 notificationId,
                 // startAt: startAt.getTime(),
                 startAt: startAtTest.getTime(),

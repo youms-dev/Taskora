@@ -306,6 +306,8 @@ export const useTasks = () => {
     async function createTask(task: Omit<TaskType, "createdAt" | "updatedAt" | "pinned" | "done">): Promise<boolean | unknown> {
         if (!db) return;
 
+        console.log("task :", task);
+
         try {
             if (task.type == "task") {
                 await db.runAsync("INSERT INTO task (id_task, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.idFolder ?? null, task.title ?? null, task.content ?? null, task.icon ?? null, task.archived ? 1 : 0, task.startAt, task.notificationId, task.type]);
