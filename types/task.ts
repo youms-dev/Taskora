@@ -6,7 +6,7 @@ export type TaskType = {
     content?: string | null;
     done?: boolean | null;
     archived: boolean;
-    startAt: Date;
+    startAt: number;
     endAt?: Date | null;
     type: "event" | "task";
     pinned?: boolean;

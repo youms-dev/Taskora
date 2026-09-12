@@ -49,7 +49,7 @@ export const useTasks = () => {
                         ...rest,
                         idTask: id_task,
                         idFolder: id_folder,
-                        startAt: new Date(start_at),
+                        startAt: start_at,
                         endAt: end_at ? new Date(end_at) : null,
                         archived: Boolean(archived),
                         done: Boolean(done),
@@ -83,7 +83,7 @@ export const useTasks = () => {
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
-                    startAt: new Date(start_at),
+                    startAt: start_at,
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
                     done: Boolean(done),
@@ -171,7 +171,7 @@ export const useTasks = () => {
                 return ({
                     ...rest,
                     idTask: id_task,
-                    startAt: new Date(start_at),
+                    startAt: start_at,
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
                     done: Boolean(done),
@@ -244,7 +244,7 @@ export const useTasks = () => {
                 idTask: id_task,
                 idFolder: id_folder,
                 folderTitle: folder_title,
-                startAt: new Date(start_at),
+                startAt: start_at,
                 endAt: end_at ? new Date(end_at) : null,
                 archived: Boolean(archived),
                 done: Boolean(done),
@@ -303,6 +303,24 @@ export const useTasks = () => {
         }
     }
 
+    async function createTask(task: Omit<TaskType, "createdAt" | "updatedAt" | "pinned" | "done">): Promise<boolean | unknown> {
+        if (!db) return;
+
+        try {
+            if (task.type == "task") {
+                await db.runAsync("INSERT INTO task (id_task, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.idFolder ?? null, task.title ?? null, task.content ?? null, task.icon ?? null, task.archived ? 1 : 0, task.startAt, task.notificationId, task.type]);
+            }
+            else {
+                await db.runAsync("INSERT INTO task (id_task, title, content, icon, start_at, end_at, remind_before, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.title ?? null, task.content ?? null, task.icon ?? null, task.startAt, String(task.endAt), task.remindBefore ?? null, task.notificationId, task.type]);
+            }
+
+            return true;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+
     return {
         syncTasks,
         getTasks,
@@ -316,5 +334,6 @@ export const useTasks = () => {
         togglePinTask,
         moveTasks,
         markTasksDone,
+        createTask,
     }
 }

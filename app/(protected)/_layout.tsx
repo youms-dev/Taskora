@@ -1,5 +1,5 @@
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
-import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
+import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, dismissNotificationAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack } from "expo-router";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -107,10 +107,34 @@ export default function ProtectedLayout() {
     }, [handleNotifs]);
 
     useEffect(() => {
-        const { remove } = addNotificationResponseReceivedListener((response) => {
-            const identifier = response.actionIdentifier;
+        const { remove } = addNotificationResponseReceivedListener(async (response) => {
+            const action = response.actionIdentifier;
+            const notificationId = response.notification.request.identifier;
+            const notification = response.notification.request;
 
-            console.log("Identifier :", identifier);
+            await dismissNotificationAsync(notificationId);
+
+            if (action == "SNOOZE") {
+                console.log("SNOOZE");
+                const id = await scheduleNotificationAsync({
+                    content: {
+                        title: "Notif reprogrammée",
+                        body: notification.content.body,
+                        sound: notification.content.sound ?? "sound02.wav",
+                        categoryIdentifier: notification.content.categoryIdentifier ?? "reminder",
+                    },
+                    trigger: {
+                        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                        channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
+                        seconds: 2,
+                    },
+                });
+
+                console.log("New schedule :", id);
+            }
+            else if (action == "DELETE") {
+                console.log("DELETE");
+            }
         });
 
         return () => remove();

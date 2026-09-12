@@ -12,9 +12,13 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
+import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
+import { event, TASKS_CHANGED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
+import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -30,6 +34,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "r
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { randomUUID } from "node:crypto";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
@@ -244,6 +249,21 @@ export default function CreateTaskPage() {
     const [foldersModalOpened, setFoldersModalOpened] = useState<boolean>(false);
     const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
     const { setting } = useSettingsData();
+    const { createTask } = useTasks();
+    const titleRef = useRef<TextInput>(null);
+    const contentRef = useRef<TextInput>(null);
+    const { setToast } = useToast();
+    const loadingRef = useRef<boolean>(false);
+
+    const sound = useMemo(() => {
+        if (!setting || !setting.notificationSound) return null;
+        const data = JSON.parse(setting.notificationSound) as NotificationSoundType;
+
+        if (data.name && data.fileName) {
+            return data.fileName;
+        }
+        return null;
+    }, [setting]);
 
     const markerAnimation = useAnimatedStyle(() => ({
         width: (parentWidth.value / 2) * .9,
@@ -328,29 +348,106 @@ export default function CreateTaskPage() {
 
     const handleSubmit = useCallback(async () => {
         console.log("pressed");
-        const { status } = await getPermissionsAsync();
-        await requestPermissionsAsync();
+        if (loadingRef.current) return;
+        if (target == "task") {
+            if (!inputsValues.title || inputsValues.title.trim().length == 0) {
+                titleRef.current?.focus();
+                return;
+            }
+        }
+        else {
+            if (!inputsValues.desc || inputsValues.desc.trim().length == 0) {
+                contentRef.current?.focus();
+                return;
+            }
+        }
+        const { granted } = await getPermissionsAsync();
+        if (!granted) {
+            const { granted } = await requestPermissionsAsync();
 
-        console.log("status :", status);
+            if (!granted) {
+                setToast(
+                    t("create_request_notification_error", {
+                        entry: i18n.language == "fr" ?
+                            target == "task" ? "tâche" : "évènement"
+                            :
+                            target == "task" ? "task" : "event"
+                    }),
+                    "warning",
+                    5000
+                );
 
-        const id = await scheduleNotificationAsync({
-            content: {
-                title: "Test de notification schedulé",
-                subtitle: target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2"),
-                body: faker.lorem.sentences({ min: 1000, max: 2000 }),
-                sound: "sound03.wav",
-                categoryIdentifier: "reminder",
-            },
-            trigger: {
-                channelId: `reminder_sound03`,
-                type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                // seconds: 5,
-                repeats: true,
-            },
-        });
+                return;
+            }
+        }
 
-        console.log("Scheduled :", id);
-    }, [target]);
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+            const date = new Date();
+
+            const oldDate = inputsValues.date;
+            const [startHour, startMin] = inputsValues.startAt.split(":");
+            const [endHour, endMin] = inputsValues.startAt.split(":");
+            const startAt = new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(startHour), Number(startMin));
+            const startAtTest = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + 5);
+            const endAt = target == "event" ? new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(endHour), Number(endMin)) : null;
+
+            const notificationId = await scheduleNotificationAsync({
+                content: {
+                    // title: "Test de notification schedulé",
+                    title: inputsValues.title,
+                    subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
+                    // body: inputsValues.desc ? inputsValues.desc : null,
+                    body: faker.lorem.sentences({ min: 1000, max: 2000 }),
+                    sound: sound ? sound : "sound02.wav",
+                    categoryIdentifier: "reminder",
+                },
+                trigger: {
+                    channelId: `reminder_${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
+                    type: SchedulableTriggerInputTypes.DATE,
+                    // date: startAt,
+                    date: startAtTest,
+                },
+            });
+
+            const task: Omit<InputsValuesType, "icon" | "startAt" | "endAt" | "archive"> & {
+                idTask: string;
+                notificationId: TaskType["notificationId"];
+                icon: string;
+                startAt: number;
+                endAt: Date | null;
+                archived: boolean;
+                type: typeof target;
+            } = {
+                ...inputsValues,
+                idTask: randomUUID(),
+                icon: JSON.stringify(inputsValues.icon),
+                notificationId,
+                // startAt: startAt.getTime(),
+                startAt: startAtTest.getTime(),
+                endAt,
+                archived: inputsValues.archive,
+                type: target,
+            }
+
+            await createTask(task);
+
+            setLoading(false);
+            setToast(t("create_success"), "success");
+            event.emit(TASKS_CHANGED);
+            console.log("Scheduled :", notificationId);
+        }
+        catch (e) {
+            setLoading(false);
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [target, sound, inputsValues, setToast, i18n.language]);
+
+    useEffect(() => {
+        loadingRef.current = false;
+    }, [loading]);
 
     return (
         <Container centerX>
@@ -489,6 +586,7 @@ export default function CreateTaskPage() {
                             <View className="w-full">
                                 <View className="dark:bg-white/10 bg-white rounded-2xl">
                                     <Input
+                                        ref={titleRef}
                                         label={t(`create_form_title`)}
                                         value={inputsValues.title ?? undefined}
                                         onChangeText={(e) => setInputsValues({
@@ -502,6 +600,7 @@ export default function CreateTaskPage() {
                             <View className="w-full">
                                 <View className="dark:bg-white/10 bg-white rounded-2xl">
                                     <Input
+                                        ref={contentRef}
                                         label={t("create_form_description")}
                                         multiline
                                         value={inputsValues.desc ?? ""}

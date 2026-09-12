@@ -92,6 +92,8 @@
     "create_form_folder_default": "Par défaut",
     "create_form_folders_modal": "Sélectionnez un dossier",
     "create_no_folders": "Aucun dossier pour l'instant,\ncréez en un pour pourvoir l'utiliser",
+    "create_request_notification_error": "Vous devez autoriser l'envoi de notification pour créer votre {{entry}}",
+    "create_success": "Programmé avec succès",
     "sqlite_error": "Une erreur est survenue",
     "[id]_archived": "Archivée",
     "[id]_remaining_time": "restant{{many}}",
