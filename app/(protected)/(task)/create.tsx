@@ -349,18 +349,18 @@ export default function CreateTaskPage() {
     const handleSubmit = useCallback(async () => {
         console.log("pressed");
         if (loadingRef.current) return;
-        if (target == "task") {
-            if (!inputsValues.title || inputsValues.title.trim().length == 0) {
-                titleRef.current?.focus();
-                return;
-            }
-        }
-        else {
-            if (!inputsValues.desc || inputsValues.desc.trim().length == 0) {
-                contentRef.current?.focus();
-                return;
-            }
-        }
+        // if (target == "task") {
+        //     if (!inputsValues.title || inputsValues.title.trim().length == 0) {
+        //         titleRef.current?.focus();
+        //         return;
+        //     }
+        // }
+        // else {
+        //     if (!inputsValues.desc || inputsValues.desc.trim().length == 0) {
+        //         contentRef.current?.focus();
+        //         return;
+        //     }
+        // }
         const { granted } = await getPermissionsAsync();
         if (!granted) {
             const { granted } = await requestPermissionsAsync();
@@ -384,30 +384,34 @@ export default function CreateTaskPage() {
         try {
             setLoading(true);
             loadingRef.current = true;
-            const date = new Date();
+            const taskId = randomUUID();
 
             const oldDate = inputsValues.date;
             const [startHour, startMin] = inputsValues.startAt.split(":");
             const [endHour, endMin] = inputsValues.startAt.split(":");
             const startAt = new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(startHour), Number(startMin));
-            const startAtTest = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + 5);
             const endAt = target == "event" ? new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(endHour), Number(endMin)) : null;
 
             const notificationId = await scheduleNotificationAsync({
                 content: {
-                    // title: "Test de notification schedulé",
-                    title: inputsValues.title,
+                    title: "Test de notification schedulé",
+                    // title: inputsValues.title,
                     subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
                     // body: inputsValues.desc ? inputsValues.desc : null,
                     body: faker.lorem.sentences({ min: 1000, max: 2000 }),
                     sound: sound ? sound : "sound02.wav",
                     categoryIdentifier: "reminder",
+                    data: {
+                        taskId,
+                        taskType: target,
+                    }
                 },
                 trigger: {
                     channelId: `reminder_${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                    type: SchedulableTriggerInputTypes.DATE,
+                    // type: SchedulableTriggerInputTypes.DATE,
                     // date: startAt,
-                    date: startAtTest,
+                    type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                    // seconds: 5,
                 },
             });
 
@@ -424,12 +428,11 @@ export default function CreateTaskPage() {
                 type: typeof target;
             } = {
                 ...rest,
-                idTask: randomUUID(),
+                idTask: taskId,
                 content: desc && desc.trim().length > 0 ? desc : null,
                 icon: icon ? JSON.stringify(icon) : null,
                 notificationId,
-                // startAt: startAt.getTime(),
-                startAt: startAtTest.getTime(),
+                startAt: startAt.getTime(),
                 endAt,
                 archived: inputsValues.archive,
                 type: target,

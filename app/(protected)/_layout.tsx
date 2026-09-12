@@ -1,4 +1,6 @@
+import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
+import { event, TASKS_CHANGED } from "@/lib/event-emitter";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, dismissNotificationAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack } from "expo-router";
 import { useCallback, useEffect } from "react";
@@ -12,9 +14,8 @@ const CONFIG: NotificationChannelInput = {
 };
 
 export default function ProtectedLayout() {
-    console.log("\n");
-    console.log("\n");
     const { t, i18n } = useTranslation();
+    const { updateTaskNotification, deleteTasks } = useTasks();
 
     const handleNotifs = useCallback(async () => {
         const channels = await getNotificationChannelsAsync();
@@ -22,38 +23,19 @@ export default function ProtectedLayout() {
 
         await cancelAllScheduledNotificationsAsync();
 
-        console.log("Channels found :", channels.length);
-        console.log("Categories found :", categories.length);
-
         if (channels.length > 0) {
-            console.log("Deleting channels ...");
-
-            await deleteNotificationCategoryAsync("reminder");
-
             await Promise.all(
                 channels.map(async (channel) => {
                     await deleteNotificationChannelAsync(channel.id);
                 }),
             );
-
-            console.log("Deleting channels done ...");
-            const finalChannels = await getNotificationChannelsAsync();
-
-            console.log("Final channels :", finalChannels.length);
         }
         if (categories.length > 0) {
-            console.log("Deleting categories ...");
-
             await Promise.all(
                 categories.map(async (cat) => {
                     await deleteNotificationCategoryAsync(cat.identifier);
                 }),
             );
-
-            console.log("Deleting categories done ...");
-            const finalCategories = await getNotificationCategoriesAsync();
-
-            console.log("Final categories :", finalCategories.length);
         }
 
         await setNotificationCategoryAsync("reminder", [
@@ -111,29 +93,42 @@ export default function ProtectedLayout() {
             const action = response.actionIdentifier;
             const notificationId = response.notification.request.identifier;
             const notification = response.notification.request;
+            const taskId = notification.content.data?.taskId ?? null;
+            const taskType = notification.content.data?.taskType ?? null;
 
             await dismissNotificationAsync(notificationId);
 
-            if (action == "SNOOZE") {
-                console.log("SNOOZE");
-                const id = await scheduleNotificationAsync({
-                    content: {
-                        title: "Notif reprogrammée",
-                        body: notification.content.body,
-                        sound: notification.content.sound ?? "sound02.wav",
-                        categoryIdentifier: notification.content.categoryIdentifier ?? "reminder",
-                    },
-                    trigger: {
-                        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                        channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                        seconds: 2,
-                    },
-                });
+            if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
+                if (action == "SNOOZE") {
+                    console.log("SNOOZE");
+                    const notificationId = await scheduleNotificationAsync({
+                        content: {
+                            title: notification.content.title,
+                            subtitle: notification.content.subtitle,
+                            body: notification.content.body,
+                            sound: notification.content.sound ?? "sound02.wav",
+                            categoryIdentifier: notification.content.categoryIdentifier ?? "reminder",
+                            data: {
+                                taskId,
+                                taskType,
+                            }
+                        },
+                        trigger: {
+                            type: SchedulableTriggerInputTypes.DATE,
+                            channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
+                            // seconds: 5,
+                        },
+                    });
 
-                console.log("New schedule :", id);
-            }
-            else if (action == "DELETE") {
-                console.log("DELETE");
+                    await updateTaskNotification(taskId, notificationId, taskType);
+
+                    console.log("New schedule :", notificationId);
+                }
+                else if (action == "DELETE") {
+                    console.log("DELETE");
+                    await deleteTasks([taskId]);
+                    event.emit(TASKS_CHANGED);
+                }
             }
         });
 

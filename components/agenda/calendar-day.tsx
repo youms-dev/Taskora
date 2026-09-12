@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { event, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, TASKS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
@@ -207,6 +207,14 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
         offset: (dayWidth + daysGap) * index,
         index,
     }), [dayWidth]);
+
+    useEffect(() => {
+        event.addListener(TASKS_CHANGED, () => handleGetTasks());
+
+        return () => {
+            event.removeListener(TASKS_CHANGED);
+        }
+    }, []);
 
     return (
         <View
