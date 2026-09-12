@@ -169,7 +169,10 @@ export const INIT_DATABASE = `
         id_user TEXT NOT NULL,
         language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),
         confirm_before_delete BOOLEAN DEFAULT 1,
-        notification_sound TEXT DEFAULT NULL,
+        notification_sound TEXT DEFAULT '{
+            "name": "Sound 2",
+            "fileName": "sound02.wav"
+        }',
         enable_2FA BOOLEAN DEFAULT 0,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))

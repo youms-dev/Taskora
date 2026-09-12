@@ -338,12 +338,13 @@ export default function CreateTaskPage() {
                 title: "Test de notification schedulé",
                 subtitle: target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2"),
                 body: faker.lorem.sentences({ min: 1000, max: 2000 }),
-                sound: "sound02.wav",
+                sound: "sound03.wav",
+                categoryIdentifier: "reminder",
             },
             trigger: {
-                channelId: `reminder_sound01`,
+                channelId: `reminder_sound03`,
                 type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: 5,
+                // seconds: 5,
                 repeats: true,
             },
         });

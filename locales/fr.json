@@ -120,5 +120,7 @@
     "folders_list_folders_deleted": "Supprimé{{many}} avec succès",
     "sounds_list_title": "Sélectionnez un son",
     "sounds_list_submit": "Utiliser",
-    "sounds_list_success": "Son changé"
+    "sounds_list_success": "Son changé",
+    "layout_(protected)_delete": "Supprimer",
+    "layout_(protected)_snooze": "Dans 5 min"
 }
