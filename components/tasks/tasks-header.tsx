@@ -18,7 +18,7 @@ import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { DEFAULT_FOLDER, folderContextMenuWidth } from "./pager";
+import { DEFAULT_FOLDER, folderContextMenuWidth } from "./tasks-pager";
 
 interface FolderButtonProps extends PressableAnimatedProps {
     children: Array<string> | string;
@@ -65,7 +65,7 @@ interface Props {
 }
 
 export const TasksHeader = memo(({ context, foldersModalActive, position: selectPosition }: Props) => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone,setFolderSelected } = context;
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone, setFolderSelected } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<FlatList>(null);
@@ -141,31 +141,35 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                 ),
             }
         ],
-        opacity: loadingShared.value ?
-            (
-                refreshTranslateY.value >= 100 ?
-                    withRepeat(
-                        withSequence(
-                            withTiming(.5, {
-                                duration: 500,
-                                easing: Easing.inOut(Easing.quad),
-                            }),
-                            withDelay(
-                                500,
-                                withTiming(1, {
-                                    duration: 500,
-                                    easing: Easing.inOut(Easing.quad),
-                                }),
-                            )
-                        ),
-                        Infinity,
-                        true,
+        opacity: (loadingShared.value && refreshTranslateY.value >= 100 ?
+            withRepeat(
+                withSequence(
+                    withTiming(1, {
+                        duration: 500,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+                    withDelay(
+                        500,
+                        withTiming(.5, {
+                            duration: 500,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
                     )
-                    :
-                    0
+                ),
+                Infinity,
+                true,
             )
             :
-            refreshTranslateY.value == 0 ? 0 : 1,
+            (
+                refreshTranslateY.value == 0 ?
+                    withTiming(0, {
+                        duration: 300,
+                        easing: Easing.inOut(Easing.linear),
+                    })
+                    :
+                    1
+            )
+        ),
     }));
 
     const showRefreshAnimation = useAnimatedStyle(() => ({

@@ -38,6 +38,7 @@ export const useTasksData = () => {
     const { t, i18n } = useTranslation();
     const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
     const foldersTmp = useRef<FolderType[]>([]);
+    const deleting = useRef<boolean>(false);
 
     const displayedTasks = useMemo(() => {
         if (currentFilter === 2) return tasks.filter(t => t.done);
@@ -218,11 +219,11 @@ export const useTasksData = () => {
     const handleDeleteTasks = useCallback(async (init: boolean = true, data: TaskType[] | null = null) => {
         if (loadingRef.current && !data) return;
 
-        setLoading(true);
-
         if (init) {
             const select = [...tasksSelected];
 
+            deleting.current = true;
+            setLoading(true);
             tasksTmp.current = [...tasks];
             setTasks(prev => [...prev.filter(t => !selectMap.current?.has(t.idTask))]);
             setTasksSelected([]);
@@ -234,6 +235,7 @@ export const useTasksData = () => {
                     tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
                     tasksTmp.current = [];
                     setLoading(false);
+                    deleting.current = false;
                 });
             return;
         }
@@ -253,6 +255,7 @@ export const useTasksData = () => {
                 await dismissNotificationAsync(task.notificationId);
             }));
             tasksTmp.current = [];
+            deleting.current = false;
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;
@@ -264,6 +267,7 @@ export const useTasksData = () => {
         }
         catch (e) {
             console.log(e);
+            deleting.current = false;
             setLoading(false);
             setTasksCount(prev => prev + data.length);
             tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
@@ -275,10 +279,11 @@ export const useTasksData = () => {
     const handleDeleteTask = useCallback(async (task: TaskType, init: boolean = true, data: TaskType | null = null) => {
         if (loadingRef.current && !data) return;
 
-        setLoading(true);
         tasksTmp.current = [...tasks];
-
+        
         if (init) {
+            deleting.current = true;
+            setLoading(true);
             setTasks(prev => [...prev.filter(t => t.idTask != task.idTask)]);
             setTasksCount(prev => prev - 1);
             setDismiss(
@@ -289,22 +294,24 @@ export const useTasksData = () => {
                     tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
                     tasksTmp.current = [];
                     setLoading(false);
+                    deleting.current = false;
                 });
-            return;
+                return;
         }
 
         if (!data) {
             handleGetTasksCount();
             handleGetTasks(true);
-
+            
             return;
         }
-
+        
         try {
             await deleteTasks([data.idTask]);
             await cancelScheduledNotificationAsync(data.notificationId);
             await dismissNotificationAsync(data.notificationId);
             tasksTmp.current = [];
+            deleting.current = false;
             if (tasks.length <= tasksCount) {
                 setLoading(false);
                 loadingRef.current = false;
@@ -316,6 +323,7 @@ export const useTasksData = () => {
         }
         catch (e) {
             console.log(e);
+            deleting.current = false;
             tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
             setTasksCount(prev => prev + 1);
             tasksTmp.current = [];
@@ -497,6 +505,7 @@ export const useTasksData = () => {
         folderSelected,
         setFolderSelected,
         handleDeleteFolder,
+        deleting,
     });
 };
 

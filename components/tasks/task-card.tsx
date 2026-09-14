@@ -13,7 +13,7 @@ import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useShar
 import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
-import { SELECT_LIMIT } from "./footer";
+import { SELECT_LIMIT } from "./tasks-footer";
 import { AntDesign, Entypo } from "@expo/vector-icons";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {

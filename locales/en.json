@@ -124,5 +124,6 @@
     "sounds_list_submit": "Confirm",
     "sounds_list_success": "Sound changed",
     "layout_(protected)_delete": "Delete",
-    "layout_(protected)_snooze": "In 5 minutes"
+    "layout_(protected)_snooze": "In 5 minutes",
+    "layout_(protected)_mark_done": "Mark as done"
 }

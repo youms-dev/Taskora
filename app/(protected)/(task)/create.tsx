@@ -12,12 +12,12 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
-import { REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
+import { EVENT_REMINDER_CATEGORY, REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";
@@ -404,7 +404,7 @@ export default function CreateTaskPage() {
                     // body: inputsValues.desc ? inputsValues.desc : null,
                     body: fakeBody,
                     sound: sound ? sound : "sound02.wav",
-                    categoryIdentifier: REMINDER_CATEGORY,
+                    categoryIdentifier: target == "task" ? TASK_REMINDER_CATEGORY : EVENT_REMINDER_CATEGORY,
                     data: {
                         taskId,
                         taskType: target,
@@ -448,7 +448,8 @@ export default function CreateTaskPage() {
 
             setLoading(false);
             setToast(t("create_success"), "success");
-            event.emit(TASKS_CHANGED);
+            if (target == "task") event.emit(TASKS_CHANGED);
+            else event.emit(EVENTS_CHANGED);
             console.log("Scheduled :", notificationId);
         }
         catch (e) {

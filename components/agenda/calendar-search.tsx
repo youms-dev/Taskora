@@ -3,7 +3,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { FontAwesome } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -421,6 +421,18 @@ export const CalendarSearch = memo(({ active }: Props) => {
             }
         }
     )
+
+    useEffect(() => {
+        const onChange = () => {
+            handleSearch(value);
+        }
+
+        event.addListener(EVENTS_CHANGED, onChange);
+
+        return () => {
+            event.removeListener(EVENTS_CHANGED);
+        }
+    }, [value]);
 
     return (
         <Animated.View

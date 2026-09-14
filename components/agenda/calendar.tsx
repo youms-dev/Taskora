@@ -4,6 +4,7 @@ import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useTranslation } from "react-i18next";
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Text, useWindowDimensions, View } from "react-native";
 import { CalendarDay } from "./calendar-day";
+import { SharedValue } from "react-native-reanimated";
 
 interface Props {
     context: CalendarType;
@@ -12,9 +13,11 @@ interface Props {
     mutation: RefObject<"append" | "prepend" | "generate" | null>;
     flatListRef: RefObject<FlatList | null>;
     setTargetDate: (entry: Date | null) => void;
+    refreshing:  SharedValue<boolean>;
+    translateY:  SharedValue<number>;
 }
 
-export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef, setTargetDate }: Props) => {
+export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef, setTargetDate, refreshing, translateY }: Props) => {
     const { months, appendFutureMonths, prependPastMonths, loading, years } = context;
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { i18n } = useTranslation();
@@ -37,6 +40,8 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
             width={calendarWidth}
             height={calendarHeight}
             setTargetDate={setTargetDate}
+            refreshing={refreshing}
+            translateY={translateY}
         />
     ), [currentMonth, calendarWidth, calendarHeight, setTargetDate]);
 

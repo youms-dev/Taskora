@@ -9,7 +9,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -376,7 +376,8 @@ export default function TaskPage() {
                     pathname: "/(protected)/(tabs)",
                 });
             }
-            event.emit(TASKS_CHANGED);
+            if (task.type == "task") event.emit(TASKS_CHANGED);
+            else event.emit(EVENTS_CHANGED);
             setLoading(false);
         }
         catch (e) {
@@ -392,9 +393,11 @@ export default function TaskPage() {
         };
 
         event.addListener(TASKS_CHANGED, onChange);
+        event.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
             event.removeListener(TASKS_CHANGED);
+            event.removeListener(EVENTS_CHANGED);
         }
     }, []);
 

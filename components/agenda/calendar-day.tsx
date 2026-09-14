@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { event, TASKS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
@@ -11,6 +11,10 @@ import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
+import { SharedValue, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import { fa } from "@faker-js/faker";
+import { scheduleOnRN } from "react-native-worklets";
+import { THRESHOLD } from "./calendar-header";
 
 const generateMonthDays = (month: Date, lang: "en" | 'fr' = "en"): Date[] => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: lang == "en" ? 0 : 1 });
@@ -25,9 +29,11 @@ interface Props {
     width: number;
     height: number;
     setTargetDate: (entry: Date | null) => void;
+    refreshing: SharedValue<boolean>,
+    translateY: SharedValue<number>,
 };
 
-export const CalendarDay = memo(({ active, month, width, height, setTargetDate }: Props) => {
+export const CalendarDay = memo(({ active, month, width, height, setTargetDate, refreshing, translateY }: Props) => {
     const { i18n } = useTranslation();
     const days = useMemo(() => generateMonthDays(month, i18n.language == "en" || i18n.language == "fr" ? i18n.language : "en"), [i18n.language, month]);
     const dayWidth = useMemo(() => (width / 7) - 3, [width]);
@@ -38,6 +44,8 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
     const daysGap = 5;
     const router = useRouter();
     const eventHeight = 30;
+    const isActive = useSharedValue<boolean>(false);
+    const tasksLoaded = useRef<boolean>(false);
 
     const daysHeight = useMemo(() => {
         return (height / (days.length / 7)) - daysGap * 2;
@@ -161,8 +169,16 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
         );
     }, [tasks, dayWidth, daysHeight, eventsContainerHeight]);
 
-    const handleGetTasks = useCallback(async () => {
-        if ((loading.current || tasks.size > 0) && eventsContainerHeight == prevEventsContainerHeight.current) return;
+    const handleGetTasks = useCallback(async (refresh: boolean = false) => {
+        if (!refresh &&
+            (
+                loading.current ||
+                (
+                    tasksLoaded.current &&
+                    eventsContainerHeight === prevEventsContainerHeight.current
+                )
+            )
+        ) return;
         timeout.current && clearTimeout(timeout.current);
 
         timeout.current = setTimeout(async () => {
@@ -177,19 +193,27 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                     }
                     const data = await getTasksByDate(day, Math.floor(eventsContainerHeight / eventHeight), 0) as TaskType[];
 
-                    tab.push([format(day, "dd MMMM yyyy"), data]);
+                    if (data.length > 0) {
+                        tab.push([format(day, "dd MMMM yyyy"), data]);
+                    }
                 }));
 
-                setTasks(new Map(tab));
+                if (tab.length > 0) {
+                    setTasks(new Map(tab));
+                    tasksLoaded.current = true;
+                }
                 loading.current = false;
+                refreshing.value = false;
             }
             catch (e) {
                 loading.current = false;
+                refreshing.value = false;
             }
         }, 100);
-    }, [month, tasks, eventsContainerHeight]);
+    }, [month, eventsContainerHeight]);
 
     useEffect(() => {
+        isActive.value = !!active;
         if (active) {
             handleGetTasks();
         }
@@ -199,8 +223,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
                 loading.current = false;
             }
         }
-    }, [active]);
-
+    }, [active, eventsContainerHeight]);
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
         length: (dayWidth + daysGap),
@@ -209,12 +232,21 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
     }), [dayWidth]);
 
     useEffect(() => {
-        event.addListener(TASKS_CHANGED, () => handleGetTasks());
+        event.addListener(EVENTS_CHANGED, () => handleGetTasks());
 
         return () => {
-            event.removeListener(TASKS_CHANGED);
+            event.removeListener(EVENTS_CHANGED);
         }
-    }, []);
+    }, [handleGetTasks]);
+
+    useAnimatedReaction(
+        () => refreshing.value,
+        (next, prev) => {
+            if (next && next != prev && isActive.value) {
+                scheduleOnRN(handleGetTasks, true);
+            }
+        }
+    );
 
     return (
         <View
@@ -225,7 +257,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate }
         >
             <FlatList
                 numColumns={7}
-                nestedScrollEnabled
+                scrollEnabled={false}
                 showsVerticalScrollIndicator={false}
                 data={days}
                 keyExtractor={(day, i) => (day.toString() + i)}

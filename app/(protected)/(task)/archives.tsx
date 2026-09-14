@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
-import { REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
+import { TASK_REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -119,7 +119,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                         subtitle: t("create_section_1_item_1"),
                         body: task.content,
                         sound: sound ? sound : "sound02.wav",
-                        categoryIdentifier: REMINDER_CATEGORY,
+                        categoryIdentifier: TASK_REMINDER_CATEGORY,
                         data: {
                             taskId: task.idTask,
                             taskType: "task",
@@ -643,7 +643,7 @@ export default function Archives() {
                             subtitle: t("create_section_1_item_1"),
                             body: task.content,
                             sound: sound ? sound : "sound02.wav",
-                            categoryIdentifier: REMINDER_CATEGORY,
+                            categoryIdentifier: TASK_REMINDER_CATEGORY,
                             data: {
                                 taskId: task.idTask,
                                 taskType: "task",

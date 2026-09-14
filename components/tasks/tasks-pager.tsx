@@ -14,7 +14,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { Modal } from "../modal";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import { PositionType } from "./header";
+import { PositionType } from "./tasks-header";
 import { TaskList } from "./tasks-list";
 
 export const DEFAULT_FOLDER: FolderType = {

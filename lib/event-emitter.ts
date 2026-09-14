@@ -17,3 +17,5 @@ export const FOLDERS_CHANGED =  "folders-changed";
 export const TOUCHABLE_NAVBAR =  "touchable-navbar";
 
 export const UNTOUCHABLE_NAVBAR =  "untouchable-navbar";
+
+export const EVENTS_CHANGED =  "events-changed";

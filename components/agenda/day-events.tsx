@@ -4,8 +4,8 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event as eventEmitter, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
-import { TaskType } from "@/types/task";
+import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { TaskType as EventType } from "@/types/task";
 import { Entypo, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
@@ -25,7 +25,7 @@ import { TextAnimated } from "../text-animated";
 
 export const CALENDAR_TASK_HEIGHT = 85;
 
-export const parseCalendarDate = (entry: Date) => {
+export const parseCalendarDate = (entry: Date | number) => {
     const date = new Date(entry);
 
     return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
@@ -40,7 +40,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
-    const [event, setEvents] = useState<TaskType[]>([]);
+    const [events, setEvents] = useState<EventType[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [eventsCount, setEventsCount] = useState<number>(0);
     const eventsGap = 15;
@@ -67,14 +67,14 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         width: 0,
         height: 0,
     });
-    const [selected, setSelected] = useState<TaskType | null>(null);
+    const [selected, setSelected] = useState<EventType | null>(null);
     const router = useRouter();
 
     const displayDay = useMemo(() => {
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
 
-    const onPress = useCallback((event: TaskType) => {
+    const onPress = useCallback((event: EventType) => {
         if (selected) return;
         router.navigate({
             pathname: "/(protected)/(task)/[id]",
@@ -85,7 +85,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         handleClose();
     }, []);
 
-    const onLongPress = useCallback((e: GestureResponderEvent, event: TaskType) => {
+    const onLongPress = useCallback((e: GestureResponderEvent, event: EventType) => {
         const { pageX, pageY } = e.nativeEvent;
 
         setSelected(event);
@@ -97,7 +97,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         eventEmitter.emit(UNTOUCHABLE_NAVBAR);
     }, [selected, screenHeight, screenHeight]);
 
-    const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
+    const renderItem = useCallback(({ item: event, index }: { item: EventType; index: number }) => {
         let iconData: ICON_TYPE | null = null;
 
         if (event.icon) {
@@ -231,21 +231,22 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         return null;
     }, [loading]);
 
-    const handleGetEvents = useCallback(async () => {
+    const handleGetEvents = useCallback(async (refresh: boolean = false) => {
         if (loading || !targetDate || !active.value) return;
         setLoading(true);
 
         try {
-            const data = await getEventsByDate(targetDate, limit, event.length) as TaskType[];
+            const data = await getEventsByDate(targetDate, refresh ? events.length : limit, refresh ? 0 : events.length) as EventType[];
 
-            setEvents(prev => [...prev, ...data]);
+            if (refresh) setEvents(data);
+            else setEvents(prev => [...prev, ...data]);
             setLoading(false);
         }
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [loading, i18n.language, targetDate, event]);
+    }, [loading, i18n.language, targetDate, events]);
 
     const handleGetEventsCount = useCallback(async () => {
         if (loading || !targetDate) return;
@@ -299,9 +300,9 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     }), []);
 
     const onEndReached = useCallback(() => {
-        if (loading || event.length >= eventsCount || !active.value) return;
+        if (loading || events.length >= eventsCount || !active.value) return;
         handleGetEvents();
-    }, [loading, eventsCount, event]);
+    }, [loading, eventsCount, events]);
 
     const containerAnimation = useAnimatedStyle(() => ({
         pointerEvents: active.value ? "auto" : "none",
@@ -423,6 +424,21 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         handleClose();
     }, [selected]);
 
+    useEffect(() => {
+        const onChange = () => {
+            handleGetEventsCount();
+            handleGetEvents(true);
+            handleClose();
+            console.log("Changed");
+        }
+
+        eventEmitter.addListener(EVENTS_CHANGED, onChange);
+
+        return () => {
+            eventEmitter.removeListener(EVENTS_CHANGED);
+        }
+    }, []);
+
     return (
         <GestureDetector gesture={tapGesture}>
             <Animated.View
@@ -511,7 +527,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             horizontal={false}
                             showsVerticalScrollIndicator={false}
                             removeClippedSubviews
-                            data={event}
+                            data={events}
                             keyExtractor={(item) => item.idTask}
                             renderItem={renderItem}
                             updateCellsBatchingPeriod={0}
@@ -552,6 +568,8 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                         </LinearGradient>
                     </View>
                 </Animated.View>
+
+                {/* Context menu */}
 
                 <Animated.View
                     style={[

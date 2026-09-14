@@ -24,7 +24,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter } = context;
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter, deleting } = context;
     const nativeGesture = useMemo(() => Gesture.Native(), []);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
@@ -89,7 +89,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
                 .onEnd(() => {
                     if (scrollY.value > 0 || refreshTranslateY.value < 90 || loadingShared.value || filtering.value) {
                         refreshTranslateY.value = withTiming(0, {
-                            duration: 200,
+                            duration: 300,
                             easing: Easing.inOut(Easing.quad),
                         });
                     }
@@ -115,7 +115,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     }, [loading]);
 
     const listFooterComponent = useCallback(() => {
-        if (loading && selectMap.size == 0) {
+        if (loading && selectMap.size == 0 && !deleting.current) {
             return (
                 <View
                     style={{
@@ -174,7 +174,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
         handleGetTasks();
     }, [loading, selectMap, currentFilter, folderIndex]);
 
-    const getItemLayout = useCallback((data: any, index: number) => ({
+    const getItemLayout = useCallback((_data: any, index: number) => ({
         length: (taskHeight + tasksGap),
         offset: index * (taskHeight + tasksGap),
         index: index,

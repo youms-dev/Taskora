@@ -1,17 +1,20 @@
 import { monthsTranslation } from "@/constants/calendar";
 import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
+import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import clsx from "clsx";
 import { format, startOfMonth } from "date-fns";
 import { memo, RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, Pressable, View } from "react-native";
-import Animated, { Easing, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import { BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
+
+export const THRESHOLD = 100;
 
 interface Props {
     context: Pick<CalendarType, "months" | "years" | "generateMonths" | "loading">;
@@ -22,9 +25,11 @@ interface Props {
     flatListRef: RefObject<FlatList | null>;
     animationRef: RefObject<boolean>;
     searchSectionActive: SharedValue<boolean>;
+    translateY: SharedValue<number>;
+    refreshing: SharedValue<boolean>;
 }
 
-export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef, searchSectionActive }: Props) => {
+export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef, searchSectionActive, translateY, refreshing }: Props) => {
     const { theme } = useTheme();
     const showYearsList = useSharedValue<boolean>(false);
     const { months, years, generateMonths } = context;
@@ -36,6 +41,9 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
     const [listActive, setListActive] = useState<boolean>(false);
     const showMonthsList = useSharedValue<boolean>(false);
     const date = useMemo(() => new Date(), []);
+    const refreshControlWidth = useSharedValue<number>(0);
+    const { width: screenWidth } = useWindowDimensions();
+    const screenWidthShared = useSharedValue<number>(screenWidth);
 
     const monthsMap = useMemo(() => {
         return (
@@ -278,17 +286,65 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
         return index != -1 ? index : 0;
     }, [currentMonth]);
 
-    const monthsGetItemLayout = useCallback((data: unknown, index: number) => ({
+    const monthsGetItemLayout = useCallback((_data: unknown, index: number) => ({
         length: (monthHeight + monthsGap),
         offset: (monthHeight + monthsGap) * index,
         index,
     }), [monthHeight, monthsGap]);
 
-    const yearsGetItemLayout = useCallback((data: unknown, index: number) => ({
+    const yearsGetItemLayout = useCallback((_data: unknown, index: number) => ({
         length: (yearHeight + yearsGap),
         offset: (yearHeight + yearsGap) * index,
         index,
     }), [yearHeight, yearsGap]);
+
+    const refreshControlAnimation = useAnimatedStyle(() => ({
+        left: (screenWidthShared.value / 2) - (refreshControlWidth.value / 2),
+        top: 0,
+        transform: [
+            {
+                translateY: interpolate(
+                    translateY.value,
+                    [0, THRESHOLD],
+                    [10, THRESHOLD],
+                    Extrapolation.CLAMP,
+                ),
+            },
+        ],
+        opacity: (refreshing.value && translateY.value > 0 ?
+            withRepeat(
+                withSequence(
+                    withTiming(1, {
+                        duration: 300,
+                        easing: Easing.inOut(Easing.linear),
+                    }),
+                    withDelay(
+                        500,
+                        withTiming(.5, {
+                            duration: 300,
+                            easing: Easing.inOut(Easing.linear),
+                        }),
+                    )
+                ),
+                Infinity,
+                true,
+            )
+            :
+            (
+                translateY.value > 0 ?
+                1
+                :
+                withTiming(0, {
+                    duration: 300,
+                    easing: Easing.inOut(Easing.linear),
+                })
+            )
+        ),
+    }));
+
+    useEffect(() => {
+        screenWidthShared.value = screenWidth;
+    }, [screenWidth]);
 
     return (
         <View className="w-full">
@@ -508,6 +564,34 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
                             />
                         </View>
                     </Animated.View>
+                </View>
+            </Animated.View>
+
+            {/* Refresh control */}
+
+            <Animated.View
+                onLayout={(e) => refreshControlWidth.value = e.nativeEvent.layout.width}
+                style={refreshControlAnimation}
+                className="absolute dark:bg-black bg-white rounded-full z-[100]"
+            >
+                <View
+                    style={{
+                        transform: [
+                            {
+                                translateY: 8,
+                            },
+                        ],
+                        filter: "blur(5px)",
+                    }}
+                    className="absolute left-0 top-0 size-full dark:bg-black/50 bg-black/30 rounded-full"
+                />
+
+                <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full p-3 border dark:border-white/5 border-black/5">
+                    <MaterialCommunityIcons
+                        name="calendar-sync"
+                        size={30}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                    />
                 </View>
             </Animated.View>
         </View>

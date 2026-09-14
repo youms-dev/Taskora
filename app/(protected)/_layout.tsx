@@ -1,11 +1,12 @@
-import { DELETE_CATEGORY, REMINDER_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY } from "@/constants/notifications";
+import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
-import { event, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, dismissNotificationAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack } from "expo-router";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Platform } from "react-native";
 
 const CONFIG: NotificationChannelInput = {
     name: "Reminders",
@@ -16,7 +17,7 @@ const CONFIG: NotificationChannelInput = {
 
 export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
-    const { updateTaskNotification, deleteTasks } = useTasks();
+    const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
 
     const handleNotifs = useCallback(async () => {
         const channels = await getNotificationChannelsAsync();
@@ -39,19 +40,37 @@ export default function ProtectedLayout() {
             );
         }
 
-        await setNotificationCategoryAsync(REMINDER_CATEGORY, [
+        await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
             {
-                identifier: SNOOZE_CATEGORY,
-                buttonTitle: t("layout_(protected)_snooze"),
+                identifier: MARK_DONE_CATEGORY,
+                buttonTitle: t("layout_(protected)_mark_done"),
                 options: {
-                    opensAppToForeground: false,
+                    opensAppToForeground: Platform.OS == "android" != true,
                 },
             },
             {
                 identifier: DELETE_CATEGORY,
                 buttonTitle: t("layout_(protected)_delete"),
                 options: {
-                    opensAppToForeground: false,
+                    opensAppToForeground: Platform.OS == "android" != true,
+                    isDestructive: true,
+                },
+            },
+        ]);
+
+        await setNotificationCategoryAsync(EVENT_REMINDER_CATEGORY, [
+            {
+                identifier: SNOOZE_CATEGORY,
+                buttonTitle: t("layout_(protected)_snooze"),
+                options: {
+                    opensAppToForeground: Platform.OS == "android" != true,
+                },
+            },
+            {
+                identifier: DELETE_CATEGORY,
+                buttonTitle: t("layout_(protected)_delete"),
+                options: {
+                    opensAppToForeground: Platform.OS == "android" != true,
                     isDestructive: true,
                 },
             },
@@ -100,7 +119,7 @@ export default function ProtectedLayout() {
             await dismissNotificationAsync(notificationId);
 
             if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
-                if (action == SNOOZE_CATEGORY) {
+                if (action == SNOOZE_CATEGORY && taskType == "event") {
                     console.log("SNOOZE");
                     const notificationId = await scheduleNotificationAsync({
                         content: {
@@ -125,10 +144,17 @@ export default function ProtectedLayout() {
 
                     console.log("New schedule :", notificationId);
                 }
+                else if (action == MARK_DONE_CATEGORY && taskType == "task") {
+                    console.log("Mark done");
+
+                    await markTasksDone([taskId]);
+                    event.emit(TASKS_CHANGED);
+                }
                 else if (action == DELETE_CATEGORY) {
                     console.log("DELETE");
                     await deleteTasks([taskId]);
-                    event.emit(TASKS_CHANGED);
+                    if (taskType == "task") event.emit(TASKS_CHANGED);
+                    else event.emit(EVENTS_CHANGED);
                 }
             }
         });
