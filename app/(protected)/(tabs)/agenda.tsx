@@ -11,7 +11,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
 export default function Agenda() {
     const pathname = usePathname();
@@ -79,11 +78,10 @@ export default function Agenda() {
     const panGesture = useMemo(() => {
         return (
             Gesture.Pan()
-                .failOffsetX([-10, 10])
+                .failOffsetX([-5, 5])
                 .activeOffsetY(1)
                 .onUpdate(({ translationY: y }) => {
                     if (y > 0 && !refreshing.value) {
-                        // scheduleOnRN(r, y);
                         translateY.value = y;
                     }
                 })
@@ -146,7 +144,6 @@ export default function Agenda() {
                         flatListRef={flatListRef}
                         setTargetDate={setDateEvents}
                         refreshing={refreshing}
-                        translateY={translateY}
                     />
                 </Animated.View>
             </GestureDetector>

@@ -9,12 +9,10 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, Text, View } from "react-native";
+import { SharedValue, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
-import { SharedValue, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
-import { fa } from "@faker-js/faker";
-import { scheduleOnRN } from "react-native-worklets";
-import { THRESHOLD } from "./calendar-header";
 
 const generateMonthDays = (month: Date, lang: "en" | 'fr' = "en"): Date[] => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: lang == "en" ? 0 : 1 });
@@ -30,10 +28,9 @@ interface Props {
     height: number;
     setTargetDate: (entry: Date | null) => void;
     refreshing: SharedValue<boolean>,
-    translateY: SharedValue<number>,
 };
 
-export const CalendarDay = memo(({ active, month, width, height, setTargetDate, refreshing, translateY }: Props) => {
+export const CalendarDay = memo(({ active, month, width, height, setTargetDate, refreshing }: Props) => {
     const { i18n } = useTranslation();
     const days = useMemo(() => generateMonthDays(month, i18n.language == "en" || i18n.language == "fr" ? i18n.language : "en"), [i18n.language, month]);
     const dayWidth = useMemo(() => (width / 7) - 3, [width]);
@@ -232,7 +229,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     }), [dayWidth]);
 
     useEffect(() => {
-        event.addListener(EVENTS_CHANGED, () => handleGetTasks());
+        event.addListener(EVENTS_CHANGED, () => handleGetTasks(true));
 
         return () => {
             event.removeListener(EVENTS_CHANGED);

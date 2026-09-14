@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType as EventType } from "@/types/task";
-import { Entypo, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -429,7 +429,6 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             handleGetEventsCount();
             handleGetEvents(true);
             handleClose();
-            console.log("Changed");
         }
 
         eventEmitter.addListener(EVENTS_CHANGED, onChange);
@@ -438,6 +437,19 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             eventEmitter.removeListener(EVENTS_CHANGED);
         }
     }, []);
+
+    const onCreateButtonPress = useCallback(() => {
+        if (!targetDate) return;
+        router.navigate({
+            pathname: "/(protected)/(task)/create",
+            params: {
+                target: "event",
+                date: String(targetDate),
+                action: "create",
+            },
+        });
+        handleClose();
+    }, [targetDate]);
 
     return (
         <GestureDetector gesture={tapGesture}>
@@ -542,6 +554,46 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             }}
                             contentContainerClassName="w-full flex px-3 pt-[65px] pb-[30px]"
                         />
+
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateX: -15,
+                                    },
+                                    {
+                                        translateY: -20,
+                                    },
+                                ]
+                            }}
+                            className="absolute right-0 bottom-0 z-[20]"
+                        >
+                            <View
+                                style={{
+                                    transform: [
+                                        {
+                                            translateY: 8,
+                                        },
+                                    ],
+                                    filter: "blur(5px)",
+                                }}
+                                className="absolute left-0 top-0 size-full rounded-full dark:bg-black/50 bg-black/30"
+                            />
+
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={onCreateButtonPress}
+                                className="size-[40px] rounded-full"
+                            >
+                                <View className="size-full flex justify-center items-center rounded-full bg-emerald-500 border border-black/5">
+                                    <FontAwesome5
+                                        name="plus"
+                                        size={20}
+                                        color="black"
+                                    />
+                                </View>
+                            </PressableAnimated>
+                        </View>
 
                         <LinearGradient
                             colors={theme == "dark" ?
