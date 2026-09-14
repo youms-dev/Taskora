@@ -66,10 +66,10 @@ export default function TaskPage() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(true);
-    const { setToast } = useToast();
+    const { setToast, setDismiss } = useToast();
     const [task, setTask] = useState<TaskType | null>(null);
     const { theme } = useTheme();
-    const { getTask, markTasksDone } = useTasks();
+    const { getTask, markTasksDone, deleteTasks } = useTasks();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { t, i18n } = useTranslation();
     const ref = useRef<Animated.ScrollView>(null);
@@ -90,7 +90,7 @@ export default function TaskPage() {
             });
         }
     }
-    
+
     const iconData = useMemo(() => {
         if (!task || !task.icon) return null;
         let data = JSON.parse(task.icon) as ICON_TYPE;
@@ -346,6 +346,58 @@ export default function TaskPage() {
         }
     }, [loading, setToast, i18n.language]);
 
+    const handleDeleteTask = useCallback(async (init: boolean = true) => {
+        if ((loading && init) || !task) return;
+        setLoading(true);
+
+        if (init) {
+            contextMenuActive.value = false;
+            setDismiss(
+                () => {
+                    handleDeleteTask(false);
+                },
+                () => {
+                    setLoading(false);
+                },
+                5,
+                40,
+            );
+
+            return;
+        }
+
+        try {
+            await deleteTasks([task.idTask]);
+            if (router.canGoBack()) {
+                router.back();
+            }
+            else {
+                router.navigate({
+                    pathname: "/(protected)/(tabs)",
+                });
+            }
+            event.emit(TASKS_CHANGED);
+            setLoading(false);
+        }
+        catch (e) {
+            setLoading(false);
+            console.log(e);
+            setToast(t("sqlite_error"), "error");
+        }
+    }, [loading, setToast, setDismiss, i18n.language, task]);
+
+    useEffect(() => {
+        const onChange = () => {
+            handleGetTask();
+        };
+
+        event.addListener(TASKS_CHANGED, onChange);
+
+        return () => {
+            event.removeListener(TASKS_CHANGED);
+        }
+    }, []);
+
     if (loading && !task) {
         return (
             <Container centerX>
@@ -520,7 +572,7 @@ export default function TaskPage() {
 
                             <PressableAnimated
                                 scale={.95}
-                                onPress={() => { }}
+                                onPress={() => handleDeleteTask()}
                                 className="w-full flex flex-row items-center"
                             >
                                 <View className="w-[20%]">

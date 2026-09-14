@@ -1,3 +1,4 @@
+import { DELETE_CATEGORY, REMINDER_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, TASKS_CHANGED } from "@/lib/event-emitter";
@@ -38,16 +39,16 @@ export default function ProtectedLayout() {
             );
         }
 
-        await setNotificationCategoryAsync("reminder", [
+        await setNotificationCategoryAsync(REMINDER_CATEGORY, [
             {
-                identifier: "SNOOZE",
+                identifier: SNOOZE_CATEGORY,
                 buttonTitle: t("layout_(protected)_snooze"),
                 options: {
                     opensAppToForeground: false,
                 },
             },
             {
-                identifier: "DELETE",
+                identifier: DELETE_CATEGORY,
                 buttonTitle: t("layout_(protected)_delete"),
                 options: {
                     opensAppToForeground: false,
@@ -66,19 +67,19 @@ export default function ProtectedLayout() {
             }),
         });
 
-        await setNotificationChannelAsync("reminder_sound01", {
+        await setNotificationChannelAsync(`${REMINDER_CHANNEL}sound01`, {
             ...CONFIG,
             sound: "sound01.wav",
         });
-        await setNotificationChannelAsync("reminder_sound02", {
+        await setNotificationChannelAsync(`${REMINDER_CHANNEL}sound02`, {
             ...CONFIG,
             sound: "sound02.wav",
         });
-        await setNotificationChannelAsync("reminder_sound03", {
+        await setNotificationChannelAsync(`${REMINDER_CHANNEL}sound03`, {
             ...CONFIG,
             sound: "sound03.wav",
         });
-        await setNotificationChannelAsync("reminder_sound04", {
+        await setNotificationChannelAsync(`${REMINDER_CHANNEL}sound04`, {
             ...CONFIG,
             sound: "sound04.wav",
         });
@@ -99,7 +100,7 @@ export default function ProtectedLayout() {
             await dismissNotificationAsync(notificationId);
 
             if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
-                if (action == "SNOOZE") {
+                if (action == SNOOZE_CATEGORY) {
                     console.log("SNOOZE");
                     const notificationId = await scheduleNotificationAsync({
                         content: {
@@ -124,7 +125,7 @@ export default function ProtectedLayout() {
 
                     console.log("New schedule :", notificationId);
                 }
-                else if (action == "DELETE") {
+                else if (action == DELETE_CATEGORY) {
                     console.log("DELETE");
                     await deleteTasks([taskId]);
                     event.emit(TASKS_CHANGED);

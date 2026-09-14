@@ -1,5 +1,6 @@
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
+import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo-notifications";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSharedValue } from "react-native-reanimated";
@@ -147,6 +148,10 @@ export const useTasksData = () => {
 
         try {
             await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
+            await Promise.all(selected.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
             setToast(t("tasks_archived", { many: selected.length > 1 ? "s" : "" }));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
@@ -177,6 +182,8 @@ export const useTasksData = () => {
 
         try {
             await toggleArchiveTasks([task.idTask], true);
+            await cancelScheduledNotificationAsync(task.notificationId);
+            await dismissNotificationAsync(task.notificationId);
             setToast(t("tasks_archived"));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
@@ -241,6 +248,10 @@ export const useTasksData = () => {
 
         try {
             await deleteTasks([...data.map(t => t.idTask)]);
+            await Promise.all(data.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);
@@ -291,6 +302,8 @@ export const useTasksData = () => {
 
         try {
             await deleteTasks([data.idTask]);
+            await cancelScheduledNotificationAsync(data.notificationId);
+            await dismissNotificationAsync(data.notificationId);
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);

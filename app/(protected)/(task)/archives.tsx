@@ -6,10 +6,13 @@ import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
+import { REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, TASKS_CHANGED } from "@/lib/event-emitter";
+import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -17,6 +20,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
+import { cancelScheduledNotificationAsync, dismissNotificationAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,10 +46,21 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     const { setToast, setDismiss } = useToast();
     const selected = useSharedValue<boolean>(false);
     const selection = useSharedValue<boolean>(false);
-    const { deleteTasks, toggleArchiveTasks } = useTasks();
+    const { deleteTasks, toggleArchiveTasks, updateTaskNotification } = useTasks();
     const { t } = useTranslation();
     const loadingShared = useSharedValue<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+    const { setting } = useSettingsData();
+
+    const sound = useMemo(() => {
+        if (!setting || !setting.notificationSound) return null;
+        const data = JSON.parse(setting.notificationSound) as NotificationSoundType;
+
+        if (data.name && data.fileName) {
+            return data.fileName;
+        }
+        return null;
+    }, [setting]);
 
     const iconData = useMemo(() => {
         if (task.icon) {
@@ -77,6 +92,8 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         try {
             setLoading(true);
             await deleteTasks([task.idTask]);
+            await cancelScheduledNotificationAsync(task.notificationId);
+            await dismissNotificationAsync(task.notificationId);
             setLoading(false);
             onRefresh();
         }
@@ -87,14 +104,37 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
         }
     }, [task, onRefresh, loading]);
 
-    const handleArchive = useCallback(async () => {
+    const handleUnArchive = useCallback(async () => {
         if (loading) return;
         onUnArchive?.(task);
         try {
+            const date = new Date();
+
             setLoading(true);
             await toggleArchiveTasks([task.idTask]);
-            setToast(t("archives_unarchive_tasks"), "default", 2000);
+            if (date.getTime() < task.startAt) {
+                const notificationId = await scheduleNotificationAsync({
+                    content: {
+                        title: task.title,
+                        subtitle: t("create_section_1_item_1"),
+                        body: task.content,
+                        sound: sound ? sound : "sound02.wav",
+                        categoryIdentifier: REMINDER_CATEGORY,
+                        data: {
+                            taskId: task.idTask,
+                            taskType: "task",
+                        }
+                    },
+                    trigger: {
+                        channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
+                        type: SchedulableTriggerInputTypes.DATE,
+                        date: task.startAt,
+                    },
+                });
+                await updateTaskNotification(task.idTask, notificationId, "task");
+            }
             setLoading(false);
+            setToast(t("archives_unarchive_tasks"), "default", 2000);
             onRefresh();
             event.emit(TASKS_CHANGED);
         }
@@ -103,7 +143,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setLoading(false);
             console.log(e);
         }
-    }, [onUnArchive, task, loading, onRefresh]);
+    }, [onUnArchive, task, loading, onRefresh, sound]);
 
     const handleLongPressLocal = useCallback((vibrate: boolean = true) => {
         if (!loading) {
@@ -143,13 +183,13 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                 if (selected.value || selection.value || loadingShared.value || (x >= -99 && x <= 99)) return;
 
                 if (x <= -100) {
-                    scheduleOnRN(handleArchive);
+                    scheduleOnRN(handleUnArchive);
                 }
                 else if (x >= 100) {
                     scheduleOnRN(handleDelete);
                 }
             })
-    ), [handleLongPressLocal, handleArchive, handleDelete]);
+    ), [handleLongPressLocal, handleUnArchive, handleDelete]);
 
     const opacityAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
@@ -336,7 +376,7 @@ export default function Archives() {
     const scrollCheckPoint = 50;
     const themeShared = useSharedValue<typeof theme>("dark");
     const headerWidth = useSharedValue<number>(0);
-    const { getTasks, getTasksCount, deleteTasks, toggleArchiveTasks } = useTasks();
+    const { getTasks, getTasksCount, deleteTasks, toggleArchiveTasks, updateTaskNotification } = useTasks();
     const limit = 10;
     const pathname = usePathname();
     const [count, setCount] = useState<number>(0);
@@ -350,6 +390,17 @@ export default function Archives() {
     const tasksTmp = useRef<TaskType[]>([]);
     const taskHeight = 100;
     const tasksGap = 20;
+    const { setting } = useSettingsData();
+
+    const sound = useMemo(() => {
+        if (!setting || !setting.notificationSound) return null;
+        const data = JSON.parse(setting.notificationSound) as NotificationSoundType;
+
+        if (data.name && data.fileName) {
+            return data.fileName;
+        }
+        return null;
+    }, [setting]);
 
     const onRefreshTask = useCallback((e: boolean = false) => {
         if (e) {
@@ -571,17 +622,43 @@ export default function Archives() {
         return () => remove();
     }, [selectMap]);
 
-    const handleUnArchiveTasks = async () => {
-        if (tasksSelected.length == 0 || processing) return;
+    const handleUnArchiveTasks = useCallback(async () => {
+        if (selectMap.size == 0 || processing) return;
         setProcessing(true);
         const tab = [...tasksSelected];
 
         setTasks(prev => [...prev.filter(task => !tab.find(t => t.idTask == task.idTask))]);
         setTasksSelected([]);
-        setCount(count - tab.length);
+        setCount(prev => prev - tab.length);
 
         try {
             await toggleArchiveTasks([...tab.map(t => t.idTask)], false);
+            await Promise.all(tab.map(async (task) => {
+                const date = new Date();
+
+                if (date.getTime() < task.startAt) {
+                    const notificationId = await scheduleNotificationAsync({
+                        content: {
+                            title: task.title,
+                            subtitle: t("create_section_1_item_1"),
+                            body: task.content,
+                            sound: sound ? sound : "sound02.wav",
+                            categoryIdentifier: REMINDER_CATEGORY,
+                            data: {
+                                taskId: task.idTask,
+                                taskType: "task",
+                            }
+                        },
+                        trigger: {
+                            channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
+                            type: SchedulableTriggerInputTypes.DATE,
+                            date: task.startAt,
+                        },
+                    });
+                    await updateTaskNotification(task.idTask, notificationId, "task");
+                }
+            }));
+
             setProcessing(false);
             handleGetTasks(true);
             event.emit(TASKS_CHANGED);
@@ -589,14 +666,14 @@ export default function Archives() {
         }
         catch (e) {
             console.log(e);
-            setCount(count + tab.length);
+            setCount(prev => prev + tab.length);
             setProcessing(false);
             handleGetTasks(true);
-            setToast("Une erreur s'est produite", "error");
+            setToast(t("sqlite_error"), "error");
         }
-    }
+    }, [setToast, i18n.language, selectMap, processing, tasksSelected]);
 
-    const handleDeleteTasks = async (init: boolean = false) => {
+    const handleDeleteTasks = useCallback(async (init: boolean = false) => {
         if (selectMap.size == 0 || processing) return;
         setProcessing(true);
         const tab = [...tasksSelected];
@@ -622,6 +699,10 @@ export default function Archives() {
 
         try {
             await deleteTasks([...tab.map(t => t.idTask)]);
+            await Promise.all(tab.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
             setProcessing(false);
             handleGetTasks(true);
         }
@@ -631,9 +712,9 @@ export default function Archives() {
             tasksTmp.current = [];
             setCount(prev => prev + tab.length);
             setProcessing(false);
-            setToast("Une erreur s'est produite", "error");
+            setToast(t("sqlite_error"), "error");
         }
-    }
+    }, [setToast, i18n.language, selectMap, processing, tasksSelected]);
 
     useEffect(() => {
         if (pathname == "/archives") {
@@ -695,7 +776,7 @@ export default function Archives() {
         return null;
     }, [loading, i18n.language, theme]);
 
-    const getItemLayout = useCallback((data: any, index: number) => ({
+    const getItemLayout = useCallback((_data: any, index: number) => ({
         length: taskHeight + tasksGap,
         offset: index * (taskHeight + tasksGap),
         index,
@@ -705,6 +786,19 @@ export default function Archives() {
         if (loading || tasks.length >= count || selectMap.size > 0) return;
         handleGetTasks();
     }, [loading, tasks, count, selectMap]);
+
+    useEffect(() => {
+        const onChange = () => {
+            handleGetTasksCount();
+            handleGetTasks(true);
+        }
+
+        event.addListener(TASKS_CHANGED, onChange);
+
+        return () => {
+            event.removeListener(TASKS_CHANGED);
+        }
+    }, []);
 
     return (
         <Container centerX>

@@ -12,6 +12,7 @@ import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
+import { REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -27,6 +28,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { faker } from "@faker-js/faker";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { randomUUID } from "expo-crypto";
 import { LinearGradient } from "expo-linear-gradient";
 import { getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -34,7 +36,6 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "r
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { randomUUID } from "expo-crypto";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
@@ -392,22 +393,25 @@ export default function CreateTaskPage() {
             const startAt = new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(startHour), Number(startMin));
             const endAt = target == "event" ? new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(endHour), Number(endMin)) : null;
 
+            const fakeTitle = faker.lorem.sentence();
+            const fakeBody = faker.lorem.sentences({ min: 1000, max: 2000 });
+
             const notificationId = await scheduleNotificationAsync({
                 content: {
-                    title: "Test de notification schedulé",
+                    title: fakeTitle,
                     // title: inputsValues.title,
                     subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
                     // body: inputsValues.desc ? inputsValues.desc : null,
-                    body: faker.lorem.sentences({ min: 1000, max: 2000 }),
+                    body: fakeBody,
                     sound: sound ? sound : "sound02.wav",
-                    categoryIdentifier: "reminder",
+                    categoryIdentifier: REMINDER_CATEGORY,
                     data: {
                         taskId,
                         taskType: target,
                     }
                 },
                 trigger: {
-                    channelId: `reminder_${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
+                    channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
                     // type: SchedulableTriggerInputTypes.DATE,
                     // date: startAt,
                     type: SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -429,7 +433,9 @@ export default function CreateTaskPage() {
             } = {
                 ...rest,
                 idTask: taskId,
-                content: desc && desc.trim().length > 0 ? desc : null,
+                title: fakeTitle,
+                // content: desc && desc.trim().length > 0 ? desc : null,
+                content: fakeBody,
                 icon: icon ? JSON.stringify(icon) : null,
                 notificationId,
                 startAt: startAt.getTime(),
