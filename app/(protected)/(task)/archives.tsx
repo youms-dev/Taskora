@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
-import { TASK_REMINDER_CATEGORY, REMINDER_CHANNEL } from "@/constants/notifications";
+import { REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -128,10 +128,11 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
                         type: SchedulableTriggerInputTypes.DATE,
-                        date: task.startAt,
+                        date: new Date(task.startAt),
                     },
                 });
                 await updateTaskNotification(task.idTask, notificationId, "task");
+                console.log("New Schedule :", notificationId);
             }
             setLoading(false);
             setToast(t("archives_unarchive_tasks"), "default", 2000);
@@ -730,7 +731,7 @@ export default function Archives() {
                     style={{
                         gap: tasksGap,
                     }}
-                    className="w-screen flex items-center px-3"
+                    className="w-full flex items-center px-3"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (
@@ -758,7 +759,7 @@ export default function Archives() {
 
     const listEmptyComponent = useCallback(() => {
         if (!loading) return (
-            <View className="w-screen flex justify-center items-center gap-4 pt-10">
+            <View className="w-full flex justify-center items-center gap-4 pt-10">
                 <MaterialCommunityIcons
                     name="archive-remove-outline"
                     size={120}
@@ -918,7 +919,7 @@ export default function Archives() {
                 ListFooterComponent={listFooterComponent}
                 ListEmptyComponent={listEmptyComponent}
                 className="w-full"
-                contentContainerClassName="w-full flex items-center gap-5 px-3 pt-[200px] pb-[50px]"
+                contentContainerClassName="w-full flex gap-5 px-3 pt-[200px] pb-[50px]"
             />
 
             <Animated.View

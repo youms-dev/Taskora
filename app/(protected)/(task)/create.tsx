@@ -30,7 +30,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { randomUUID } from "expo-crypto";
 import { LinearGradient } from "expo-linear-gradient";
-import { getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import { cancelScheduledNotificationAsync, dismissNotificationAsync, getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -173,6 +173,7 @@ export default function CreateTaskPage() {
         data?: string;
     };
     const date = useMemo(() => new Date(), []);
+    let paramTask: TaskType | null = null;
 
     let initialInputsValues: InputsValuesType = {
         title: null,
@@ -208,6 +209,7 @@ export default function CreateTaskPage() {
                 iconData = data;
             }
         }
+        paramTask = task;
 
         initialInputsValues = {
             ...initialInputsValues,
@@ -250,7 +252,7 @@ export default function CreateTaskPage() {
     const [foldersModalOpened, setFoldersModalOpened] = useState<boolean>(false);
     const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
     const { setting } = useSettingsData();
-    const { createTask } = useTasks();
+    const { createTask, updateTask } = useTasks();
     const titleRef = useRef<TextInput>(null);
     const contentRef = useRef<TextInput>(null);
     const { setToast } = useToast();
@@ -387,11 +389,11 @@ export default function CreateTaskPage() {
             loadingRef.current = true;
             const taskId = randomUUID();
 
-            const oldDate = inputsValues.date;
+            const dateSelected = inputsValues.date;
             const [startHour, startMin] = inputsValues.startAt.split(":");
             const [endHour, endMin] = inputsValues.startAt.split(":");
-            const startAt = new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(startHour), Number(startMin));
-            const endAt = target == "event" ? new Date(oldDate.getFullYear(), oldDate.getMonth(), oldDate.getDate(), Number(endHour), Number(endMin)) : null;
+            const startAt = new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(startHour), Number(startMin));
+            const endAt = target == "event" ? new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(endHour), Number(endMin)) : null;
 
             const fakeTitle = faker.lorem.sentence();
             const fakeBody = faker.lorem.sentences({ min: 1000, max: 2000 });
@@ -406,23 +408,23 @@ export default function CreateTaskPage() {
                     sound: sound ? sound : "sound02.wav",
                     categoryIdentifier: target == "task" ? TASK_REMINDER_CATEGORY : EVENT_REMINDER_CATEGORY,
                     data: {
-                        taskId,
+                        taskId: paramTask && paramAction == "edit" ? paramTask.idTask : taskId,
                         taskType: target,
                     }
                 },
                 trigger: {
                     channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                    // type: SchedulableTriggerInputTypes.DATE,
+                    type: SchedulableTriggerInputTypes.DATE,
                     // date: startAt,
-                    type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                    // seconds: 5,
+                    date: new Date().getTime() + (1000 * 5),
                 },
             });
 
-            const { archive, date: d, desc, icon, ...rest } = inputsValues;
+            const { archive, date: d, desc, icon, folder, ...rest } = inputsValues;
 
-            const task: Omit<InputsValuesType, "icon" | "startAt" | "endAt" | "archive" | "date" | "desc"> & {
+            let task: Omit<InputsValuesType, "icon" | "startAt" | "endAt" | "archive" | "date" | "desc" | "folder"> & {
                 idTask: string;
+                idFolder: string | null;
                 notificationId: TaskType["notificationId"];
                 content: string | null;
                 icon: string | null;
@@ -433,9 +435,10 @@ export default function CreateTaskPage() {
             } = {
                 ...rest,
                 idTask: taskId,
-                title: fakeTitle,
-                // content: desc && desc.trim().length > 0 ? desc : null,
-                content: fakeBody,
+                idFolder: folder,
+                // title: fakeTitle,,
+                content: desc && desc.trim().length > 0 ? desc : null,
+                // content: fakeBody,
                 icon: icon ? JSON.stringify(icon) : null,
                 notificationId,
                 startAt: startAt.getTime(),
@@ -444,13 +447,35 @@ export default function CreateTaskPage() {
                 type: target,
             }
 
-            await createTask(task);
+            if (paramAction == "edit") {
+                if (paramTask) {
+                    task = {
+                        ...task,
+                        idTask: paramTask.idTask,
+                    };
+                    await cancelScheduledNotificationAsync(paramTask.notificationId);
+                    await dismissNotificationAsync(paramTask.notificationId);
+                }
+                await updateTask(task);
+                setToast(t("create_edit_success"), "success");
+            }
+            else {
+                await createTask(task);
+                setToast(t("create_success"), "success");
+            }
 
             setLoading(false);
-            setToast(t("create_success"), "success");
             if (target == "task") event.emit(TASKS_CHANGED);
             else event.emit(EVENTS_CHANGED);
-            console.log("Scheduled :", notificationId);
+            console.log("Scheduled :", notificationId, startAt.toLocaleString());
+            if (router.canGoBack()) {
+                router.back();
+            }
+            else {
+                router.navigate({
+                    pathname: "/(protected)/(tabs)",
+                });
+            }
         }
         catch (e) {
             setLoading(false);
@@ -723,11 +748,11 @@ export default function CreateTaskPage() {
 
                         <View className={clsx(
                             "w-full flex flex-row items-center",
-                            target == "task" ? "gap-5" : "gap-[10px]",
+                            target == "task" && "gap-5",
                         )}>
                             <View className={clsx(
                                 "flex flex-row gap-2 items-center",
-                                target == "task" ? "w-full" : "w-1/2",
+                                target == "task" ? "w-full" : "max-w-1/2",
                             )}>
                                 <View className={clsx(
                                     target == "task" ? "w-[10%]" : "w-[20%]",
@@ -757,7 +782,7 @@ export default function CreateTaskPage() {
                                     }}
                                     className={clsx(
                                         "dark:bg-white/10 bg-white rounded-2xl px-5 py-3",
-                                        target == "task" ? "w-[88%]" : "w-[70%]",
+                                        target == "task" ? "max-w-[88%]" : "max-w-[70%]",
                                     )}
                                 >
                                     <TextAnimated
@@ -771,7 +796,7 @@ export default function CreateTaskPage() {
 
                             {
                                 target == "event" && (
-                                    <View className="w-1/2 flex flex-row gap-2 items-center">
+                                    <View className="max-w-1/2 flex flex-row gap-2 items-center">
                                         <View className="w-[20%]">
                                             <FontAwesome6
                                                 name="arrow-right"
@@ -788,7 +813,7 @@ export default function CreateTaskPage() {
                                                 });
                                                 setTimePagerMounted(true);
                                             }}
-                                            className="w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
+                                            className="max-w-[70%] dark:bg-white/10 bg-white rounded-2xl px-5 py-3"
                                         >
                                             <TextAnimated
                                                 numberOfLines={1}

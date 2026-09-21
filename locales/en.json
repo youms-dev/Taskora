@@ -94,6 +94,7 @@
     "create_no_folders": "No folders yet,\ncreate a folder first to use it",
     "create_request_notification_error": "You must allow notifications to create your {{entry}}",
     "create_success": "Scheduled successfully",
+    "create_edit_success": "Edited successfully",
     "sqlite_error": "An error occurred",
     "[id]_archived": "Archived",
     "[id]_unarchived": "Unarchived",

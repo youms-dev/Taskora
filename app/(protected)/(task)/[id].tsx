@@ -160,14 +160,20 @@ export default function TaskPage() {
         return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
     }, [task]);
 
-    const taskDone = useMemo(() => {
-        return Boolean(task?.done);
-    }, [task]);
+    const editable = useMemo(() => {
+        if (!task) return false;
+        const date = new Date();
 
-    const taskArchived = useMemo(() => {
-        return Boolean(task?.archived);
-    }, [task]);
+        if (
+            (task.type == "task" && task.startAt > date.getTime())
+            ||
+            (task.type == "event" && (task.startAt - (1000 * 60 * 5)) > date.getTime())
+        ) {
+            return true;
+        }
 
+        return false;
+    }, [task]);
 
     const handleGetTask = useCallback(async () => {
         try {
@@ -266,17 +272,30 @@ export default function TaskPage() {
 
     const handleContextMenuButtonPress = useCallback((value: "duplicate" | "edit") => {
         if (!task) return;
-        router.navigate({
-            pathname: "/(protected)/(task)/create",
-            params: {
-                target: task.type,
-                action: value,
-                date: taskPlannedDateFormatted.toString(),
-                data: JSON.stringify(task),
-            }
-        });
+        if (value == "duplicate") {
+            router.navigate({
+                pathname: "/(protected)/(task)/create",
+                params: {
+                    target: task.type,
+                    action: value,
+                    date: taskPlannedDateFormatted.toString(),
+                    data: JSON.stringify(task),
+                }
+            });
+        }
+        else if (value == "edit" && editable) {
+            router.navigate({
+                pathname: "/(protected)/(task)/create",
+                params: {
+                    target: task.type,
+                    action: value,
+                    date: taskPlannedDateFormatted.toString(),
+                    data: JSON.stringify(task),
+                }
+            });
+        }
         contextMenuActive.value = false;
-    }, [task]);
+    }, [task, editable]);
 
     const contextMenuContainerAnimation = useAnimatedStyle(() => ({
         pointerEvents: contextMenuActive.value ? "auto" : "none",
@@ -602,25 +621,29 @@ export default function TaskPage() {
                                 )
                             }
 
-                            <PressableAnimated
-                                scale={.95}
-                                onPress={() => handleContextMenuButtonPress("edit")}
-                                className="w-full flex flex-row items-center gap-2"
-                            >
-                                <View className="w-[20%]">
-                                    <MaterialCommunityIcons
-                                        name={task.type == "task" ? "playlist-edit" : "calendar-edit"}
-                                        size={task.type == "task" ? 30 : 23}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                    />
-                                </View>
+                            {
+                                editable && (
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleContextMenuButtonPress("edit")}
+                                        className="w-full flex flex-row items-center gap-2"
+                                    >
+                                        <View className="w-[20%]">
+                                            <MaterialCommunityIcons
+                                                name={task.type == "task" ? "playlist-edit" : "calendar-edit"}
+                                                size={task.type == "task" ? 30 : 23}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
 
-                                <View className="max-w-[70%]">
-                                    <TextAnimated className="text-lg font-medium tracking-wider">
-                                        {t("[id]_menu_edit")}
-                                    </TextAnimated>
-                                </View>
-                            </PressableAnimated>
+                                        <View className="max-w-[70%]">
+                                            <TextAnimated className="text-lg font-medium tracking-wider">
+                                                {t("[id]_menu_edit")}
+                                            </TextAnimated>
+                                        </View>
+                                    </PressableAnimated>
+                                )
+                            }
 
                             <PressableAnimated
                                 scale={.95}
@@ -807,7 +830,7 @@ export default function TaskPage() {
                                     task.type == "event" && "gap-5",
                                 )}>
                                     {
-                                        task.type == "task" && taskDone && (
+                                        task.type == "task" && task.done && (
                                             <View className="flex flex-row items-center gap-3">
                                                 <View>
                                                     <Text
@@ -849,7 +872,7 @@ export default function TaskPage() {
                                 </View>
 
                                 {
-                                    task.type == "task" && taskArchived && (
+                                    task.type == "task" && task.archived && (
                                         <View className="flex justify-center items-center px-3 pb-2 dark:bg-white/10 bg-black/5 rounded-2xl border dark:border-white/5 border-black/5 pr-4 pt-4">
                                             <View
                                                 style={{
@@ -881,11 +904,11 @@ export default function TaskPage() {
 
                             <View className={clsx(
                                 "w-full flex flex-row flex-wrap items-center gap-2 pt-3 pr-3 mb-3",
-                                task.type == "task" && !taskDone && "justify-between",
-                                task.type == "event" && !taskDone && "justify-end",
+                                task.type == "task" && !task.done && "justify-between",
+                                task.type == "event" && !task.done && "justify-end",
                             )}>
                                 {
-                                    task.type == "task" && !taskDone && (
+                                    task.type == "task" && !task.done && (
                                         <View className="w-[30%] flex flex-row items-center gap-3 shrink-0">
                                             <View>
                                                 <MaterialCommunityIcons
@@ -903,7 +926,7 @@ export default function TaskPage() {
                                 }
 
                                 {
-                                    !taskDone && (
+                                    !task.done && (
                                         <View className={clsx(
                                             "flex flex-row justify-end gap-3 pl-3",
                                             task.type == "task" ? "border-l-2 border-emerald-500" : "dark:bg-white/5 bg-white px-3 py-2 rounded-2xl border dark:border-white/5 border-black/5",
@@ -965,7 +988,7 @@ export default function TaskPage() {
                 </Animated.ScrollView>
 
                 {
-                    !taskDone && task.type == "task" && (
+                    !task.done && task.type == "task" && (
                         <View
                             style={{
                                 transform: [
