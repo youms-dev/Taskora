@@ -552,7 +552,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             contentContainerStyle={{
                                 gap: eventsGap,
                             }}
-                            contentContainerClassName="w-full flex px-3 pt-[65px] pb-[30px]"
+                            contentContainerClassName="w-full flex px-3 pt-[65px] pb-[50px]"
                         />
 
                         <View

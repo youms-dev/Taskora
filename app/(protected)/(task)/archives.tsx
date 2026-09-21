@@ -733,7 +733,7 @@ export default function Archives() {
                     className="w-screen flex items-center px-3"
                 >
                     {
-                        Array(limit).fill(0).map((_, i) => (
+                        Array(3).fill(0).map((_, i) => (
                             <Animated.View
                                 key={i}
                                 entering={FadeIn

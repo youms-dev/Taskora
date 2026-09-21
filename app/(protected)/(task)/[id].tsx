@@ -11,10 +11,11 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
-import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
+import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,7 +70,7 @@ export default function TaskPage() {
     const { setToast, setDismiss } = useToast();
     const [task, setTask] = useState<TaskType | null>(null);
     const { theme } = useTheme();
-    const { getTask, markTasksDone, deleteTasks } = useTasks();
+    const { getTask, markTasksDone, deleteTasks, toggleArchiveTasks } = useTasks();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { t, i18n } = useTranslation();
     const ref = useRef<Animated.ScrollView>(null);
@@ -346,6 +347,44 @@ export default function TaskPage() {
         }
     }, [loading, setToast, i18n.language]);
 
+    useEffect(() => {
+        const onChange = () => {
+            handleGetTask();
+        };
+
+        event.addListener(TASKS_CHANGED, onChange);
+        event.addListener(EVENTS_CHANGED, onChange);
+
+        return () => {
+            event.removeListener(TASKS_CHANGED);
+            event.removeListener(EVENTS_CHANGED);
+        }
+    }, []);
+
+    const handleArchiveTask = useCallback(async () => {
+        if (loading || !task || task.type != "task" || task.archived) return;
+        setLoading(true);
+        contextMenuActive.value = false;
+
+        try {
+            await toggleArchiveTasks([task.idTask], true);
+            setToast(t("[id]_archived"), "success");
+            await cancelScheduledNotificationAsync(task.notificationId);
+            await dismissNotificationAsync(task.notificationId);
+            setTask(prev => ({
+                ...prev!,
+                archived: true,
+            }));
+            setLoading(false);
+            event.emit(TASKS_CHANGED);
+        }
+        catch (e) {
+            setLoading(false);
+            console.log(e);
+            setToast(t("sqlite_error"), "error");
+        }
+    }, [loading, setToast, i18n.language, task]);
+
     const handleDeleteTask = useCallback(async (init: boolean = true) => {
         if ((loading && init) || !task) return;
         setLoading(true);
@@ -360,7 +399,7 @@ export default function TaskPage() {
                     setLoading(false);
                 },
                 5,
-                40,
+                60,
             );
 
             return;
@@ -386,20 +425,6 @@ export default function TaskPage() {
             setToast(t("sqlite_error"), "error");
         }
     }, [loading, setToast, setDismiss, i18n.language, task]);
-
-    useEffect(() => {
-        const onChange = () => {
-            handleGetTask();
-        };
-
-        event.addListener(TASKS_CHANGED, onChange);
-        event.addListener(EVENTS_CHANGED, onChange);
-
-        return () => {
-            event.removeListener(TASKS_CHANGED);
-            event.removeListener(EVENTS_CHANGED);
-        }
-    }, []);
 
     if (loading && !task) {
         return (
@@ -553,42 +578,46 @@ export default function TaskPage() {
                         />
 
                         <View className="w-[200px] flex items-center gap-3 dark:bg-white/10 bg-white px-3 py-3 rounded-2xl border-2 dark:border-white/5 border-black/5">
+                            {
+                                task.type == "task" && !task.archived && (
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleArchiveTask()}
+                                        className="w-full flex flex-row items-center gap-2"
+                                    >
+                                        <View className="w-[20%]">
+                                            <MaterialIcons
+                                                name="archive"
+                                                size={23}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                            />
+                                        </View>
+
+                                        <View className="max-w-[70%]">
+                                            <TextAnimated className="text-lg font-medium tracking-wider">
+                                                {task.archived ? t("[id]_menu_unarchive") : t("[id]_menu_archive")}
+                                            </TextAnimated>
+                                        </View>
+                                    </PressableAnimated>
+                                )
+                            }
+
                             <PressableAnimated
                                 scale={.95}
                                 onPress={() => handleContextMenuButtonPress("edit")}
-                                className="w-full flex flex-row items-center"
+                                className="w-full flex flex-row items-center gap-2"
                             >
                                 <View className="w-[20%]">
                                     <MaterialCommunityIcons
                                         name={task.type == "task" ? "playlist-edit" : "calendar-edit"}
-                                        size={25}
+                                        size={task.type == "task" ? 30 : 23}
                                         color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                     />
                                 </View>
 
-                                <View className="w-[60%]">
+                                <View className="max-w-[70%]">
                                     <TextAnimated className="text-lg font-medium tracking-wider">
-                                        {t("agenda_edit_event")}
-                                    </TextAnimated>
-                                </View>
-                            </PressableAnimated>
-
-                            <PressableAnimated
-                                scale={.95}
-                                onPress={() => handleDeleteTask()}
-                                className="w-full flex flex-row items-center"
-                            >
-                                <View className="w-[20%]">
-                                    <Entypo
-                                        name="trash"
-                                        size={20}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                    />
-                                </View>
-
-                                <View className="w-[60%]">
-                                    <TextAnimated className="text-lg font-medium tracking-wider">
-                                        {t("agenda_delete_event")}
+                                        {t("[id]_menu_edit")}
                                     </TextAnimated>
                                 </View>
                             </PressableAnimated>
@@ -596,7 +625,7 @@ export default function TaskPage() {
                             <PressableAnimated
                                 scale={.95}
                                 onPress={() => handleContextMenuButtonPress("duplicate")}
-                                className="w-full flex flex-row items-center"
+                                className="w-full flex flex-row items-center gap-2"
                             >
                                 <View className="w-[20%]">
                                     <Ionicons
@@ -606,9 +635,29 @@ export default function TaskPage() {
                                     />
                                 </View>
 
-                                <View className="w-[60%]">
+                                <View className="max-w-[70%]">
                                     <TextAnimated className="text-lg font-medium tracking-wider">
-                                        {t("agenda_duplicate_event")}
+                                        {t("[id]_menu_duplicate")}
+                                    </TextAnimated>
+                                </View>
+                            </PressableAnimated>
+
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={() => handleDeleteTask()}
+                                className="w-full flex flex-row items-center gap-2"
+                            >
+                                <View className="w-[20%]">
+                                    <Entypo
+                                        name="trash"
+                                        size={20}
+                                        color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                    />
+                                </View>
+
+                                <View className="max-w-[70%]">
+                                    <TextAnimated className="text-lg font-medium tracking-wider">
+                                        {t("[id]_menu_delete")}
                                     </TextAnimated>
                                 </View>
                             </PressableAnimated>
