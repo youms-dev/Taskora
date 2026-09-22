@@ -35,7 +35,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
@@ -1018,60 +1018,69 @@ export default function CreateTaskPage() {
                     locations={[0, .3, 1]}
                     className="size-full flex justify-center items-center"
                 >
-                    <PressableAnimated
-                        scale={.95}
-                        disabled={loading}
-                        onPress={() => handleSubmit()}
-                        className={clsx(
-                            "w-[80%] sm:w-[300px] h-[50px] dark:bg-black bg-white rounded-3xl",
-                            loading && "opacity-50",
-                        )}
+                    <Animated.View
+                        entering={FadeInDown
+                            .delay(500)
+                            .duration(300)
+                            .easing(Easing.inOut(Easing.quad))
+                        }
+                        className="w-[80%] sm:w-[300px] h-[50px]"
                     >
-                        <View
-                            style={{
-                                transform: [
-                                    {
-                                        translateY: 8,
-                                    }
-                                ],
-                                filter: "blur(5px)",
-                            }}
+                        <PressableAnimated
+                            scale={.95}
+                            disabled={loading}
+                            onPress={() => handleSubmit()}
                             className={clsx(
-                                "size-full rounded-3xl",
-                                loading ? "dark:bg-black/50 bg-black/10" : "dark:bg-back/50 bg-black/30",
+                                "size-full dark:bg-black bg-white rounded-3xl",
+                                loading && "opacity-50",
                             )}
-                        />
+                        >
+                            <View
+                                style={{
+                                    transform: [
+                                        {
+                                            translateY: 8,
+                                        }
+                                    ],
+                                    filter: "blur(5px)",
+                                }}
+                                className={clsx(
+                                    "size-full rounded-3xl",
+                                    loading ? "dark:bg-black/50 bg-black/10" : "dark:bg-back/50 bg-black/30",
+                                )}
+                            />
 
-                        <View className="absolute w-full h-full dark:bg-black bg-white rounded-3xl z-[1]">
-                            <View className="size-full flex flex-row justify-center items-center px-3 py-2 rounded-3xl border dark:border-white/5 border-black/10 dark:bg-black bg-white">
-                                {
-                                    loading ?
-                                        (
-                                            <ActivityIndicator
-                                                size={30}
-                                                color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
-                                            />
-                                        )
-                                        :
-                                        (
-                                            <TextAnimated
-                                                numberOfLines={1}
-                                                dark="rgba(255, 255, 255, .9)"
-                                                light="rgba(0, 0, 0, .9)"
-                                                className="text-2xl font-bold"
-                                            >
-                                                {
-                                                    paramAction == "edit" ?
-                                                        t("create_form_submit_edit")
-                                                        :
-                                                        t("create_form_submit_create")
-                                                }
-                                            </TextAnimated>
-                                        )
-                                }
+                            <View className="absolute w-full h-full dark:bg-black bg-white rounded-3xl z-[1]">
+                                <View className="size-full flex flex-row justify-center items-center px-3 py-2 rounded-3xl border dark:border-white/5 border-black/10 dark:bg-black bg-white">
+                                    {
+                                        loading ?
+                                            (
+                                                <ActivityIndicator
+                                                    size={30}
+                                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
+                                                />
+                                            )
+                                            :
+                                            (
+                                                <TextAnimated
+                                                    numberOfLines={1}
+                                                    dark="rgba(255, 255, 255, .9)"
+                                                    light="rgba(0, 0, 0, .9)"
+                                                    className="text-2xl font-bold"
+                                                >
+                                                    {
+                                                        paramAction == "edit" ?
+                                                            t("create_form_submit_edit")
+                                                            :
+                                                            t("create_form_submit_create")
+                                                    }
+                                                </TextAnimated>
+                                            )
+                                    }
+                                </View>
                             </View>
-                        </View>
-                    </PressableAnimated>
+                        </PressableAnimated>
+                    </Animated.View>
                 </LinearGradient>
             </LinearGradient>
 

@@ -6,17 +6,18 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
 import { TaskType as EventType } from "@/types/task";
-import { Entypo, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
+import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo-notifications";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, FlatList, GestureResponderEvent, Pressable, useWindowDimensions, Vibration, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, GestureResponderEvent, Pressable, useWindowDimensions, Vibration, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeInUp, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
@@ -34,9 +35,10 @@ export const parseCalendarDate = (entry: Date | number) => {
 interface Props {
     targetDate: Date | null;
     setTargetDate: (entry: Date | null) => void;
+    refreshing: SharedValue<boolean>;
 }
 
-export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => {
+export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }: Props) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
@@ -44,9 +46,9 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     const [loading, setLoading] = useState<boolean>(false);
     const [eventsCount, setEventsCount] = useState<number>(0);
     const eventsGap = 15;
-    const { getTasksByDate: getEventsByDate, getTasksCountByDate: getEventsCountByDate } = useTasks();
+    const { getTasksByDate: getEventsByDate, getTasksCountByDate: getEventsCountByDate, deleteTasks: deleteEvents } = useTasks();
     const limit = 10;
-    const { setToast } = useToast();
+    const { setToast, setDismiss } = useToast();
     const active = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -69,10 +71,24 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     });
     const [selected, setSelected] = useState<EventType | null>(null);
     const router = useRouter();
+    const init = useRef<boolean>(true);
+    const eventsTmp = useRef<EventType[]>([]);
+    const loadingRef = useRef<boolean>(false);
 
     const displayDay = useMemo(() => {
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
+
+    const editable = useMemo(() => {
+        if (!selected || !active.value || !position.value || !targetDate) return false;
+        const date = new Date();
+
+        if ((selected.startAt - (1000 * 60 * 5)) > date.getTime()) {
+            return true;
+        }
+
+        return false;
+    }, [selected]);
 
     const onPress = useCallback((event: EventType) => {
         if (selected) return;
@@ -199,7 +215,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     }, [selected, onLongPress, onPress]);
 
     const listFooterComponent = useCallback(() => {
-        if (loading) {
+        if (loading && eventsTmp.current.length == 0) {
             return (
                 <View
                     style={{
@@ -231,8 +247,31 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         return null;
     }, [loading]);
 
+    const listEmptyComponent = useCallback(() => {
+        if (!loading && events.length == 0 && !init) {
+            return (
+                <View className="w-full flex justify-center items-center gap-3 pt-10">
+                    <View>
+                        <MaterialCommunityIcons
+                            name="calendar-remove"
+                            size={120}
+                            color={theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)"}
+                        />
+                    </View>
+
+                    <View>
+                        <TextAnimated className="font-bold text-lg tracking-wider opacity-50">
+                            {t("agenda_no_event")}
+                        </TextAnimated>
+                    </View>
+                </View>
+            );
+        }
+        return null;
+    }, [loading, events, theme]);
+
     const handleGetEvents = useCallback(async (refresh: boolean = false) => {
-        if (loading || !targetDate || !active.value) return;
+        if (loadingRef.current || !targetDate || !active.value) return;
         setLoading(true);
 
         try {
@@ -241,15 +280,16 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
             if (refresh) setEvents(data);
             else setEvents(prev => [...prev, ...data]);
             setLoading(false);
+            init.current = false;
         }
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [loading, i18n.language, targetDate, events]);
+    }, [i18n.language, targetDate, events]);
 
     const handleGetEventsCount = useCallback(async () => {
-        if (loading || !targetDate) return;
+        if (!targetDate) return;
 
         try {
             const data = await getEventsCountByDate(targetDate) as number;
@@ -259,7 +299,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         catch (e) {
             setToast(t("sqlite_error"), "error");
         }
-    }, [loading, i18n.language, targetDate]);
+    }, [i18n.language, targetDate]);
 
     useEffect(() => {
         const onBackPress = () => {
@@ -300,7 +340,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
     }), []);
 
     const onEndReached = useCallback(() => {
-        if (loading || events.length >= eventsCount || !active.value) return;
+        if (loading || events.length >= eventsCount || !active.value || eventsTmp.current.length > 0) return;
         handleGetEvents();
     }, [loading, eventsCount, events]);
 
@@ -330,6 +370,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         closeTimeout.current && clearTimeout(closeTimeout.current);
         active.value = false;
         position.value = null;
+        setSelected(null);
         closeTimeout.current = setTimeout(() => {
             setTargetDate(null);
             setEvents([]);
@@ -451,6 +492,73 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
         handleClose();
     }, [targetDate]);
 
+    const handleDeleteEvent = useCallback(async (entry: EventType | null = null) => {
+        if ((loadingRef.current && !entry) || (!loadingRef.current && !selected)) return;
+
+        if (!entry) {
+            setLoading(true);
+            eventsTmp.current = [...events];
+            setEvents(prev => [...prev.filter(e => e.idTask != selected?.idTask)]);
+            setEventsCount(prev => prev - 1);
+            position.value = null;
+
+            setDismiss(
+                () => {
+                    handleDeleteEvent(selected);
+                },
+                () => {
+                    if (eventsTmp.current.length > 0) {
+                        setEvents(() => {
+                            setEventsCount(prev => prev + 1);
+
+                            return [...eventsTmp.current];
+                        });
+                    }
+                    eventsTmp.current = [];
+                    setLoading(false);
+                },
+                5,
+                60,
+            );
+            setSelected(null);
+
+            return;
+        }
+
+        try {
+            await deleteEvents([entry.idTask]);
+            await cancelScheduledNotificationAsync(entry.notificationId);
+            await dismissNotificationAsync(entry.notificationId);
+
+            eventsTmp.current = [];
+            refreshing.value = true;
+            if (events.length < eventsCount && events.length < limit) {
+                loadingRef.current = false;
+                handleGetEvents(true);
+            }
+            else {
+                setLoading(false);
+            }
+        }
+        catch (e) {
+            if (eventsTmp.current.length > 0) {
+                setEvents(() => {
+                    setEventsCount(prev => prev + 1);
+
+                    return [...eventsTmp.current];
+                });
+            }
+            setLoading(false);
+            eventsTmp.current = [];
+            setToast(t("sqlite_error"), "error");
+            console.log(e);
+        }
+    }, [setToast, setDismiss, i18n.language, selected, events, eventsCount]);
+
+    useEffect(() => {
+        loadingRef.current = loading;
+    }, [loading]);
+
     return (
         <GestureDetector gesture={tapGesture}>
             <Animated.View
@@ -511,7 +619,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                                 locations={[0, .6, 1]}
                                 className="w-full flex flex-row justify-between items-center px-3 pt-2 pb-8"
                             >
-                                <View className="max-w-[80%]">
+                                <View className="max-w-[70%]">
                                     <TextAnimated
                                         numberOfLines={1}
                                         className="text-xl"
@@ -520,18 +628,43 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                                     </TextAnimated>
                                 </View>
 
-                                <PressableAnimated
-                                    onPress={handleClose}
-                                    className="size-[40px] shrink-0 dark:bg-black bg-white rounded-full"
-                                >
-                                    <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full">
-                                        <FontAwesome6
-                                            name="xmark"
-                                            size={24}
-                                            color="rgba(255, 255, 255, .8)"
-                                        />
-                                    </View>
-                                </PressableAnimated>
+                                <View className="flex flex-row items-center gap-6">
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => handleGetEvents(true)}
+                                    >
+                                        {
+                                            loading ?
+                                                (
+                                                    <ActivityIndicator
+                                                        size={24}
+                                                        color={COLORS.emerald[500]}
+                                                    />
+                                                )
+                                                :
+                                                (
+                                                    <FontAwesome6
+                                                        name="rotate-right"
+                                                        size={24}
+                                                        color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                                    />
+                                                )
+                                        }
+                                    </PressableAnimated>
+
+                                    <PressableAnimated
+                                        onPress={handleClose}
+                                        className="size-[40px] shrink-0 dark:bg-black bg-white rounded-full"
+                                    >
+                                        <View className="size-full flex justify-center items-center dark:bg-white/10 bg-black/80 rounded-full">
+                                            <FontAwesome6
+                                                name="xmark"
+                                                size={24}
+                                                color="rgba(255, 255, 255, .8)"
+                                            />
+                                        </View>
+                                    </PressableAnimated>
+                                </View>
                             </LinearGradient>
                         </LinearGradient>
 
@@ -546,6 +679,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                             scrollEventThrottle={16}
                             onEndReachedThreshold={.1}
                             ListFooterComponent={listFooterComponent}
+                            ListEmptyComponent={listEmptyComponent}
                             getItemLayout={getItemLayout}
                             onEndReached={onEndReached}
                             className="w-full h-full"
@@ -646,27 +780,33 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                     />
 
                     <View className="size-full flex items-center gap-3 px-3 py-5 dark:bg-white/10 bg-white rounded-2xl border-2 dark:border-white/5 border-black/5">
-                        <PressableAnimated
-                            onPress={() => handleContextMenuButtonPress("edit")}
-                            className="w-full flex flex-row items-center"
-                        >
-                            <View className="w-[30%]">
-                                <MaterialCommunityIcons
-                                    name="calendar-edit"
-                                    size={25}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
-                                />
-                            </View>
+                        {
+                            editable && (
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => handleContextMenuButtonPress("edit")}
+                                    className="w-full flex flex-row items-center"
+                                >
+                                    <View className="w-[30%]">
+                                        <MaterialCommunityIcons
+                                            name="calendar-edit"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
+                                        />
+                                    </View>
 
-                            <View className="w-[60%]">
-                                <TextAnimated className="text-lg font-medium tracking-wider">
-                                    {t("agenda_edit_event")}
-                                </TextAnimated>
-                            </View>
-                        </PressableAnimated>
+                                    <View className="w-[60%]">
+                                        <TextAnimated className="text-lg font-medium tracking-wider">
+                                            {t("agenda_edit_event")}
+                                        </TextAnimated>
+                                    </View>
+                                </PressableAnimated>
+                            )
+                        }
 
                         <PressableAnimated
-                            onPress={() => { }}
+                            scale={.95}
+                            onPress={() => handleDeleteEvent()}
                             className="w-full flex flex-row items-center"
                         >
                             <View className="w-[30%]">
@@ -685,6 +825,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate }: Props) => 
                         </PressableAnimated>
 
                         <PressableAnimated
+                            scale={.95}
                             onPress={() => handleContextMenuButtonPress("duplicate")}
                             className="w-full flex flex-row items-center"
                         >

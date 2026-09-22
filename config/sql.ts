@@ -31,7 +31,7 @@ function genData(): {
         let entry: Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">;
         const date = new Date();
 
-        if (nb > .75) {
+        if (nb > .6) {
             const onb = Math.random();
 
             entry = {

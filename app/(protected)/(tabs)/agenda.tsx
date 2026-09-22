@@ -151,6 +151,7 @@ export default function Agenda() {
             <CalendarDayEvents
                 targetDate={dateEvents}
                 setTargetDate={setDateEvents}
+                refreshing={refreshing}
             />
 
             <CalendarSearch active={searchSectionActive} />

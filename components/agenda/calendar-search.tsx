@@ -5,14 +5,14 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { event, EVENTS_CHANGED, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
-import { FontAwesome } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
@@ -288,7 +288,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                     style={{
                         gap: eventsGap,
                     }}
-                    className="w-screen flex items-center px-3"
+                    className="w-full flex items-center px-3"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (
@@ -317,15 +317,15 @@ export const CalendarSearch = memo(({ active }: Props) => {
     const listEmptyComponent = useCallback(() => {
         if (!loading && value.trim().length > 0) {
             return (
-                <View className="w-screen flex justify-center items-center gap-4 pt-10">
-                    <FontAwesome
-                        name="calendar-times-o"
+                <View className="w-full flex justify-center items-center gap-3 pt-10">
+                    <MaterialCommunityIcons
+                        name="calendar-remove"
                         size={120}
                         color={theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)"}
                     />
-                    <Text className="dark:text-white/50 text-black/50 font-bold text-lg tracking-wider">
+                    <TextAnimated className="font-bold text-lg tracking-wider opacity-50">
                         {t("agenda_no_event")}
-                    </Text>
+                    </TextAnimated>
                 </View>
             );
         }
@@ -545,7 +545,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                     contentContainerStyle={{
                         gap: eventsGap,
                     }}
-                    contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
+                    contentContainerClassName="w-full flex pt-[150px] pb-[120px] px-3"
                 />
 
                 <LinearGradient
