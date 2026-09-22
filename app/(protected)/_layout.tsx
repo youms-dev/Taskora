@@ -3,7 +3,7 @@ import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, dismissNotificationAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
@@ -18,27 +18,28 @@ const CONFIG: NotificationChannelInput = {
 export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
+    const router = useRouter();
 
     const handleNotifs = useCallback(async () => {
-        const channels = await getNotificationChannelsAsync();
-        const categories = await getNotificationCategoriesAsync();
+        // const channels = await getNotificationChannelsAsync();
+        // const categories = await getNotificationCategoriesAsync();
 
-        await cancelAllScheduledNotificationsAsync();
+        // await cancelAllScheduledNotificationsAsync();
 
-        if (channels.length > 0) {
-            await Promise.all(
-                channels.map(async (channel) => {
-                    await deleteNotificationChannelAsync(channel.id);
-                }),
-            );
-        }
-        if (categories.length > 0) {
-            await Promise.all(
-                categories.map(async (cat) => {
-                    await deleteNotificationCategoryAsync(cat.identifier);
-                }),
-            );
-        }
+        // if (channels.length > 0) {
+        //     await Promise.all(
+        //         channels.map(async (channel) => {
+        //             await deleteNotificationChannelAsync(channel.id);
+        //         }),
+        //     );
+        // }
+        // if (categories.length > 0) {
+        //     await Promise.all(
+        //         categories.map(async (cat) => {
+        //             await deleteNotificationCategoryAsync(cat.identifier);
+        //         }),
+        //     );
+        // }
 
         await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
             {
@@ -134,9 +135,9 @@ export default function ProtectedLayout() {
                             }
                         },
                         trigger: {
-                            type: SchedulableTriggerInputTypes.DATE,
+                            type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                             channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                            // seconds: 5,
+                            seconds: 1000 * 60 * 5,
                         },
                     });
 
@@ -155,6 +156,14 @@ export default function ProtectedLayout() {
                     await deleteTasks([taskId]);
                     if (taskType == "task") event.emit(TASKS_CHANGED);
                     else event.emit(EVENTS_CHANGED);
+                }
+                else {
+                    router.navigate({
+                        pathname: "/(protected)/(task)/[id]",
+                        params: {
+                            id: taskId,
+                        },
+                    });
                 }
             }
         });

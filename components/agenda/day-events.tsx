@@ -57,7 +57,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
         y: number;
     } | null>(null);
     const contextMenuWidth = 150;
-    const contextMenuHeight = 130;
+    const contextMenuHeight = useSharedValue<number>(0);
     const viewLayout = useSharedValue<{
         x: number;
         y: number;
@@ -74,21 +74,11 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     const init = useRef<boolean>(true);
     const eventsTmp = useRef<EventType[]>([]);
     const loadingRef = useRef<boolean>(false);
+    const [editable, setEditable] = useState<boolean>(false);
 
     const displayDay = useMemo(() => {
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
     }, [i18n.language, targetDate]);
-
-    const editable = useMemo(() => {
-        if (!selected || !active.value || !position.value || !targetDate) return false;
-        const date = new Date();
-
-        if ((selected.startAt - (1000 * 60 * 5)) > date.getTime()) {
-            return true;
-        }
-
-        return false;
-    }, [selected]);
 
     const onPress = useCallback((event: EventType) => {
         if (selected) return;
@@ -99,16 +89,25 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             }
         });
         handleClose();
-    }, []);
+    }, [selected]);
 
     const onLongPress = useCallback((e: GestureResponderEvent, event: EventType) => {
         const { pageX, pageY } = e.nativeEvent;
+        const date = new Date();
 
         setSelected(event);
+
+        if ((event.startAt - (1000 * 60 * 5)) > date.getTime()) {
+            setEditable(true);
+        }
+        else {
+            setEditable(false);
+        }
+
         !position.value && Vibration.vibrate(100);
         position.value = {
             x: pageX > (screenWidth / 2) ? pageX - contextMenuWidth : pageX,
-            y: pageY > (screenHeight * .7) ? pageY - (contextMenuHeight + (contextMenuHeight / 2)) : pageY,
+            y: pageY > (screenHeight * .7) ? pageY - (contextMenuHeight.value + (contextMenuHeight.value / 2)) : pageY,
         };
         eventEmitter.emit(UNTOUCHABLE_NAVBAR);
     }, [selected, screenHeight, screenHeight]);
@@ -434,7 +433,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                         (
                             (x < position.value.x || x > (position.value.x + contextMenuWidth))
                             ||
-                            (y < position.value.y || (y > (position.value.y + contextMenuHeight)))
+                            (y < position.value.y || (y > (position.value.y + contextMenuHeight.value)))
                         )
                     ) {
                         scheduleOnRN(setSelected, null);
@@ -758,11 +757,11 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                 {/* Context menu */}
 
                 <Animated.View
+                    onLayout={(e) => contextMenuHeight.value = e.nativeEvent.layout.height}
                     style={[
                         contextMenuAnimation,
                         {
                             width: contextMenuWidth,
-                            height: contextMenuHeight,
                         }
                     ]}
                     className="absolute left-0 top-0 dark:bg-black bg-white rounded-2xl"

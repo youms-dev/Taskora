@@ -26,6 +26,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { faker } from "@faker-js/faker";
+import { createId } from "@paralleldrive/cuid2";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { randomUUID } from "expo-crypto";
@@ -394,31 +395,40 @@ export default function CreateTaskPage() {
             const [endHour, endMin] = inputsValues.startAt.split(":");
             const startAt = new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(startHour), Number(startMin));
             const endAt = target == "event" ? new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(endHour), Number(endMin)) : null;
+            let scheduleDate = startAt;
+            let notificationId = createId();
+
+            if (target == "event" && inputsValues.remindBefore && !isNaN(inputsValues.remindBefore)) {
+                console.log("Remind before :", inputsValues.remindBefore);
+                scheduleDate = new Date(startAt.getTime() - (60_000 * inputsValues.remindBefore));
+            }
 
             const fakeTitle = faker.lorem.sentence();
             const fakeBody = faker.lorem.sentences({ min: 1000, max: 2000 });
 
-            const notificationId = await scheduleNotificationAsync({
-                content: {
-                    title: fakeTitle,
-                    // title: inputsValues.title,
-                    subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
-                    // body: inputsValues.desc ? inputsValues.desc : null,
-                    body: fakeBody,
-                    sound: sound ? sound : "sound02.wav",
-                    categoryIdentifier: target == "task" ? TASK_REMINDER_CATEGORY : EVENT_REMINDER_CATEGORY,
-                    data: {
-                        taskId: paramTask && paramAction == "edit" ? paramTask.idTask : taskId,
-                        taskType: target,
-                    }
-                },
-                trigger: {
-                    channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                    type: SchedulableTriggerInputTypes.DATE,
-                    // date: startAt,
-                    date: new Date().getTime() + (1000 * 5),
-                },
-            });
+            if (!inputsValues.archive) {
+                notificationId = await scheduleNotificationAsync({
+                    content: {
+                        // title: fakeTitle,
+                        title: inputsValues.title,
+                        subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
+                        body: inputsValues.desc ? inputsValues.desc : null,
+                        // body: fakeBody,
+                        sound: sound ? sound : "sound02.wav",
+                        categoryIdentifier: target == "task" ? TASK_REMINDER_CATEGORY : EVENT_REMINDER_CATEGORY,
+                        data: {
+                            taskId: paramTask && paramAction == "edit" ? paramTask.idTask : taskId,
+                            taskType: target,
+                        }
+                    },
+                    trigger: {
+                        channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
+                        type: SchedulableTriggerInputTypes.DATE,
+                        // date: scheduleDate,
+                        date: new Date().getTime() + (1000 * 5),
+                    },
+                });
+            }
 
             const { archive, date: d, desc, icon, folder, ...rest } = inputsValues;
 
@@ -456,6 +466,7 @@ export default function CreateTaskPage() {
                     await cancelScheduledNotificationAsync(paramTask.notificationId);
                     await dismissNotificationAsync(paramTask.notificationId);
                 }
+
                 await updateTask(task);
                 setToast(t("create_edit_success"), "success");
             }
@@ -467,9 +478,21 @@ export default function CreateTaskPage() {
             setLoading(false);
             if (target == "task") event.emit(TASKS_CHANGED);
             else event.emit(EVENTS_CHANGED);
-            console.log("Scheduled :", notificationId, startAt.toLocaleString());
+            console.log("Scheduled :", notificationId, scheduleDate.toLocaleString());
             if (router.canGoBack()) {
-                router.back();
+                if (paramAction == "edit") {
+                    router.back();
+                }
+                else if (target == "task") {
+                    router.navigate({
+                        pathname: "/(protected)/(tabs)",
+                    });
+                }
+                else if (target == "event") {
+                    router.navigate({
+                        pathname: "/(protected)/(tabs)/agenda",
+                    });
+                }
             }
             else {
                 router.navigate({
@@ -952,13 +975,13 @@ export default function CreateTaskPage() {
                                         }))}
                                         className="w-full flex flex-row justify-between items-center"
                                     >
-                                        <View className="w-[60%]">
+                                        <View className="max-w-[60%]">
                                             <TextAnimated className="text-xl">
                                                 {t("create_form_archive")}
                                             </TextAnimated>
                                         </View>
 
-                                        <View className="shrink-0">
+                                        <View>
                                             <Toggle
                                                 active={inputsValues.archive}
                                                 animationDuration={400}
@@ -976,7 +999,8 @@ export default function CreateTaskPage() {
                                             size={20}
                                             color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                         />
-                                        <TextAnimated className="dark:text-">
+                                        
+                                        <TextAnimated className="opacity-80">
                                             {t("create_form_archive_notice")}
                                         </TextAnimated>
                                     </View>

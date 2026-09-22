@@ -77,7 +77,7 @@ export const useTasks = () => {
         try {
             const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, id_folder, start_at, end_at, archived, done, notification_id, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, start_at, end_at, archived, done, notification_id, remind_before, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
@@ -89,6 +89,7 @@ export const useTasks = () => {
                     done: Boolean(done),
                     pinned: Boolean(item.pinned),
                     notificationId: notification_id,
+                    remindBefore: remind_before,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });
@@ -308,10 +309,10 @@ export const useTasks = () => {
 
         try {
             if (task.type == "task") {
-                await db.runAsync("INSERT INTO task (id_task, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.idFolder ?? null, task.title ?? null, task.content ?? null, task.icon ?? null, task.archived ? 1 : 0, task.startAt, task.notificationId, task.type]);
+                await db.runAsync("INSERT INTO task (id_task, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.idFolder ?? null, task.title ? task.title.trim() : null, task.content ? task.content.trim() : null, task.icon ?? null, task.archived ? 1 : 0, task.startAt, task.notificationId, task.type]);
             }
             else {
-                await db.runAsync("INSERT INTO task (id_task, title, content, icon, start_at, end_at, remind_before, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.title ?? null, task.content ?? null, task.icon ?? null, task.startAt, String(task.endAt), task.remindBefore ?? null, task.notificationId, task.type]);
+                await db.runAsync("INSERT INTO task (id_task, title, content, icon, start_at, end_at, remind_before, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.title ? task.title.trim() : null, task.content ? task.content.trim() : null, task.icon ?? null, task.startAt, String(task.endAt), task.remindBefore ?? null, task.notificationId, task.type]);
             }
 
             return true;
