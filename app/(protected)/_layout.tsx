@@ -2,7 +2,7 @@ import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
-import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, cancelAllScheduledNotificationsAsync, deleteNotificationCategoryAsync, deleteNotificationChannelAsync, dismissNotificationAsync, getNotificationCategoriesAsync, getNotificationChannelsAsync, NotificationChannelInput, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
+import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,27 +20,7 @@ export default function ProtectedLayout() {
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
 
-    const handleNotifs = useCallback(async () => {
-        // const channels = await getNotificationChannelsAsync();
-        // const categories = await getNotificationCategoriesAsync();
-
-        // await cancelAllScheduledNotificationsAsync();
-
-        // if (channels.length > 0) {
-        //     await Promise.all(
-        //         channels.map(async (channel) => {
-        //             await deleteNotificationChannelAsync(channel.id);
-        //         }),
-        //     );
-        // }
-        // if (categories.length > 0) {
-        //     await Promise.all(
-        //         categories.map(async (cat) => {
-        //             await deleteNotificationCategoryAsync(cat.identifier);
-        //         }),
-        //     );
-        // }
-
+    const setupNotifications = useCallback(async () => {
         await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
             {
                 identifier: MARK_DONE_CATEGORY,
@@ -106,67 +86,75 @@ export default function ProtectedLayout() {
     }, [i18n.language]);
 
     useEffect(() => {
-        handleNotifs();
-    }, [handleNotifs]);
+        setupNotifications();
+    }, [setupNotifications]);
+
+    const onNotificationResponseReceived = useCallback(async (response: NotificationResponse) => {
+        const notificationId = response.notification.request.identifier;
+        const notification = response.notification.request;
+        const action = response.actionIdentifier;
+        const taskId = response.notification.request.content.data?.taskId ?? null;
+        const taskType = notification.content.data?.taskType ?? null;
+
+        await dismissNotificationAsync(notificationId);
+
+        if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
+            if (action == SNOOZE_CATEGORY && taskType == "event") {
+                const notificationId = await scheduleNotificationAsync({
+                    content: {
+                        title: notification.content.title,
+                        subtitle: notification.content.subtitle,
+                        body: notification.content.body,
+                        sound: notification.content.sound ?? "sound02.wav",
+                        categoryIdentifier: notification.content.categoryIdentifier ?? "reminder",
+                        data: {
+                            taskId,
+                            taskType,
+                        }
+                    },
+                    trigger: {
+                        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                        channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
+                        seconds: 60 * 5,
+                    },
+                });
+
+                await updateTaskNotification(taskId, notificationId, taskType);
+            }
+            else if (action == MARK_DONE_CATEGORY && taskType == "task") {
+                await markTasksDone([taskId]);
+                event.emit(TASKS_CHANGED);
+            }
+            else if (action == DELETE_CATEGORY) {
+                await deleteTasks([taskId]);
+                if (taskType == "task") event.emit(TASKS_CHANGED);
+                else event.emit(EVENTS_CHANGED);
+            }
+            else {
+                router.navigate({
+                    pathname: "/(protected)/(task)/[id]",
+                    params: {
+                        id: taskId,
+                    },
+                });
+            }
+        }
+    }, []);
+
+    const handleLastNotification = useCallback(async () => {
+        const response = getLastNotificationResponse();
+
+        if (response) {
+            onNotificationResponseReceived(response);
+        }
+    }, []);
 
     useEffect(() => {
         const { remove } = addNotificationResponseReceivedListener(async (response) => {
-            const action = response.actionIdentifier;
-            const notificationId = response.notification.request.identifier;
-            const notification = response.notification.request;
-            const taskId = notification.content.data?.taskId ?? null;
-            const taskType = notification.content.data?.taskType ?? null;
-
-            await dismissNotificationAsync(notificationId);
-
-            if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
-                if (action == SNOOZE_CATEGORY && taskType == "event") {
-                    console.log("SNOOZE");
-                    const notificationId = await scheduleNotificationAsync({
-                        content: {
-                            title: notification.content.title,
-                            subtitle: notification.content.subtitle,
-                            body: notification.content.body,
-                            sound: notification.content.sound ?? "sound02.wav",
-                            categoryIdentifier: notification.content.categoryIdentifier ?? "reminder",
-                            data: {
-                                taskId,
-                                taskType,
-                            }
-                        },
-                        trigger: {
-                            type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-                            channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                            seconds: 1000 * 60 * 5,
-                        },
-                    });
-
-                    await updateTaskNotification(taskId, notificationId, taskType);
-
-                    console.log("New schedule :", notificationId);
-                }
-                else if (action == MARK_DONE_CATEGORY && taskType == "task") {
-                    console.log("Mark done");
-
-                    await markTasksDone([taskId]);
-                    event.emit(TASKS_CHANGED);
-                }
-                else if (action == DELETE_CATEGORY) {
-                    console.log("DELETE");
-                    await deleteTasks([taskId]);
-                    if (taskType == "task") event.emit(TASKS_CHANGED);
-                    else event.emit(EVENTS_CHANGED);
-                }
-                else {
-                    router.navigate({
-                        pathname: "/(protected)/(task)/[id]",
-                        params: {
-                            id: taskId,
-                        },
-                    });
-                }
-            }
+            onNotificationResponseReceived(response);
         });
+
+        handleLastNotification();
 
         return () => remove();
     }, []);

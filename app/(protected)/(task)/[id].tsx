@@ -445,6 +445,31 @@ export default function TaskPage() {
         }
     }, [loading, setToast, setDismiss, i18n.language, task]);
 
+    useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (router.canGoBack()) {
+                router.back();
+
+                return true;
+            }
+
+            if (task?.type == "task") {
+                router.replace({
+                    pathname: "/(protected)/(tabs)",
+                });
+            }
+            else if (task?.type == "event") {
+                router.replace({
+                    pathname: "/(protected)/(tabs)/agenda",
+                });
+            }
+
+            return true;
+        });
+
+        return () => remove();
+    }, [task]);
+
     if (loading && !task) {
         return (
             <Container centerX>
@@ -508,9 +533,16 @@ export default function TaskPage() {
                                         router.back();
                                     }
                                     else {
-                                        router.navigate({
-                                            pathname: "/(protected)/(tabs)",
-                                        })
+                                        if (task.type == "task") {
+                                            router.replace({
+                                                pathname: "/(protected)/(tabs)",
+                                            });
+                                        }
+                                        else if (task.type == "event") {
+                                            router.replace({
+                                                pathname: "/(protected)/(tabs)/agenda",
+                                            });
+                                        }
                                     }
                                 }}
                                 className="size-[50px] dark:bg-black bg-white rounded-full"

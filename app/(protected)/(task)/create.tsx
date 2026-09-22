@@ -479,26 +479,26 @@ export default function CreateTaskPage() {
             if (target == "task") event.emit(TASKS_CHANGED);
             else event.emit(EVENTS_CHANGED);
             console.log("Scheduled :", notificationId, scheduleDate.toLocaleString());
-            if (router.canGoBack()) {
-                if (paramAction == "edit") {
-                    router.back();
-                }
-                else if (target == "task") {
-                    router.navigate({
-                        pathname: "/(protected)/(tabs)",
-                    });
-                }
-                else if (target == "event") {
-                    router.navigate({
-                        pathname: "/(protected)/(tabs)/agenda",
-                    });
-                }
-            }
-            else {
-                router.navigate({
-                    pathname: "/(protected)/(tabs)",
-                });
-            }
+            // if (router.canGoBack()) {
+            //     if (paramAction == "edit") {
+            //         router.back();
+            //     }
+            //     else if (target == "task") {
+            //         router.navigate({
+            //             pathname: "/(protected)/(tabs)",
+            //         });
+            //     }
+            //     else if (target == "event") {
+            //         router.navigate({
+            //             pathname: "/(protected)/(tabs)/agenda",
+            //         });
+            //     }
+            // }
+            // else {
+            //     router.navigate({
+            //         pathname: "/(protected)/(tabs)",
+            //     });
+            // }
         }
         catch (e) {
             setLoading(false);
