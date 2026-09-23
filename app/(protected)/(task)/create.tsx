@@ -36,7 +36,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeInDown, FadeInRight, FadeOutRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
     onFocus?: (e?: FocusEvent) => void;
@@ -679,10 +679,42 @@ export default function CreateTaskPage() {
                             <Select
                                 duration={500}
                                 header={(
-                                    <View className="w-full flex gap-3 pt-[2px]">
-                                        <TextAnimated className="text-xl tracking-widest">
-                                            {t("create_form_icon")}
-                                        </TextAnimated>
+                                    <View className="w-full flex flex-row justify-between items-center gap-3 pt-[2px] pr-2">
+                                        <View className="max-w-[80%]">
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                className="text-xl tracking-widest"
+                                            >
+                                                {
+                                                    inputsValues.icon ?
+                                                        t("create_form_chosen_icon")
+                                                        :
+                                                        t("create_form_icon")
+                                                }
+                                            </TextAnimated>
+                                        </View>
+
+                                        {
+                                            inputsValues.icon && (
+                                                <Animated.View
+                                                    entering={FadeInRight
+                                                        .duration(300)
+                                                        .easing(Easing.inOut(Easing.quad))
+                                                    }
+                                                    exiting={FadeOutRight
+                                                        .duration(300)
+                                                        .easing(Easing.inOut(Easing.quad))
+                                                    }
+                                                >
+                                                    <Icon
+                                                        library={inputsValues.icon.packageName}
+                                                        name={inputsValues.icon.name}
+                                                        size={22}
+                                                        color={COLORS.emerald[500]}
+                                                    />
+                                                </Animated.View>
+                                            )
+                                        }
                                     </View>
                                 )}
                             >
@@ -999,7 +1031,7 @@ export default function CreateTaskPage() {
                                             size={20}
                                             color={theme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)"}
                                         />
-                                        
+
                                         <TextAnimated className="opacity-80">
                                             {t("create_form_archive_notice")}
                                         </TextAnimated>

@@ -347,6 +347,8 @@ export default function TaskPage() {
         try {
             setLoading(true);
             await markTasksDone([task.idTask]);
+            await cancelScheduledNotificationAsync(task.notificationId);
+            await dismissNotificationAsync(task.notificationId);
             setTask(prev => {
                 if (prev) {
                     return ({

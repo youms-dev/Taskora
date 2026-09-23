@@ -19,6 +19,7 @@ interface Props {
         paddingBottom?: number;
     };
     chevron?: boolean;
+    onChange?: (value?: boolean) => void;
 }
 
 /**
@@ -40,10 +41,12 @@ interface Props {
  * 
  * @param chevron Define whether there is a chevron or not
  * 
- * @returns 
+ * @param onChange The handler to call when the open state changes
+ * 
+ * @returns The Select component
  */
 
-export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200, chevronPadding = 0, chevron = true }: Props) => {
+export const Select = memo(({ open: selectOpen = false, children, header, chevronColor, duration: durationProps = 200, rotationDuration: rotationDurationProps = 200, chevronPadding = 0, chevron = true, onChange }: Props) => {
     const active = useSharedValue(!!selectOpen);
     const contentHeight = useSharedValue(0);
     const [measuredHeight, setMeasuredHeight] = useState(0);
@@ -54,7 +57,8 @@ export const Select = memo(({ open: selectOpen = false, children, header, chevro
 
     useEffect(() => {
         active.value = selectOpen;
-    }, [selectOpen]);
+        onChange?.(selectOpen);
+    }, [selectOpen, onChange]);
 
     useEffect(() => {
         contentHeight.value = measuredHeight;
@@ -96,18 +100,19 @@ export const Select = memo(({ open: selectOpen = false, children, header, chevro
             <Pressable
                 onPress={() => {
                     active.value = !active.value;
+                    onChange?.(!active.value);
                 }}
                 className="w-full flex-row justify-between"
             >
                 <View className={clsx(
-                    chevron ? "w-[70%]" : "w-full",
+                    chevron ? "w-[85%]" : "w-full",
                 )}>
                     {header}
                 </View>
 
                 {
                     chevron && (
-                        <View className="w-[20%] h-full flex-row justify-end">
+                        <View className="h-full flex-row justify-end">
                             <Animated.View
                                 onLayout={(e) => chevronWidth.value = e.nativeEvent.layout.width}
                                 style={[

@@ -115,7 +115,8 @@ export default function ProtectedLayout() {
                     trigger: {
                         type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                         channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                        seconds: 60 * 5,
+                        // seconds: 60 * 5,
+                        seconds: 2,
                     },
                 });
 

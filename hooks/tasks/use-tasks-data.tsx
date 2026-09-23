@@ -280,7 +280,7 @@ export const useTasksData = () => {
         if (loadingRef.current && !data) return;
 
         tasksTmp.current = [...tasks];
-        
+
         if (init) {
             deleting.current = true;
             setLoading(true);
@@ -296,16 +296,16 @@ export const useTasksData = () => {
                     setLoading(false);
                     deleting.current = false;
                 });
-                return;
+            return;
         }
 
         if (!data) {
             handleGetTasksCount();
             handleGetTasks(true);
-            
+
             return;
         }
-        
+
         try {
             await deleteTasks([data.idTask]);
             await cancelScheduledNotificationAsync(data.notificationId);
@@ -403,6 +403,10 @@ export const useTasksData = () => {
 
         try {
             await markTasksDone(selected.map(t => t.idTask));
+            await Promise.all(selected.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
             loadingRef.current = false;
             handleGetTasks(true);
         }

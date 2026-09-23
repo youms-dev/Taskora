@@ -80,6 +80,7 @@
     "create_section_1_item_2": "Event",
     "create_form_title": "Title",
     "create_form_icon": "Choose icon",
+    "create_form_chosen_icon": "Chosen icon",
     "create_form_description": "Description",
     "create_form_date": "Select date",
     "create_form_time": "Select time",
