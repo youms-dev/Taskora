@@ -183,11 +183,6 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
             try {
                 const tab: [string, TaskType[]][] = [];
                 await Promise.all(days.map(async (day) => {
-                    const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
-
-                    if (isNotPartOfThisMonth) {
-                        return;
-                    }
                     const data = await getTasksByDate(day, Math.floor(eventsContainerHeight / eventHeight), 0) as TaskType[];
 
                     if (data.length > 0) {

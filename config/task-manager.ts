@@ -1,11 +1,13 @@
 import { DELETE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
-import { backgroundUpdateTaskNotification } from "@/services/update-task";
+import { backgroundTaskTest, backgroundUpdateTaskNotification } from "@/services/update-task";
 import { dismissNotificationAsync, NotificationTaskPayload, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { defineTask, isTaskRegisteredAsync } from "expo-task-manager";
 
-export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
+const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 
 defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
+    await backgroundTaskTest();
+
     if (error) {
         return;
     }
@@ -41,6 +43,10 @@ defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({
                 seconds: 2,
             },
         });
+
+        if (!taskId || !taskType) {
+            return;
+        }
 
         await backgroundUpdateTaskNotification(taskId as string, newNotificationId, taskType as "task" | "event");
     }

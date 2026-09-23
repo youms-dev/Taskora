@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../lib/i18n";
 import "./global.css";
+import "@/config/task-manager"
 
 preventAutoHideAsync();
 
