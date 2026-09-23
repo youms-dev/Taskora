@@ -2,6 +2,7 @@ import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
+import { checkRegisteredTask } from "@/config/task-manager";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
@@ -23,7 +24,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../lib/i18n";
 import "./global.css";
-import "../config/task-manager";
 
 preventAutoHideAsync();
 
@@ -71,6 +71,10 @@ export default function Layout() {
                 await hideAsync();
             }
         })();
+    }, []);
+
+    useEffect(() => {
+        checkRegisteredTask();
     }, []);
 
     if (!db) return (

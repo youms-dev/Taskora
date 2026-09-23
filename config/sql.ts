@@ -162,10 +162,10 @@ export const INIT_DATABASE = `
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         
         FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL
-        );
+    );
         
     CREATE TABLE IF NOT EXISTS setting(
-        id_setting TEXT NOT NULL,
+        id_setting TEXT PRIMARY KEY NOT NULL,
         id_user TEXT NOT NULL,
         language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),
         confirm_before_delete BOOLEAN DEFAULT 1,
@@ -185,4 +185,4 @@ export const INIT_DATABASE = `
     CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
 
     `;
-    // ${init} 
+// ${init}

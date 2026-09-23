@@ -50,12 +50,10 @@ defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({
     }
 });
 
-async function checkRegisteredTask() {
+export async function checkRegisteredTask() {
     const registered = await isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
 
     if (!registered) {
         await registerTaskAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
     }
 }
-
-checkRegisteredTask();
