@@ -3,14 +3,10 @@ import { backgroundUpdateTaskNotification } from "@/services/update-task";
 import { dismissNotificationAsync, NotificationTaskPayload, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { defineTask, isTaskRegisteredAsync } from "expo-task-manager";
 
-console.log("File loaded");
-
 export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 
 defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
     if (error) {
-        console.error("task manager error :", error);
-
         return;
     }
 
@@ -63,5 +59,3 @@ async function checkRegisteredTask() {
 }
 
 checkRegisteredTask();
-
-console.log("Reading completed");
