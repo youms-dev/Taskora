@@ -8,7 +8,7 @@ import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, GestureResponderEvent, Pressable, Text, View } from "react-native";
 import { SharedValue, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
@@ -27,7 +27,7 @@ interface Props {
     width: number;
     height: number;
     setTargetDate: (entry: Date | null) => void;
-    refreshing: SharedValue<boolean>,
+    refreshing: SharedValue<boolean>;
 };
 
 export const CalendarDay = memo(({ active, month, width, height, setTargetDate, refreshing }: Props) => {
@@ -54,6 +54,23 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
 
     const prevEventsContainerHeight = useRef<number>(eventsContainerHeight);
 
+    const onPress = useCallback((e: GestureResponderEvent, day: Date, data: TaskType[]) => {
+        if (data.length > 0) {
+            setTargetDate(day);
+            event.emit(UNTOUCHABLE_NAVBAR);
+        }
+        else {
+            router.navigate({
+                pathname: "/(protected)/(task)/create",
+                params: {
+                    target: "event",
+                    date: String(day),
+                    action: "create",
+                },
+            });
+        }
+    }, []);
+
     const renderItem = useCallback(({ item: day }: { item: Date }) => {
         const today = isToday(day);
         const isNotPartOfThisMonth = day.getMonth() != month.getMonth();
@@ -62,22 +79,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
 
         return (
             <Pressable
-                onPress={() => {
-                    if (data.length > 0) {
-                        setTargetDate(day);
-                        event.emit(UNTOUCHABLE_NAVBAR);
-                    }
-                    else {
-                        router.navigate({
-                            pathname: "/(protected)/(task)/create",
-                            params: {
-                                target: "event",
-                                date: String(day),
-                                action: "create",
-                            },
-                        });
-                    }
-                }}
+                onPress={(e) => onPress(e, day, data)}
                 style={{
                     width: dayWidth,
                     height: daysHeight,
@@ -164,7 +166,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
                 </View>
             </Pressable>
         );
-    }, [tasks, dayWidth, daysHeight, eventsContainerHeight]);
+    }, [tasks, dayWidth, daysHeight, eventsContainerHeight, onPress]);
 
     const handleGetTasks = useCallback(async (refresh: boolean = false) => {
         if (!refresh &&

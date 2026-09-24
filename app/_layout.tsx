@@ -73,9 +73,9 @@ export default function Layout() {
         })();
 
         return () => {
-            // if (db) {
-            //     db.closeAsync();
-            // }
+            if (db) {
+                db.closeAsync();
+            }
         }
     }, [db]);
 

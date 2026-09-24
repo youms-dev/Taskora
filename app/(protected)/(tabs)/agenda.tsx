@@ -1,7 +1,7 @@
 import { Calendar } from "@/components/agenda/calendar";
 import { CalendarHeader, THRESHOLD } from "@/components/agenda/calendar-header";
 import { CalendarSearch } from "@/components/agenda/calendar-search";
-import { CalendarDayEvents } from "@/components/agenda/day-events";
+import { CalendarDayEvents } from "@/components/agenda/calendar-day-events";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
 import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR } from "@/lib/event-emitter";
@@ -72,8 +72,6 @@ export default function Agenda() {
             }
         ]
     }));
-
-    const r = (v: any) => console.log(v);
 
     const panGesture = useMemo(() => {
         return (

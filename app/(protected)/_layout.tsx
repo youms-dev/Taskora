@@ -149,8 +149,6 @@ export default function ProtectedLayout() {
         const response = getLastNotificationResponse();
 
         if (response) {
-            console.log("C'est moi !");
-
             onNotificationResponseReceived(response);
         }
     }, []);
@@ -160,7 +158,7 @@ export default function ProtectedLayout() {
             onNotificationResponseReceived(response);
         });
 
-        // handleLastNotification();
+        handleLastNotification();
 
         return () => remove();
     }, []);

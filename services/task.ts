@@ -34,15 +34,6 @@ export async function backgroundMarkTaskDone(id: TaskType["idTask"]) {
     }
 }
 
-export async function backgroundTaskTest(entry: any | null = null) {
-    try {
-        console.log(entry);
-    }
-    catch (e) {
-        console.log(e);
-    }
-}
-
 export async function backgroundDeleteTask(id: TaskType["idTask"], type: TaskType["type"]) {
     try {
         const db = await openDatabaseAsync(DATABASE_NAME, {

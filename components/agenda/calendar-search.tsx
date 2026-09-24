@@ -19,7 +19,7 @@ import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./day-events";
+import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./calendar-day-events";
 
 interface EventCardProps {
     task: TaskType;
