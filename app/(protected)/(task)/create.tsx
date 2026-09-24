@@ -423,9 +423,10 @@ export default function CreateTaskPage() {
                     },
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                        type: SchedulableTriggerInputTypes.DATE,
-                        // date: scheduleDate,
-                        date: new Date().getTime() + (1000 * 5),
+                        // type: SchedulableTriggerInputTypes.DATE,
+                        // // date: scheduleDate,
+                        // date: new Date().getTime() + (1000 * 5),
+                        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                     },
                 });
             }

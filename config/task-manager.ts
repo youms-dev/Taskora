@@ -1,29 +1,41 @@
-import { DELETE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
-import { backgroundTaskTest, backgroundUpdateTaskNotification } from "@/services/update-task";
-import { dismissNotificationAsync, NotificationTaskPayload, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import { DELETE_CATEGORY, MARK_DONE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
+import { backgroundDeleteTask, backgroundMarkTaskDone, backgroundUpdateTaskNotification } from "@/services/task";
+import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { defineTask, isTaskRegisteredAsync } from "expo-task-manager";
 
 const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 
 defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
-    await backgroundTaskTest();
-
-    if (error) {
-        return;
-    }
-
-    if (!("actionIdentifier" in data) || !("notification" in data)) {
+    if (error || !("actionIdentifier" in data) || !("notification" in data)) {
         return;
     }
 
     const { actionIdentifier, notification } = data;
     const notificationId = notification.request.identifier;
-    const taskId = notification.request.content.data?.taskId ?? null;
-    const taskType = notification.request.content.data?.taskType ?? null;
+    const notificationData = (notification.request.content as NotificationContent & { dataString?: string; }).dataString;
+
+    if (!notificationData || typeof notificationData != "string") {
+        return;
+    }
+
+    const taskData = JSON.parse(notificationData) as {
+        taskId: string;
+        taskType: string;
+    };
+
+    if (!taskData.taskId || !taskData.taskType || typeof taskData.taskId != "string" || (taskData.taskType != "event" && taskData.taskType != "task")) {
+        return;
+    }
+
+    const taskId = taskData.taskId;
+    const taskType = taskData.taskType;
 
     await dismissNotificationAsync(notificationId);
 
-    if (actionIdentifier === SNOOZE_CATEGORY) {
+    if (actionIdentifier === MARK_DONE_CATEGORY && taskType == "task") {
+        await backgroundMarkTaskDone(taskId);
+    }
+    else if (actionIdentifier === SNOOZE_CATEGORY && taskType == "event") {
         const newNotificationId = await scheduleNotificationAsync({
             content: {
                 title: notification.request.content.title,
@@ -39,8 +51,7 @@ defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({
             trigger: {
                 type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                 channelId: (notification.request.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                // seconds: 60 * 5,
-                seconds: 2,
+                seconds: 60 * 5,
             },
         });
 
@@ -48,18 +59,19 @@ defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({
             return;
         }
 
-        await backgroundUpdateTaskNotification(taskId as string, newNotificationId, taskType as "task" | "event");
+        await backgroundUpdateTaskNotification(taskId, newNotificationId, taskType);
     }
-
-    if (actionIdentifier === DELETE_CATEGORY) {
-        // Supprimer / traiter la tâche
+    else if (actionIdentifier === DELETE_CATEGORY) {
+        await backgroundDeleteTask(taskId, taskType);
     }
 });
 
-export async function checkRegisteredTask() {
+async function handleRegisterTask() {
     const registered = await isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
 
     if (!registered) {
         await registerTaskAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
     }
 }
+
+handleRegisterTask();

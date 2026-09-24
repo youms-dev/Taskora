@@ -1,4 +1,5 @@
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
+import { useDatabase } from "@/hooks/database/use-database";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
@@ -17,6 +18,7 @@ const CONFIG: NotificationChannelInput = {
 
 export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
+    const { db } = useDatabase();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
 
@@ -97,6 +99,7 @@ export default function ProtectedLayout() {
         const taskType = notification.content.data?.taskType ?? null;
 
         await dismissNotificationAsync(notificationId);
+        console.log("Action :", action);
 
         if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
             if (action == SNOOZE_CATEGORY && taskType == "event") {
@@ -146,6 +149,8 @@ export default function ProtectedLayout() {
         const response = getLastNotificationResponse();
 
         if (response) {
+            console.log("C'est moi !");
+
             onNotificationResponseReceived(response);
         }
     }, []);
@@ -155,7 +160,7 @@ export default function ProtectedLayout() {
             onNotificationResponseReceived(response);
         });
 
-        handleLastNotification();
+        // handleLastNotification();
 
         return () => remove();
     }, []);
