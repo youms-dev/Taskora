@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 import { FolderType } from "@/types/folder";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 import { endOfDay, startOfDay } from "date-fns";
+import { t } from "i18next";
 
 export const useTasks = () => {
     const { db } = useDatabase();
@@ -335,20 +336,30 @@ export const useTasks = () => {
         }
     }
 
-    async function updateTask(entry: Partial<TaskType>): Promise<boolean | unknown> {
+    async function updateTask(id: TaskType["idTask"], data: Partial<TaskType>): Promise<boolean | unknown> {
         if (!db) return;
         let task: Partial<TaskType> = {
-            ...entry,
-            startAt: entry.startAt ? new Date(entry.startAt).getTime() : new Date().getTime(),
+            ...data,
+            startAt: data.startAt ? new Date(data.startAt).getTime() : new Date().getTime(),
         };
 
         try {
-            if (task.type == "task") {
-                await db.runAsync("UPDATE task SET id_folder = ?, title = ?, content = ?, icon = ?, start_at = ?, archived = ?, notification_id = ? WHERE id_task = ? AND type = ?", [task.idFolder ?? null, task.title ? task.title.trim() : null, task.content ? task.content.trim() : null, task.icon ?? null, task.startAt!, task.archived ? 1 : 0, task.notificationId ?? "", task.idTask ?? null, task.type]);
-            }
-            else if (task.type == "event") {
-                await db.runAsync("UPDATE task SET title = ?, content = ?, icon = ?, start_at = ?, end_at = ?, remind_before = ?, notification_id = ? WHERE id_task = ? AND type = ?", [task.title ?? null, task.content ?? null, task.icon ?? null, task.startAt!, String(task.endAt), task.remindBefore ?? null, task.notificationId ?? "", task.idTask ?? null, task.type]);
-            }
+            await db.runAsync(
+                "UPDATE task SET id_folder = ?, title = ?, content = ?, icon = ?, start_at = ?, end_at = ?, archived = ?, remind_before = ?, notification_id = ?, type = ? WHERE id_task = ?",
+                [
+                    task.type == "task" ? task.idFolder ?? null : null,
+                    task.title ? task.title.trim() : null,
+                    task.content ? task.content.trim() : null,
+                    task.icon ?? null,
+                    task.startAt!,
+                    task.type == "task" ? null : String(task.endAt ?? new Date()),
+                    task.type == "task" ? task.archived ? 1 : 0 : 0,
+                    task.remindBefore ? task.remindBefore : task.type == "event" ? 5 : null,
+                    task.notificationId ?? "",
+                    task.type ?? "task",
+                    task.idTask ?? null
+                ]
+            );
 
             return true;
         }

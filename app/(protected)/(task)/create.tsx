@@ -25,7 +25,6 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { faker } from "@faker-js/faker";
 import { createId } from "@paralleldrive/cuid2";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -353,18 +352,18 @@ export default function CreateTaskPage() {
     const handleSubmit = useCallback(async () => {
         console.log("pressed");
         if (loadingRef.current) return;
-        // if (target == "task") {
-        //     if (!inputsValues.title || inputsValues.title.trim().length == 0) {
-        //         titleRef.current?.focus();
-        //         return;
-        //     }
-        // }
-        // else {
-        //     if (!inputsValues.desc || inputsValues.desc.trim().length == 0) {
-        //         contentRef.current?.focus();
-        //         return;
-        //     }
-        // }
+        if (target == "task") {
+            if (!inputsValues.title || inputsValues.title.trim().length == 0) {
+                titleRef.current?.focus();
+                return;
+            }
+        }
+        else {
+            if (!inputsValues.desc || inputsValues.desc.trim().length == 0) {
+                contentRef.current?.focus();
+                return;
+            }
+        }
         const { granted } = await getPermissionsAsync();
         if (!granted) {
             const { granted } = await requestPermissionsAsync();
@@ -399,21 +398,15 @@ export default function CreateTaskPage() {
             let notificationId = createId();
 
             if (target == "event" && inputsValues.remindBefore && !isNaN(inputsValues.remindBefore)) {
-                console.log("Remind before :", inputsValues.remindBefore);
                 scheduleDate = new Date(startAt.getTime() - (60_000 * inputsValues.remindBefore));
             }
-
-            const fakeTitle = faker.lorem.sentence();
-            const fakeBody = faker.lorem.sentences({ min: 1000, max: 2000 });
 
             if (!inputsValues.archive) {
                 notificationId = await scheduleNotificationAsync({
                     content: {
-                        // title: fakeTitle,
                         title: inputsValues.title,
                         subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
                         body: inputsValues.desc ? inputsValues.desc : null,
-                        // body: fakeBody,
                         sound: sound ? sound : "sound02.wav",
                         categoryIdentifier: target == "task" ? TASK_REMINDER_CATEGORY : EVENT_REMINDER_CATEGORY,
                         data: {
@@ -423,10 +416,8 @@ export default function CreateTaskPage() {
                     },
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                        // type: SchedulableTriggerInputTypes.DATE,
-                        // // date: scheduleDate,
-                        // date: new Date().getTime() + (1000 * 5),
-                        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                        type: SchedulableTriggerInputTypes.DATE,
+                        date: scheduleDate,
                     },
                 });
             }
@@ -447,9 +438,7 @@ export default function CreateTaskPage() {
                 ...rest,
                 idTask: taskId,
                 idFolder: folder,
-                // title: fakeTitle,,
                 content: desc && desc.trim().length > 0 ? desc : null,
-                // content: fakeBody,
                 icon: icon ? JSON.stringify(icon) : null,
                 notificationId,
                 startAt: startAt.getTime(),
@@ -468,7 +457,7 @@ export default function CreateTaskPage() {
                     await dismissNotificationAsync(paramTask.notificationId);
                 }
 
-                await updateTask(task);
+                await updateTask(paramTask?.idTask ?? "", task);
                 setToast(t("create_edit_success"), "success");
             }
             else {
@@ -476,30 +465,36 @@ export default function CreateTaskPage() {
                 setToast(t("create_success"), "success");
             }
 
+            if (paramAction == "edit") {
+                event.emit(TASKS_CHANGED);
+                event.emit(EVENTS_CHANGED);
+            }
+            else {
+                if (target == "task") event.emit(TASKS_CHANGED);
+                else event.emit(EVENTS_CHANGED);
+            }
+
+            if (router.canGoBack()) {
+                if (paramAction == "edit") {
+                    router.back();
+                }
+                else if (target == "task") {
+                    router.navigate({
+                        pathname: "/(protected)/(tabs)",
+                    });
+                }
+                else if (target == "event") {
+                    router.navigate({
+                        pathname: "/(protected)/(tabs)/agenda",
+                    });
+                }
+            }
+            else {
+                router.navigate({
+                    pathname: "/(protected)/(tabs)",
+                });
+            }
             setLoading(false);
-            if (target == "task") event.emit(TASKS_CHANGED);
-            else event.emit(EVENTS_CHANGED);
-            console.log("Scheduled :", notificationId, scheduleDate.toLocaleString());
-            // if (router.canGoBack()) {
-            //     if (paramAction == "edit") {
-            //         router.back();
-            //     }
-            //     else if (target == "task") {
-            //         router.navigate({
-            //             pathname: "/(protected)/(tabs)",
-            //         });
-            //     }
-            //     else if (target == "event") {
-            //         router.navigate({
-            //             pathname: "/(protected)/(tabs)/agenda",
-            //         });
-            //     }
-            // }
-            // else {
-            //     router.navigate({
-            //         pathname: "/(protected)/(tabs)",
-            //     });
-            // }
         }
         catch (e) {
             setLoading(false);
