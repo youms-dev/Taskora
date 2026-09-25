@@ -63,6 +63,25 @@ const Decrement = memo(({ entry }: Props) => {
     );
 });
 
+interface TimeComponentProps {
+    remaining: number;
+    target: string;
+}
+
+const TimeComponent = ({ remaining, target }: TimeComponentProps) => {
+    return (
+        <>
+            <Text className="text-emerald-500 font-bold">
+                {String(remaining)}
+            </Text>
+            &nbsp;
+            <Text>
+                {target}
+            </Text>
+        </>
+    );
+}
+
 export default function TaskPage() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
@@ -229,6 +248,8 @@ export default function TaskPage() {
     }));
 
     const displayedTimeLeft = useMemo(() => {
+        if (!task) return <></>;
+
         if (
             taskPlannedDateFormatted.getMonth() > systemDate.getMonth()
             &&
@@ -236,28 +257,48 @@ export default function TaskPage() {
         ) {
             const diff = taskPlannedDateFormatted.getMonth() - systemDate.getMonth();
 
-            return (`${String(diff)} ${t("[id]_months", { many: diff > 1 ? "s" : "" })}`);
+            return (
+                <TimeComponent
+                    remaining={diff}
+                    target={t("[id]_months", { many: diff > 1 ? "s" : "" })}
+                />
+            );
         }
         else if (taskPlannedDateFormatted.getFullYear() > systemDate.getFullYear()) {
             const diff = taskPlannedDateFormatted.getFullYear() - systemDate.getFullYear();
 
-            return (`${String(diff)} ${t("[id]_years", { many: diff > 1 ? "s" : "" })}`);
+            return (
+                <TimeComponent
+                    remaining={diff}
+                    target={t("[id]_years", { many: diff > 1 ? "s" : "" })}
+                />
+            );
         }
         else if (
             taskPlannedDateFormatted.getMonth() == systemDate.getMonth()
             &&
             taskPlannedDateFormatted.getFullYear() == systemDate.getFullYear()
         ) {
-            const daysDiff = Math.abs(taskPlannedDateFormatted.getDate() - systemDate.getDate());
+            const daysDiff = taskPlannedDateFormatted.getDate() - systemDate.getDate();
 
             if (daysDiff > 0) {
-                return (`${String(daysDiff)} ${t("[id]_days", { many: daysDiff > 1 ? "s" : "" })}`);
+                return (
+                    <TimeComponent
+                        remaining={daysDiff}
+                        target={t("[id]_days", { many: daysDiff > 1 ? "s" : "" })}
+                    />
+                );
             }
             else {
-                const hoursDiff = Math.abs(taskPlannedDateFormatted.getHours() - systemDate.getHours());
+                const hoursDiff = taskPlannedDateFormatted.getHours() - systemDate.getHours();
 
                 if (hoursDiff > 1) {
-                    return (`${String(hoursDiff)} ${t("[id]_hours", { many: hoursDiff > 1 ? "s" : "" })}`);
+                    return (
+                        <TimeComponent
+                            remaining={hoursDiff}
+                            target={t("[id]_hours", { many: hoursDiff > 1 ? "s" : "" })}
+                        />
+                    );
                 }
                 else {
                     const diff = Math.abs(taskPlannedDateFormatted.getTime() - systemDate.getTime());
@@ -974,7 +1015,7 @@ export default function TaskPage() {
                                                     />
                                                 </View>
 
-                                                <Text className="dark:text-white/80 text-black/90 text-lg tracking-widest opacity-80">
+                                                <Text className="dark:text-white/80 text-black/90 text-lg tracking-widest">
                                                     {displayedTimeLeft ?? ""}
                                                 </Text>
                                             </View>
@@ -982,7 +1023,7 @@ export default function TaskPage() {
                                             <View className="flex flex-row items-center">
                                                 <TextAnimated
                                                     numberOfLines={1}
-                                                    className="text-lg tracking-widest"
+                                                    className="text-lg tracking-widest dark:opacity-80"
                                                 >
                                                     {t("[id]_remaining_time")}
                                                 </TextAnimated>
