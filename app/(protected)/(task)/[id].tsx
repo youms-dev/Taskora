@@ -1017,11 +1017,7 @@ export default function TaskPage() {
                                                 </View>
 
                                                 <Text className="dark:text-white/80 text-black/90 text-lg tracking-widest">
-<<<<<<< HEAD
-                                                    {displayedTimeLeft ?? ""}
-=======
                                                     {displayedTimeLeft}
->>>>>>> cda9271 (Edit: global changes)
                                                 </Text>
                                             </View>
 
