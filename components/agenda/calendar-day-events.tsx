@@ -97,7 +97,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
 
         setSelected(event);
 
-        if ((event.startAt - (1000 * 60 * 5)) > date.getTime()) {
+        if (event.startAt > date.getTime()) {
             setEditable(true);
         }
         else {

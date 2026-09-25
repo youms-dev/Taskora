@@ -350,7 +350,6 @@ export default function CreateTaskPage() {
     }, []);
 
     const handleSubmit = useCallback(async () => {
-        console.log("pressed");
         if (loadingRef.current) return;
         if (target == "task") {
             if (!inputsValues.title || inputsValues.title.trim().length == 0) {
@@ -416,8 +415,8 @@ export default function CreateTaskPage() {
                     },
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                        type: SchedulableTriggerInputTypes.DATE,
-                        date: scheduleDate,
+                        // type: SchedulableTriggerInputTypes.DATE,
+                        // date: scheduleDate,
                     },
                 });
             }
@@ -479,22 +478,23 @@ export default function CreateTaskPage() {
                     router.back();
                 }
                 else if (target == "task") {
-                    router.navigate({
+                    router.dismissTo({
                         pathname: "/(protected)/(tabs)",
                     });
                 }
                 else if (target == "event") {
-                    router.navigate({
+                    router.dismissTo({
                         pathname: "/(protected)/(tabs)/agenda",
                     });
                 }
             }
             else {
-                router.navigate({
+                router.dismissTo({
                     pathname: "/(protected)/(tabs)",
                 });
             }
             setLoading(false);
+            console.log("Schedule for :", notificationId, scheduleDate.toLocaleString());
         }
         catch (e) {
             setLoading(false);

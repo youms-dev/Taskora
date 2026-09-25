@@ -75,8 +75,8 @@
         "expo-notifications",
         {
           "icon": "./assets/images/logo.png",
-          "color": "#000000",
-          "defaultChannel": "default",
+          "color": "#2C644F",
+          "defaultChannel": "sound02.wav",
           "sounds": [
             "./assets/sounds/sound01.wav",
             "./assets/sounds/sound02.wav",

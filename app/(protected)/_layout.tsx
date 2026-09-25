@@ -158,7 +158,7 @@ export default function ProtectedLayout() {
             onNotificationResponseReceived(response);
         });
 
-        handleLastNotification();
+        // handleLastNotification();
 
         return () => remove();
     }, []);

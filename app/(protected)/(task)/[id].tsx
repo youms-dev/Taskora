@@ -183,11 +183,7 @@ export default function TaskPage() {
         if (!task) return false;
         const date = new Date();
 
-        if (
-            (task.type == "task" && task.startAt > date.getTime())
-            ||
-            (task.type == "event" && (task.startAt - (1000 * 60 * 5)) > date.getTime())
-        ) {
+        if ((task.type == "task" && task.startAt > date.getTime())) {
             return true;
         }
 
@@ -301,11 +297,16 @@ export default function TaskPage() {
                     );
                 }
                 else {
-                    const diff = Math.abs(taskPlannedDateFormatted.getTime() - systemDate.getTime());
+                    const diff = taskPlannedDateFormatted.getTime() - systemDate.getTime();
 
-                    return (
-                        <Decrement entry={diff} />
-                    );
+                    if (diff > 0) {
+                        return (
+                            <Decrement entry={diff} />
+                        );
+                    }
+                    else {
+                        return null;
+                    }
                 }
             }
         }
@@ -1001,7 +1002,7 @@ export default function TaskPage() {
                                 }
 
                                 {
-                                    !task.done && (
+                                    !task.done && displayedTimeLeft && (
                                         <View className={clsx(
                                             "flex flex-row justify-end gap-3 pl-3",
                                             task.type == "task" ? "border-l-2 border-emerald-500" : "dark:bg-white/5 bg-white px-3 py-2 rounded-2xl border dark:border-white/5 border-black/5",
@@ -1016,7 +1017,11 @@ export default function TaskPage() {
                                                 </View>
 
                                                 <Text className="dark:text-white/80 text-black/90 text-lg tracking-widest">
+<<<<<<< HEAD
                                                     {displayedTimeLeft ?? ""}
+=======
+                                                    {displayedTimeLeft}
+>>>>>>> cda9271 (Edit: global changes)
                                                 </Text>
                                             </View>
 

@@ -3,6 +3,7 @@ import { Loader } from "@/components/loader";
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import "@/config/task-manager";
+import { NOTIFICATION_BACKGROUND_MANAGEMENT } from "@/config/task-manager";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
@@ -13,11 +14,13 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import { useLocales } from "expo-localization";
+import { registerTaskAsync } from "expo-notifications";
 import { Stack } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
+import { isTaskRegisteredAsync } from "expo-task-manager";
 import { useColorScheme } from "nativewind";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -73,11 +76,25 @@ export default function Layout() {
         })();
 
         return () => {
-            if (db) {
-                db.closeAsync();
-            }
+            // if (db) {
+            //     db.closeAsync();
+            // }
         }
     }, [db]);
+
+    const handleRegisteredTask = useCallback(async () => {
+        const registered = await isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
+
+        console.log("Is task registered :", registered);
+
+        if (!registered) {
+            await registerTaskAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
+        }
+    }, []);
+
+    useEffect(() => {
+        handleRegisteredTask();
+    }, []);
 
     if (!db) return (
         <SplashScreen />

@@ -15,7 +15,7 @@ export async function backgroundUpdateTaskNotification(id: TaskType["idTask"], n
         await db.closeAsync();
     }
     catch (e) {
-        console.log(e);
+        console.log("Background update task error :", e);
     }
 }
 
@@ -30,7 +30,7 @@ export async function backgroundMarkTaskDone(id: TaskType["idTask"]) {
         await db.closeAsync();
     }
     catch (e) {
-        console.log(e);
+        console.log("Background mark task done error :", e);
     }
 }
 
@@ -45,21 +45,6 @@ export async function backgroundDeleteTask(id: TaskType["idTask"], type: TaskTyp
         await db.closeAsync();
     }
     catch (e) {
-        throw e;
+        console.log("Background delete task error :", e);
     }
 }
-
-// export async function backgroundDeleteTask(id: TaskType["idTask"], type: TaskType["type"]): Promise<boolean | unknown> {
-//     try {
-//         const db = await openDatabaseAsync(DATABASE_NAME);
-//         const date = new Date();
-//         const target = new Date(date.getFullYear(), date.getMonth(), 30).getTime();
-
-//         await db.runAsync("INSERT INTO task(id_task, title, content, start_at, end_at, type, remind_before, notification_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", [createId(), "Nouveau titre - " + id, "Nouveau content - " + type, target, String(new Date(target)), "task", 5, "id-notification"]);
-
-//         return true;
-//     }
-//     catch (e) {
-//         throw e;
-//     }
-// }

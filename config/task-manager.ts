@@ -1,9 +1,9 @@
 import { DELETE_CATEGORY, MARK_DONE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
 import { backgroundDeleteTask, backgroundMarkTaskDone, backgroundUpdateTaskNotification } from "@/services/task";
-import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
-import { defineTask, isTaskRegisteredAsync } from "expo-task-manager";
+import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import { defineTask } from "expo-task-manager";
 
-const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
+export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 
 defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
     if (error || !("actionIdentifier" in data) || !("notification" in data)) {
@@ -65,13 +65,3 @@ defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({
         await backgroundDeleteTask(taskId, taskType);
     }
 });
-
-async function handleRegisterTask() {
-    const registered = await isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
-
-    if (!registered) {
-        await registerTaskAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
-    }
-}
-
-handleRegisterTask();
