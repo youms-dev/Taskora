@@ -17,6 +17,7 @@ import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOf
 import { LinearGradient } from "expo-linear-gradient";
 import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { i18n } from "i18next";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BackHandler, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
@@ -81,6 +82,57 @@ const TimeComponent = ({ remaining, target }: TimeComponentProps) => {
         </>
     );
 }
+
+interface DayProps {
+    map: Map<string, {
+        data: Date;
+        index: number;
+    }>;
+    plannedDate: Date;
+    index: number;
+    width: number;
+    day: Date;
+    i18n: i18n;
+    dateFormat: string;
+}
+
+const Day = memo(({ map, plannedDate, index, width, day, i18n, dateFormat }: DayProps) => {
+    const mapIndex = map.get(format(plannedDate, dateFormat))?.index ?? 1;
+    const distance = Math.abs(index - mapIndex);
+    const effect = Math.max(
+        0.2,
+        1 - distance * 0.20,
+    );
+
+    return (
+        <View
+            style={{
+                width: width,
+                transform: [
+                    {
+                        scale: effect,
+                    }
+                ],
+                opacity: effect,
+            }}
+            className="flex justify-center items-center gap-2"
+        >
+            <TextAnimated
+                numberOfLines={1}
+                className="text-3xl font-medium"
+            >
+                {day.getDate()}
+            </TextAnimated>
+
+            <TextAnimated
+                numberOfLines={1}
+                className="text-lg"
+            >
+                {(daysTranslation[i18n.language == "fr" ? "fr" : "en"][day.getDay()]).slice(0, 3)}
+            </TextAnimated>
+        </View>
+    );
+});
 
 export default function TaskPage() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -498,12 +550,12 @@ export default function TaskPage() {
             }
 
             if (task?.type == "task") {
-                router.replace({
+                router.dismissTo({
                     pathname: "/(protected)/(tabs)",
                 });
             }
             else if (task?.type == "event") {
-                router.replace({
+                router.dismissTo({
                     pathname: "/(protected)/(tabs)/agenda",
                 });
             }
@@ -807,44 +859,18 @@ export default function TaskPage() {
                             contentContainerClassName="flex flex-row items-center"
                         >
                             {
-                                days.map((day, i) => {
-                                    const mapIndex = daysMap.get(format(taskPlannedDateFormatted, mapDateFormat))?.index ?? 0;
-                                    const distance = Math.abs(i - mapIndex);
-                                    const effect = Math.max(
-                                        0.2,
-                                        1 - distance * 0.20,
-                                    );
-
-                                    return (
-                                        <View
-                                            key={i}
-                                            style={{
-                                                width: dayWidth,
-                                                transform: [
-                                                    {
-                                                        scale: effect,
-                                                    }
-                                                ],
-                                                opacity: effect,
-                                            }}
-                                            className="flex justify-center items-center gap-2"
-                                        >
-                                            <TextAnimated
-                                                numberOfLines={1}
-                                                className="text-3xl font-medium"
-                                            >
-                                                {day.getDate()}
-                                            </TextAnimated>
-
-                                            <TextAnimated
-                                                numberOfLines={1}
-                                                className="text-lg"
-                                            >
-                                                {(daysTranslation[i18n.language == "fr" ? "fr" : "en"][day.getDay() > 0 ? day.getDay() - 1 : 0]).slice(0, 3)}
-                                            </TextAnimated>
-                                        </View>
-                                    );
-                                })
+                                days.map((day, i) => (
+                                    <Day
+                                        key={i}
+                                        index={i}
+                                        plannedDate={taskPlannedDateFormatted}
+                                        dateFormat={mapDateFormat}
+                                        day={day}
+                                        i18n={i18n}
+                                        map={daysMap}
+                                        width={dayWidth}
+                                    />
+                                ))
                             }
                         </ScrollView>
                     </View>

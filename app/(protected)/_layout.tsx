@@ -99,7 +99,6 @@ export default function ProtectedLayout() {
         const taskType = notification.content.data?.taskType ?? null;
 
         await dismissNotificationAsync(notificationId);
-        console.log("Action :", action);
 
         if (taskId && typeof taskId == "string" && taskId.trim().length > 0 && taskType && typeof taskType == "string" && (taskType == "task" || taskType == "event")) {
             if (action == SNOOZE_CATEGORY && taskType == "event") {
@@ -155,10 +154,10 @@ export default function ProtectedLayout() {
 
     useEffect(() => {
         const { remove } = addNotificationResponseReceivedListener(async (response) => {
-            // onNotificationResponseReceived(response);
+            onNotificationResponseReceived(response);
         });
 
-        // handleLastNotification();
+        handleLastNotification();
 
         return () => remove();
     }, []);

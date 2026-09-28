@@ -3,7 +3,6 @@ import { api } from "@/lib/axios";
 import { FolderType } from "@/types/folder";
 import { SQLiteTaskType, TaskType } from "@/types/task";
 import { endOfDay, startOfDay } from "date-fns";
-import { t } from "i18next";
 
 export const useTasks = () => {
     const { db } = useDatabase();
@@ -357,7 +356,7 @@ export const useTasks = () => {
                     task.remindBefore ? task.remindBefore : task.type == "event" ? 5 : null,
                     task.notificationId ?? "",
                     task.type ?? "task",
-                    task.idTask ?? null
+                    id,
                 ]
             );
 

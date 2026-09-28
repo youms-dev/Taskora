@@ -225,7 +225,6 @@ export default function CreateTaskPage() {
             ,
             remindBefore: task.remindBefore ?? 30,
             archive: task.archived,
-            folder: task.idFolder ?? null,
         }
     }
 
@@ -962,6 +961,8 @@ export default function CreateTaskPage() {
                     target == "task" && (
                         <View className="w-full dark:bg-black bg-white rounded-2xl">
                             <View className="w-full flex items-center gap-5 dark:bg-black bg-black/5 p-5 rounded-2xl">
+                                {/* Folders */}
+
                                 <Pressable
                                     onPress={() => setFoldersModalOpened(true)}
                                     className="w-full flex flex-row justify-between items-center"
@@ -995,6 +996,8 @@ export default function CreateTaskPage() {
                                         </Text>
                                     </View>
                                 </Pressable>
+
+                                {/* set archive */}
 
                                 <View className="w-full flex items-center gap-2">
                                     <Pressable
