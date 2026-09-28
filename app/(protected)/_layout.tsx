@@ -155,7 +155,7 @@ export default function ProtectedLayout() {
 
     useEffect(() => {
         const { remove } = addNotificationResponseReceivedListener(async (response) => {
-            onNotificationResponseReceived(response);
+            // onNotificationResponseReceived(response);
         });
 
         // handleLastNotification();

@@ -14,6 +14,7 @@ interface Props {
 
 export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: Props) => {
     const { i18n } = useTranslation();
+    const formatPattern = "dd/MMMM/yyyy";
 
     const days = useMemo(() => {
         const start = startOfWeek(startOfMonth(month), { weekStartsOn: i18n.language == "en" ? 0 : 1 });
@@ -29,15 +30,12 @@ export const CalendarDays = memo(({ month, width, onDateChanged, targetDate }: P
     const renderItem = useCallback(({ item: date }: { item: Date; index: number }) => {
         const day = date.getDate();
         const isPartOfThisMonth = date.getMonth() == month.getMonth();
-        const formatPattern = "dd/MMMM/yyyy";
         const selected = format(targetDate, formatPattern) == format(date, formatPattern);
 
         return (
             <PressableAnimated
                 scale={.95}
-                onPress={() => {
-                    !selected && onDateChanged(date);
-                }}
+                onPress={() => !selected && onDateChanged(date)}
                 style={{
                     width: (width / 7),
                 }}

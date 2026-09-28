@@ -1,4 +1,7 @@
+import { monthsTranslation } from "@/constants/calendar";
+import { COLORS } from "@/constants/colors";
 import { INITIAL_RANGE, NUM_TO_ADD, useCalendar } from "@/hooks/agenda/use-calendar";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -38,6 +41,12 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
         :
         ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     ), [i18n.language]);
+
+    const displayedTargetDate = useMemo(() => {
+        return (
+            `${String(targetDate.getDate()).padStart(2, "0")}, ${monthsTranslation[i18n.language][targetDate.getMonth()]} ${targetDate.getFullYear()}`
+        );
+    }, [i18n.language, targetDate]);
 
     const renderItem = useCallback(({ item: month }: { item: Date; index: number }) => {
         return (
@@ -100,11 +109,11 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
 
     useEffect(() => {
         if (loading.current && mutation.current == "prepend") {
-            ref.current?.scrollToIndex({
-                index: currentIndex.current + NUM_TO_ADD,
-                animated: false,
-            });
             requestAnimationFrame(() => {
+                ref.current?.scrollToIndex({
+                    index: currentIndex.current + NUM_TO_ADD,
+                    animated: false,
+                });
                 mutation.current = null;
                 currentIndex.current = currentIndex.current + NUM_TO_ADD;
                 loading.current = false;
@@ -117,18 +126,65 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
         }
     }, [months]);
 
-    const goBackToday = useCallback(() => {
-        const index = months.findIndex(m => m.getMonth() == date.getMonth() && m.getFullYear() == date.getFullYear());
+    const goBackTo = useCallback((entry: Date | null = null) => {
+        if (!entry) {
+            const index = months.findIndex(m => m.getMonth() == date.getMonth() && m.getFullYear() == date.getFullYear());
 
-        if (index != -1) {
-            ref.current?.scrollToIndex({
-                index,
-            });
+            if (index != -1) {
+                ref.current?.scrollToIndex({
+                    index,
+                });
+            }
+        }
+        else {
+            const index = months.findIndex(m => m.getMonth() == entry.getMonth() && m.getFullYear() == entry.getFullYear());
+
+            if (index != -1) {
+                ref.current?.scrollToIndex({
+                    index,
+                });
+            }
         }
     }, [months]);
 
+    useEffect(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                ref.current?.scrollToIndex({
+                    index: INITIAL_RANGE,
+                    animated: false,
+                });
+            });
+        });
+    }, []);
+
     return (
         <View className="w-full h-full flex items-center">
+            <View className="w-full px-3">
+                <PressableAnimated
+                    scale={.95}
+                    onPress={() => goBackTo(targetDate)}
+                    className="flex flex-row items-center gap-2 px-3 self-start py-2 dark:bg-white/5 bg-black/5 border dark:border-white/5 border-black/5 rounded-2xl"
+                >
+                    <View>
+                        <MaterialCommunityIcons
+                            name="calendar-check"
+                            size={25}
+                            color={COLORS.emerald[500]}
+                        />
+                    </View>
+
+                    <View className="max-w-[90%]">
+                        <Text
+                            numberOfLines={1}
+                            className="text-lg text-emerald-500 font-medium tracking-widest"
+                        >
+                            {displayedTargetDate}
+                        </Text>
+                    </View>
+                </PressableAnimated>
+            </View>
+
             <View className="w-full flex flex-row justify-between items-center gap-2 mb-5 mt-3 px-3">
                 <View className="size-[35px] dark:bg-black bg-white rounded-full">
                     <PressableAnimated
@@ -144,7 +200,7 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                 </View>
 
                 <Pressable
-                    onPress={goBackToday}
+                    onPress={() => goBackTo()}
                     className="w-[60%] flex flex-row justify-center items-center px-3"
                 >
                     <TextAnimated
@@ -199,7 +255,6 @@ export const Calendar = memo(({ onDateChanged, targetDate }: Props) => {
                 decelerationRate="fast"
                 scrollEventThrottle={16}
                 windowSize={100}
-                initialScrollIndex={INITIAL_RANGE}
                 initialNumToRender={12}
                 maxToRenderPerBatch={12}
                 updateCellsBatchingPeriod={0}

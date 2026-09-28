@@ -112,7 +112,7 @@ export const Modal = memo(({
     const hideValue = useSharedValue<number>(screenHeight);
     const translateY = useSharedValue<number>(screenHeight);
     const scroll = useSharedValue<number>(0);
-    const scrollGesture = useMemo(() => Gesture.Native(), [scrollableContent]);
+    const scrollGesture = useMemo(() => Gesture.Native(), []);
     const active = useSharedValue<boolean>(false);
     const timeout = useRef<ReturnType<typeof setTimeout>>(null);
     const closable = useSharedValue<boolean>(true);
@@ -178,6 +178,12 @@ export const Modal = memo(({
         );
     }, [handleClose, closable]);
 
+    if (modalClosable) {
+        pan.activeOffsetY(5);
+    }
+    else {
+        pan.failOffsetY(0);
+    }
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -262,13 +268,6 @@ export const Modal = memo(({
             :
             themeShared.value == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, 1)"
     }));
-
-    if (modalClosable) {
-        pan.activeOffsetY(0);
-    }
-    else {
-        pan.failOffsetY(0);
-    }
 
     return (
         <AnimatedKeyboardAvoidingView

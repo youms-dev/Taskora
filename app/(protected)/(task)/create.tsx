@@ -331,6 +331,7 @@ export default function CreateTaskPage() {
     }, [timeModal]);
 
     const handleDateChanged = useCallback((entry: Date) => {
+        console.log("Changed :", entry.toLocaleString());
         setInputsValues((prev) => {
             const { date, ...rest } = prev;
 
@@ -1265,7 +1266,7 @@ export default function CreateTaskPage() {
                 active={dateModalOpened}
                 animationDuration={500}
                 onClose={() => setDateModalOpened(false)}
-                height={screenHeight * .75}
+                height={screenHeight * .8}
                 backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .2)" : "rgba(0, 0, 0, .5)"}
                 className="flex items-center dark:bg-black bg-white"
                 rounded={20}
