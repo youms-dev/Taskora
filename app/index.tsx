@@ -17,15 +17,15 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import "../config/task-manager";
 import { supabase } from '../lib/supabase';
-import "../config/task-manager"
 
 export default function Login() {
   const initialInputsValues = {
-    email: '',
+    email: "",
     password: {
       visible: false,
-      value: '',
+      value: "",
     },
   };
   const [inputsValues, setInputsValues] = useState<{

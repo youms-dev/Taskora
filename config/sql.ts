@@ -184,5 +184,5 @@ export const INIT_DATABASE = `
     
     CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
 
+    ${init}
     `;
-// ${init}

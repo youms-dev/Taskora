@@ -2,6 +2,7 @@ import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { TaskType } from "@/types/task";
+import { AntDesign } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import clsx from "clsx";
@@ -14,7 +15,8 @@ import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
 import { SELECT_LIMIT } from "./tasks-footer";
-import { AntDesign, Entypo } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TEST_NAME } from "@/config/task-manager";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -135,22 +137,45 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
         selected.value = selectMap.has(task.idTask);
     }, [selectMap]);
 
-    const onPress = useCallback(() => {
-        if (loading) return;
-        if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-            router.navigate({
-                pathname: "/(protected)/(task)/[id]",
-                params: {
-                    id: task.idTask,
-                }
-            });
-        }
-        else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
-            setTasksSelected((prev) => [...prev, task]);
-        }
-        else if (selectMap.has(task.idTask)) {
-            setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
-        }
+    // const onPress = useCallback(() => {
+    //     if (loading) return;
+    //     if (!selectMap.has(task.idTask) && selectMap.size == 0) {
+    //         router.navigate({
+    //             pathname: "/(protected)/(task)/[id]",
+    //             params: {
+    //                 id: task.idTask,
+    //             }
+    //         });
+    //     }
+    //     else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
+    //         setTasksSelected((prev) => [...prev, task]);
+    //     }
+    //     else if (selectMap.has(task.idTask)) {
+    //         setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
+    //     }
+    // }, [selectMap, tasksSelected, loading]);
+
+    const onPress = useCallback(async () => {
+        // if (loading) return;
+        // if (!selectMap.has(task.idTask) && selectMap.size == 0) {
+        //     router.navigate({
+        //         pathname: "/(protected)/(task)/[id]",
+        //         params: {
+        //             id: task.idTask,
+        //         }
+        //     });
+        // }
+        // else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
+        //     setTasksSelected((prev) => [...prev, task]);
+        // }
+        // else if (selectMap.has(task.idTask)) {
+        //     setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
+        // }
+
+
+        const value = await AsyncStorage.getItem(TEST_NAME);
+
+        console.log("Value stored :", value);
     }, [selectMap, tasksSelected, loading]);
 
     const onLongPress = useCallback(() => {
@@ -173,7 +198,6 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
 
         return String(date.getHours()).padStart(2, "0") + " : " + String(date.getMinutes()).padStart(2, "0");
     }, []);
-
 
     return (
         <GestureDetector gesture={gesture}>

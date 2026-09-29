@@ -1,14 +1,15 @@
 import { DELETE_CATEGORY, MARK_DONE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
 import { backgroundDeleteTask, backgroundMarkTaskDone, backgroundUpdateTaskNotification } from "@/services/task";
-import { backgroundTaskTest } from "@/services/test";
 import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+export const TEST_NAME = "storage";
 export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 export const BACKGROUND_TASK_MANAGEMENT = "background-task-management";
 
 TaskManager.defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
-    backgroundTaskTest();
+    console.log("Yo");
 
     if (error || !("actionIdentifier" in data) || !("notification" in data)) {
         return;
@@ -71,10 +72,8 @@ TaskManager.defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEME
 });
 
 TaskManager.defineTask(BACKGROUND_TASK_MANAGEMENT, async ({ data, error }) => {
-    // backgroundTaskTest("Background");
-
     console.log("Massa");
-    
+    await AsyncStorage.setItem(TEST_NAME, "ça marche");
     if (error) {
         console.log("Error");
         return;

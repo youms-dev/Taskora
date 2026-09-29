@@ -5,6 +5,7 @@ import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as BackgroundTask from "expo-background-task";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
@@ -14,7 +15,6 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTim
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import * as BackgroundTask from "expo-background-task";
 
 export const SELECT_LIMIT = 50;
 
@@ -133,7 +133,14 @@ export const TasksFooter = memo(({ context }: Props) => {
     const deleteTasks = useCallback(() => handleDeleteTasks(), [handleDeleteTasks]);
 
     const test = async () => {
-        await BackgroundTask.triggerTaskWorkerForTestingAsync();
+        console.log("Start ...");
+        try {
+            await BackgroundTask.triggerTaskWorkerForTestingAsync();
+        }
+        catch (e) {
+            console.log("Test error :", e);
+        }
+        console.log("End !");
     }
 
     return (
