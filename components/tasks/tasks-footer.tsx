@@ -14,6 +14,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTim
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
+import * as BackgroundTask from "expo-background-task";
 
 export const SELECT_LIMIT = 50;
 
@@ -131,6 +132,10 @@ export const TasksFooter = memo(({ context }: Props) => {
 
     const deleteTasks = useCallback(() => handleDeleteTasks(), [handleDeleteTasks]);
 
+    const test = async () => {
+        await BackgroundTask.triggerTaskWorkerForTestingAsync();
+    }
+
     return (
         <View className="w-full flex items-center">
             {/* Selection section */}
@@ -209,7 +214,8 @@ export const TasksFooter = memo(({ context }: Props) => {
                 />
 
                 <Pressable
-                    onPress={() => router.navigate("/(protected)/(task)/create")}
+                    // onPress={() => router.navigate("/(protected)/(task)/create")}
+                    onPress={() => test()}
                     android_ripple={{
                         color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
                         borderless: true,

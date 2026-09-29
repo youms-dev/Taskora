@@ -1,10 +1,13 @@
+import { BACKGROUND_TASK_MANAGEMENT, NOTIFICATION_BACKGROUND_MANAGEMENT } from "@/config/task-manager";
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useDatabase } from "@/hooks/database/use-database";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
-import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
+import * as BackgroundTask from "expo-background-task";
+import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
+import * as TaskManager from "expo-task-manager";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
@@ -35,7 +38,8 @@ export default function ProtectedLayout() {
                 identifier: DELETE_CATEGORY,
                 buttonTitle: t("layout_(protected)_delete"),
                 options: {
-                    opensAppToForeground: Platform.OS == "android" != true,
+                    // opensAppToForeground: Platform.OS == "android" != true,
+                    opensAppToForeground: true,
                     isDestructive: true,
                 },
             },
@@ -129,7 +133,7 @@ export default function ProtectedLayout() {
                 event.emit(TASKS_CHANGED);
             }
             else if (action == DELETE_CATEGORY) {
-                await deleteTasks([taskId]);
+                // await deleteTasks([taskId]);
                 if (taskType == "task") event.emit(TASKS_CHANGED);
                 else event.emit(EVENTS_CHANGED);
             }
@@ -160,6 +164,25 @@ export default function ProtectedLayout() {
         handleLastNotification();
 
         return () => remove();
+    }, []);
+
+    const handleRegisterTask = useCallback(async () => {
+        const isNotificationsTaskRegistered = await TaskManager.isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
+        const isBackgroundTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_TASK_MANAGEMENT);
+
+        if (!isNotificationsTaskRegistered) {
+            await registerTaskAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
+        }
+
+        if (!isBackgroundTaskRegistered) {
+            await BackgroundTask.registerTaskAsync(BACKGROUND_TASK_MANAGEMENT, {
+                minimumInterval: 15,
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        handleRegisterTask();
     }, []);
 
     return (
