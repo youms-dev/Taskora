@@ -15,8 +15,6 @@ import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { TextAnimated } from "../text-animated";
 import { SELECT_LIMIT } from "./tasks-footer";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { TEST_NAME } from "@/config/task-manager";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
@@ -137,45 +135,22 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
         selected.value = selectMap.has(task.idTask);
     }, [selectMap]);
 
-    // const onPress = useCallback(() => {
-    //     if (loading) return;
-    //     if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-    //         router.navigate({
-    //             pathname: "/(protected)/(task)/[id]",
-    //             params: {
-    //                 id: task.idTask,
-    //             }
-    //         });
-    //     }
-    //     else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
-    //         setTasksSelected((prev) => [...prev, task]);
-    //     }
-    //     else if (selectMap.has(task.idTask)) {
-    //         setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
-    //     }
-    // }, [selectMap, tasksSelected, loading]);
-
-    const onPress = useCallback(async () => {
-        // if (loading) return;
-        // if (!selectMap.has(task.idTask) && selectMap.size == 0) {
-        //     router.navigate({
-        //         pathname: "/(protected)/(task)/[id]",
-        //         params: {
-        //             id: task.idTask,
-        //         }
-        //     });
-        // }
-        // else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
-        //     setTasksSelected((prev) => [...prev, task]);
-        // }
-        // else if (selectMap.has(task.idTask)) {
-        //     setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
-        // }
-
-
-        const value = await AsyncStorage.getItem(TEST_NAME);
-
-        console.log("Value stored :", value);
+    const onPress = useCallback(() => {
+        if (loading) return;
+        if (!selectMap.has(task.idTask) && selectMap.size == 0) {
+            router.navigate({
+                pathname: "/(protected)/(task)/[id]",
+                params: {
+                    id: task.idTask,
+                }
+            });
+        }
+        else if (!selectMap.has(task.idTask) && selectMap.size > 0 && selectMap.size < SELECT_LIMIT) {
+            setTasksSelected((prev) => [...prev, task]);
+        }
+        else if (selectMap.has(task.idTask)) {
+            setTasksSelected((prev) => [...prev.filter(t => t.idTask != task.idTask)]);
+        }
     }, [selectMap, tasksSelected, loading]);
 
     const onLongPress = useCallback(() => {

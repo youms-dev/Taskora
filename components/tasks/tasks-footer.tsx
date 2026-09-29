@@ -5,7 +5,6 @@ import { TaskType } from "@/types/task";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as BackgroundTask from "expo-background-task";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
@@ -132,17 +131,6 @@ export const TasksFooter = memo(({ context }: Props) => {
 
     const deleteTasks = useCallback(() => handleDeleteTasks(), [handleDeleteTasks]);
 
-    const test = async () => {
-        console.log("Start ...");
-        try {
-            await BackgroundTask.triggerTaskWorkerForTestingAsync();
-        }
-        catch (e) {
-            console.log("Test error :", e);
-        }
-        console.log("End !");
-    }
-
     return (
         <View className="w-full flex items-center">
             {/* Selection section */}
@@ -221,8 +209,7 @@ export const TasksFooter = memo(({ context }: Props) => {
                 />
 
                 <Pressable
-                    // onPress={() => router.navigate("/(protected)/(task)/create")}
-                    onPress={() => test()}
+                    onPress={() => router.navigate("/(protected)/(task)/create")}
                     android_ripple={{
                         color: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)",
                         borderless: true,

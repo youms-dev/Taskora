@@ -134,8 +134,8 @@ const drop = `
     DROP TABLE IF EXISTS setting;
 `;
 
-// ${drop}
 export const INIT_DATABASE = `
+${drop}
     
     CREATE TABLE if NOT EXISTS folder (
         id_folder TEXT PRIMARY KEY NOT NULL,

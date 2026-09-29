@@ -17,7 +17,6 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import "../config/task-manager";
 import { supabase } from '../lib/supabase';
 
 export default function Login() {

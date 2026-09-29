@@ -10,7 +10,6 @@ import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
-import { useFonts } from "expo-font";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -21,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
 
@@ -32,12 +32,6 @@ export default function Layout() {
     const { colorScheme } = useColorScheme();
     const [locales] = useLocales();
     const { i18n } = useTranslation();
-    const [loaded, error] = useFonts({
-        "InterVariable": require("../assets/fonts/InterVariable.ttf"),
-        "InterVariableItalic": require("../assets/fonts/InterVariable-Italic.ttf"),
-        "Magnetob": require("../assets/fonts/magnetob.ttf"),
-        "Papyrus": require("../assets/fonts/papyrus.ttf"),
-    });
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
 
     useEffect(() => {

@@ -1,6 +1,5 @@
 import { BACKGROUND_TASK_MANAGEMENT, NOTIFICATION_BACKGROUND_MANAGEMENT } from "@/config/task-manager";
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
-import { useDatabase } from "@/hooks/database/use-database";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
 import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
@@ -21,7 +20,6 @@ const CONFIG: NotificationChannelInput = {
 
 export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
-    const { db } = useDatabase();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
 
@@ -38,8 +36,7 @@ export default function ProtectedLayout() {
                 identifier: DELETE_CATEGORY,
                 buttonTitle: t("layout_(protected)_delete"),
                 options: {
-                    // opensAppToForeground: Platform.OS == "android" != true,
-                    opensAppToForeground: true,
+                    opensAppToForeground: Platform.OS == "android" != true,
                     isDestructive: true,
                 },
             },
@@ -121,8 +118,7 @@ export default function ProtectedLayout() {
                     trigger: {
                         type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                         channelId: (notification.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-                        // seconds: 60 * 5,
-                        seconds: 2,
+                        seconds: 60 * 5,
                     },
                 });
 
@@ -133,7 +129,7 @@ export default function ProtectedLayout() {
                 event.emit(TASKS_CHANGED);
             }
             else if (action == DELETE_CATEGORY) {
-                // await deleteTasks([taskId]);
+                await deleteTasks([taskId]);
                 if (taskType == "task") event.emit(TASKS_CHANGED);
                 else event.emit(EVENTS_CHANGED);
             }

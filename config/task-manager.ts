@@ -2,78 +2,73 @@ import { DELETE_CATEGORY, MARK_DONE_CATEGORY, SNOOZE_CATEGORY } from "@/constant
 import { backgroundDeleteTask, backgroundMarkTaskDone, backgroundUpdateTaskNotification } from "@/services/task";
 import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const TEST_NAME = "storage";
 export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
 export const BACKGROUND_TASK_MANAGEMENT = "background-task-management";
 
 TaskManager.defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEMENT, async ({ data, error }) => {
-    console.log("Yo");
-
     if (error || !("actionIdentifier" in data) || !("notification" in data)) {
         return;
     }
 
-    // const { actionIdentifier, notification } = data;
-    // const notificationId = notification.request.identifier;
-    // const notificationData = (notification.request.content as NotificationContent & { dataString?: string; }).dataString;
+    const { actionIdentifier, notification } = data;
+    const notificationId = notification.request.identifier;
+    const notificationData = (notification.request.content as NotificationContent & { dataString?: string; }).dataString;
 
-    // if (!notificationData || typeof notificationData != "string") {
-    //     return;
-    // }
+    if (!notificationData || typeof notificationData != "string") {
+        return;
+    }
 
-    // const taskData = JSON.parse(notificationData) as {
-    //     taskId: string;
-    //     taskType: string;
-    // };
+    const taskData = JSON.parse(notificationData) as {
+        taskId: string;
+        taskType: string;
+    };
 
-    // if (!taskData.taskId || !taskData.taskType || typeof taskData.taskId != "string" || (taskData.taskType != "event" && taskData.taskType != "task")) {
-    //     return;
-    // }
+    if (!taskData.taskId || !taskData.taskType || typeof taskData.taskId != "string" || (taskData.taskType != "event" && taskData.taskType != "task")) {
+        return;
+    }
 
-    // const taskId = taskData.taskId;
-    // const taskType = taskData.taskType;
+    const taskId = taskData.taskId;
+    const taskType = taskData.taskType;
 
-    // await dismissNotificationAsync(notificationId);
+    await dismissNotificationAsync(notificationId);
 
-    // if (actionIdentifier === MARK_DONE_CATEGORY && taskType == "task") {
-    //     await backgroundMarkTaskDone(taskId);
-    // }
-    // else if (actionIdentifier === SNOOZE_CATEGORY && taskType == "event") {
-    //     const newNotificationId = await scheduleNotificationAsync({
-    //         content: {
-    //             title: notification.request.content.title,
-    //             subtitle: notification.request.content.subtitle,
-    //             body: notification.request.content.body,
-    //             sound: notification.request.content.sound ?? "sound02.wav",
-    //             categoryIdentifier: notification.request.content.categoryIdentifier ?? "reminder",
-    //             data: {
-    //                 taskId,
-    //                 taskType,
-    //             }
-    //         },
-    //         trigger: {
-    //             type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-    //             channelId: (notification.request.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
-    //             seconds: 60 * 5,
-    //         },
-    //     });
+    if (actionIdentifier === MARK_DONE_CATEGORY && taskType == "task") {
+        await backgroundMarkTaskDone(taskId);
+    }
+    else if (actionIdentifier === SNOOZE_CATEGORY && taskType == "event") {
+        const newNotificationId = await scheduleNotificationAsync({
+            content: {
+                title: notification.request.content.title,
+                subtitle: notification.request.content.subtitle,
+                body: notification.request.content.body,
+                sound: notification.request.content.sound ?? "sound02.wav",
+                categoryIdentifier: notification.request.content.categoryIdentifier ?? "reminder",
+                data: {
+                    taskId,
+                    taskType,
+                }
+            },
+            trigger: {
+                type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+                channelId: (notification.request.trigger as NotificationTriggerInput)?.channelId ?? "reminder_sound02",
+                seconds: 60 * 5,
+            },
+        });
 
-    //     if (!taskId || !taskType) {
-    //         return;
-    //     }
+        if (!taskId || !taskType) {
+            return;
+        }
 
-    //     await backgroundUpdateTaskNotification(taskId, newNotificationId, taskType);
-    // }
-    // else if (actionIdentifier === DELETE_CATEGORY) {
-    //     await backgroundDeleteTask(taskId, taskType);
-    // }
+        await backgroundUpdateTaskNotification(taskId, newNotificationId, taskType);
+    }
+    else if (actionIdentifier === DELETE_CATEGORY) {
+        await backgroundDeleteTask(taskId, taskType);
+    }
 });
 
 TaskManager.defineTask(BACKGROUND_TASK_MANAGEMENT, async ({ data, error }) => {
     console.log("Massa");
-    await AsyncStorage.setItem(TEST_NAME, "ça marche");
     if (error) {
         console.log("Error");
         return;

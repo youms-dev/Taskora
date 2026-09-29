@@ -319,6 +319,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                         size={20}
                                         color={COLORS.emerald[500]}
                                     />
+
                                     <Text
                                         numberOfLines={1}
                                         className="text-2xl text-emerald-500 font-bold"
