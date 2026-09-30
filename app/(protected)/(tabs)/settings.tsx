@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/auth-provider";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { NotificationSoundType } from "@/types/setting";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -583,6 +583,33 @@ export default function Settings() {
                         </View>
 
                         <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+
+                            {/* Sessions */}
+
+                            <PressableAnimated
+                                scale={1}
+                                onPress={() => router.navigate({
+                                    pathname: "/(protected)/(sessions)/list",
+                                })}
+                                className="flex self-start flex-row gap-[16px]"
+                            >
+                                <MaterialIcons
+                                    name="phonelink-setup"
+                                    size={25}
+                                    color={
+                                        theme == "dark"
+                                            ? "rgba(255, 255, 255, .3)"
+                                            : "rgba(0, 0, 0, .3)"
+                                    }
+                                />
+
+                                <TextAnimated className="w-[85%] text-lg">
+                                    {t("settings_sessions")}
+                                </TextAnimated>
+                            </PressableAnimated>
+
+                            {/* Lock app */}
+
                             <PressableAnimated
                                 scale={1}
                                 className="flex self-start flex-row gap-5"
@@ -598,9 +625,11 @@ export default function Settings() {
                                 />
 
                                 <TextAnimated className="max-w-[85%] text-lg">
-                                    {t("lock_app")}
+                                    {t("settings_lock_app")}
                                 </TextAnimated>
                             </PressableAnimated>
+
+                            {/* 2FA */}
 
                             <View className="w-full flex items-center gap-3">
                                 <View className="w-full flex flex-row justify-between items-center gap-2">

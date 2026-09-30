@@ -12,7 +12,6 @@
     "logout_confirmed": "Déconnexion",
     "toast_cancel": "Annuler",
     "theme": "Thème",
-    "lock_app": "Verrouillage de l'app",
     "deleting_setting": "Confirmation avant suppression",
     "agenda": "Agenda",
     "settings_appearance": "Apparence",
@@ -33,6 +32,8 @@
     "settings_sound": "Sonnerie pour les rappels",
     "settings_default_sound": "Son système",
     "settings_check_updates": "Vérifier les mises à jour",
+    "settings_sessions": "Appareils connectés",
+    "settings_lock_app": "Verrouillage de l'app",
     "tasks_no_tasks": "Le planning est vide pour l'instant",
     "tasks_filter": "Filtre",
     "tasks_filter_all": "Tout",
@@ -133,5 +134,7 @@
     "sounds_list_success": "Son changé",
     "layout_(protected)_delete": "Supprimer",
     "layout_(protected)_snooze": "Dans 5 min",
-    "layout_(protected)_mark_done": "Marquer comme faite"
+    "layout_(protected)_mark_done": "Marquer comme faite",
+    "sessions_list_title": "Appareils connectés",
+    "sessions_list_explanation": "Gérez les appareils connectés ou actifs à votre ce compte"
 }

@@ -33,7 +33,7 @@ interface Props {
 }
 
 export const TasksPager = memo(({ context, foldersModalActive, position: selectPosition }: Props) => {
-    const { loading, folders, currentFolder, handleMoveTasks, folderSelected, setFolderSelected, handleDeleteFolder } = context;
+    const { loading, folders, currentFolder, handleMoveTasks, folderSelected, setFolderSelected, handleDeleteFolder, setTasksSelected } = context;
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const loadingShared = useSharedValue<boolean>(loading);
     const pager = useRef<FlatList>(null);
@@ -77,7 +77,7 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
         loadingShared.value = loading;
     }, [loading]);
 
-    const getItemLayout = useCallback((data: any, index: number) => ({
+    const getItemLayout = useCallback((_data: any, index: number) => ({
         length: screenWidth,
         offset: index * screenWidth,
         index,
@@ -144,7 +144,8 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
     const handleClose = useCallback(() => {
         foldersModalActive.value = false;
         event.emit(SHOW_NAVBAR);
-    }, []);
+        setTasksSelected([]);
+    }, [setTasksSelected]);
 
     const contextMenuContainerAnimation = useAnimatedStyle(() => ({
         pointerEvents: selectPosition.value ? "auto" : "none",
@@ -346,6 +347,8 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
                 className="w-full"
                 contentContainerClassName="flex flex-row"
             />
+
+            {/* Folders */}
 
             <Modal
                 active={active}

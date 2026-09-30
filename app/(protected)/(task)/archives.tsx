@@ -858,7 +858,6 @@ export default function Archives() {
                     style={headerAnimation}
                     className="w-full h-full flex flex-row items-center gap-6 rounded-[50px] pr-10 dark:bg-black bg-black/5"
                 >
-
                     <Animated.View
                         style={headerBackgroundAnimation}
                         className="absolute left-0 h-[50px] dark:bg-white/10 bg-white rounded-[50px] -z-[10]"

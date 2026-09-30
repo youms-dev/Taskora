@@ -12,7 +12,6 @@
     "logout_confirmed": "Log out",
     "toast_cancel": "Cancel",
     "theme": "Theme",
-    "lock_app": "Lock app",
     "deleting_setting": "Confirm before deleting",
     "agenda": "Agenda",
     "settings_appearance": "Appearance",
@@ -33,6 +32,8 @@
     "settings_sound": "Sound for reminders",
     "settings_default_sound": "System sound",
     "settings_check_updates": "Check for updates",
+    "settings_sessions": "Logged devices",
+    "settings_lock_app": "Lock app",
     "tasks_no_tasks": "The schedule is empty for now",
     "tasks_filter": "Filter",
     "tasks_filter_all": "All",
@@ -133,5 +134,7 @@
     "sounds_list_success": "Sound changed",
     "layout_(protected)_delete": "Delete",
     "layout_(protected)_snooze": "In 5 minutes",
-    "layout_(protected)_mark_done": "Mark as done"
+    "layout_(protected)_mark_done": "Mark as done",
+    "sessions_list_title": "Logged devices",
+    "sessions_list_explanation": "Manage the devices connected to or active on your account"
 }

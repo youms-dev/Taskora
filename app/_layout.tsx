@@ -64,12 +64,6 @@ export default function Layout() {
                 await hideAsync();
             }
         })();
-
-        return () => {
-            // if (db) {
-            //     db.closeAsync();
-            // }
-        }
     }, [db]);
 
     if (!db) return (

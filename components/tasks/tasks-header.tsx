@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, GestureResponderEvent, Pressable, ScrollView, Text, useWindowDimensions, Vibration, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, interpolate, SharedValue, SlideInLeft, SlideOutLeft, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -89,7 +89,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
     }, [currentFolder]);
 
     const onFolderLongPress = useCallback((e: GestureResponderEvent, folder: FolderType, index: number) => {
-        if (index == 0) return;
+        if (index == 0 || tasksSelected.length > 0) return;
         const { pageX } = e.nativeEvent;
         let x = pageX;
 
@@ -101,27 +101,39 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
         setFolderSelected(folder);
         Vibration.vibrate(100);
         event.emit(UNTOUCHABLE_NAVBAR);
-    }, [screenWidth]);
+    }, [screenWidth, tasksSelected]);
 
     const foldersRenderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
         const isActive = index === 0 ? currentFolder === null : currentFolder === folder.idFolder;
 
         return (
-            <FolderButton
-                key={folder.idFolder}
-                active={isActive}
-                onPress={() => onFolderPress(folder, index)}
-                delayLongPress={150}
-                onLongPress={(e) => onFolderLongPress(e, folder, index)}
-                onLayout={(e) => foldersButtonsSizes.current[index] = e.nativeEvent.layout.width}
-            >
-                {
-                    index == 0 ?
-                        t("tasks_all_folders")
-                        :
-                        folder.title.charAt(0).toUpperCase() + folder.title.slice(1).toLowerCase()
+            <Animated.View
+                entering={SlideInLeft
+                    .delay(index * 100)
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
                 }
-            </FolderButton>
+                exiting={SlideOutLeft
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+            >
+                <FolderButton
+                    key={folder.idFolder}
+                    active={isActive}
+                    onPress={() => onFolderPress(folder, index)}
+                    delayLongPress={150}
+                    onLongPress={(e) => onFolderLongPress(e, folder, index)}
+                    onLayout={(e) => foldersButtonsSizes.current[index] = e.nativeEvent.layout.width}
+                >
+                    {
+                        index == 0 ?
+                            t("tasks_all_folders")
+                            :
+                            folder.title.charAt(0).toUpperCase() + folder.title.slice(1).toLowerCase()
+                    }
+                </FolderButton>
+            </Animated.View>
         );
     }, [currentFolder, onFolderPress, i18n.language, onFolderLongPress]);
 
@@ -466,6 +478,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                     <View className="w-full flex items-center px-3">
                         <Pressable
                             onPress={() => {
+                                setTasksSelected([]);
                                 setSearchSectionActive(true);
                                 event.emit(HIDE_NAVBAR);
                             }}
