@@ -1,7 +1,6 @@
 import { Container } from "@/components/container";
 import { MultiSessionAnimation } from "@/components/multi-session-animation";
 import { PressableAnimated } from "@/components/pressable-animated";
-import { SyncAnimation } from "@/components/sync-animation";
 import { TextAnimated } from "@/components/text-animated";
 import { useTheme } from "@/hooks/use-theme";
 import { Entypo } from "@expo/vector-icons";
@@ -9,14 +8,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, FadeOutUp, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 export default function SessionsPage() {
     const { theme, themeShared } = useTheme();
     const { t, i18n } = useTranslation();
     const [devices, setDevices] = useState([]);
     const deviceHeight = 100;
-    const devicesGap = 10;
+    const devicesGap = 15;
     const threshold = deviceHeight;
     const scrollY = useSharedValue<number>(0);
     const headerContainerWidth = useSharedValue<number>(0);
@@ -52,7 +51,23 @@ export default function SessionsPage() {
 
     const renderItem = useCallback(({ item, index }: { item: any, index: number }) => {
         return (
-            <View className="w-full h-[200px] bg-emerald-500"></View>
+            <Animated.View
+                entering={FadeInUp
+                    .delay(index * 100)
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+                exiting={FadeOutDown
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+                style={{
+                    height: deviceHeight,
+                }}
+                className="w-full h-[200px] dark:bg-white/10 bg-white rounded-2xl"
+            >
+
+            </Animated.View>
         );
     }, []);
 
@@ -69,6 +84,25 @@ export default function SessionsPage() {
         offset: index * (deviceHeight + devicesGap),
         index,
     }), []);
+
+    const overviewAnimation = useAnimatedStyle(() => ({
+        opacity: interpolate(
+            scrollY.value,
+            [0, threshold * .6],
+            [1, 0],
+            Extrapolation.CLAMP,
+        ),
+        transform: [
+            {
+                translateY: interpolate(
+                    scrollY.value,
+                    [0, threshold],
+                    [80, 100],
+                    Extrapolation.CLAMP,
+                ),
+            }
+        ]
+    }));
 
     return (
         <Container centerX>
@@ -171,23 +205,13 @@ export default function SessionsPage() {
 
             {/* Overview */}
 
-            <View
-                style={{
-                    transform: [
-                        {
-                            translateY: 80
-                        }
-                    ],
-                }}
+            <Animated.View
+                style={overviewAnimation}
                 className="absolute w-full flex justify-center items-center z-[2] px-5 rounded-[20px]"
             >
                 <View className="w-full dark:bg-black bg-white rounded-[20px]">
                     <View className="w-full flex justify-center items-center dark:bg-white/10 bg-white pt-5 rounded-[20px] pb-3">
                         <View className="w-full flex-row justify-center">
-                            {/* <SyncAnimation
-                                width={screenWidth * .8}
-                                height={200}
-                            /> */}
                             <MultiSessionAnimation
                                 width={screenWidth * .8}
                                 height={200}
@@ -201,7 +225,7 @@ export default function SessionsPage() {
                         </View>
                     </View>
                 </View>
-            </View>
+            </Animated.View>
 
             {/* Data */}
 
@@ -209,7 +233,7 @@ export default function SessionsPage() {
                 horizontal={false}
                 showsVerticalScrollIndicator={false}
                 updateCellsBatchingPeriod={0}
-                data={Array(10)}
+                data={Array(2)}
                 keyExtractor={(item, i) => i.toString()}
                 renderItem={renderItem}
                 onScroll={onScroll}
@@ -217,8 +241,9 @@ export default function SessionsPage() {
                 className="w-full h-full"
                 contentContainerStyle={{
                     gap: devicesGap,
+                    paddingBottom: threshold,
                 }}
-                contentContainerClassName="w-full flex px-3 pb-[50px] pt-[400px]"
+                contentContainerClassName="w-full flex px-3 pt-[400px]"
             />
 
             {/* Bottom linear gradient */}
