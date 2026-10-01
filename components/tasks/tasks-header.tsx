@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, GestureResponderEvent, Pressable, ScrollView, Text, useWindowDimensions, Vibration, View } from "react-native";
-import Animated, { Easing, Extrapolation, interpolate, SharedValue, SlideInLeft, SlideOutLeft, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutUp, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -32,24 +32,28 @@ const FolderButton = memo(({ children, active = false, ...rest }: FolderButtonPr
         <PressableAnimated
             {...rest}
             scale={.95}
-            style={{
-                backgroundColor: active ?
-                    (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
-                    :
-                    (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
-            }}
-            className="min-w-[100px] flex flex-row justify-center items-center dark:bg-white/20 bg-white/80 px-3 rounded-xl border dark:border-white/20 border-black/20"
+            className="dark:bg-black bg-white rounded-xl"
         >
-            <TextAnimated
-                dark={active ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
-                light={active ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                className={clsx(
-                    "text-lg",
-                    active && "font-bold",
-                )}
+            <View
+                style={{
+                    backgroundColor: active ?
+                        (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
+                        :
+                        (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, 1)")
+                }}
+                className="min-w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/10 border-black/10"
             >
-                {children}
-            </TextAnimated>
+                <TextAnimated
+                    dark={active ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
+                    light={active ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                    className={clsx(
+                        "text-lg",
+                        active && "font-bold",
+                    )}
+                >
+                    {children}
+                </TextAnimated>
+            </View>
         </PressableAnimated>
     );
 });
@@ -108,13 +112,13 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
 
         return (
             <Animated.View
-                entering={SlideInLeft
+                entering={FadeInUp
                     .delay(index * 100)
                     .duration(300)
                     .easing(Easing.inOut(Easing.quad))
                 }
-                exiting={SlideOutLeft
-                    .duration(300)
+                exiting={FadeOutUp
+                    .duration(500)
                     .easing(Easing.inOut(Easing.quad))
                 }
             >
@@ -648,29 +652,37 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                     >
                                         {
                                             displayedFilters.map((item, i) => (
-                                                <PressableAnimated
+                                                <Animated.View
                                                     key={i}
-                                                    scale={.95}
-                                                    onPress={() => onFilterButtonPress((i + 1) as 1 | 2 | 3)}
-                                                    style={{
-                                                        backgroundColor: currentFilter == (i + 1) ?
-                                                            (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
-                                                            :
-                                                            (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
-                                                    }}
-                                                    className="w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/20 border-black/20"
+                                                    entering={FadeInUp
+                                                        .delay(i * 100)
+                                                        .duration(300)
+                                                        .easing(Easing.inOut(Easing.quad))
+                                                    }
                                                 >
-                                                    <TextAnimated
-                                                        dark={currentFilter == (i + 1) ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
-                                                        light={currentFilter == (i + 1) ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                                        className={clsx(
-                                                            "text-lg",
-                                                            currentFilter == i + 1 && "font-bold",
-                                                        )}
+                                                    <PressableAnimated
+                                                        scale={.95}
+                                                        onPress={() => onFilterButtonPress((i + 1) as 1 | 2 | 3)}
+                                                        style={{
+                                                            backgroundColor: currentFilter == (i + 1) ?
+                                                                (theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")
+                                                                :
+                                                                (theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(255, 255, 255, .8)")
+                                                        }}
+                                                        className="w-[100px] flex flex-row justify-center items-center px-3 rounded-xl border dark:border-white/10 border-black/10"
                                                     >
-                                                        {item}
-                                                    </TextAnimated>
-                                                </PressableAnimated>
+                                                        <TextAnimated
+                                                            dark={currentFilter == (i + 1) ? "rgba(0, 0, 0, .8)" : "rgba(255, 255, 255, .8)"}
+                                                            light={currentFilter == (i + 1) ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                                            className={clsx(
+                                                                "text-lg",
+                                                                currentFilter == i + 1 && "font-bold",
+                                                            )}
+                                                        >
+                                                            {item}
+                                                        </TextAnimated>
+                                                    </PressableAnimated>
+                                                </Animated.View>
                                             ))
                                         }
                                     </ScrollView>
