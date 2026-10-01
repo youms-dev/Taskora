@@ -137,5 +137,8 @@
     "layout_(protected)_snooze": "Dans 5 min",
     "layout_(protected)_mark_done": "Marquer comme faite",
     "sessions_list_title": "Appareils connectés",
-    "sessions_list_explanation": "Gérez les appareils connectés ou actifs à votre ce compte"
+    "sessions_list_explanation": "Gérez les appareils connectés ou actifs à votre ce compte",
+    "sessions_list_confirm_box_desc": "Êtes-vous sûr de vouloir supprimer cet appareil ? Cette action vous déconnecteras de ce compte sur cet appareil.",
+    "sessions_list_confirm_box_submit": "Supprimer",
+    "sessions_list_confirm_box_cancel": "Annuler"
 }

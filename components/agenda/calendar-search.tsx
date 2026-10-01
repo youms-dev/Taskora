@@ -319,7 +319,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                     style={{
                         gap: eventsGap,
                     }}
-                    className="w-full flex items-center px-3"
+                    className="w-full flex items-center"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (

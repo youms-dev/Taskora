@@ -330,7 +330,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                     style={{
                         gap: tasksGap,
                     }}
-                    className="w-screen flex items-center px-3"
+                    className="w-full flex items-center"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (
@@ -359,7 +359,7 @@ export const TasksSearch = memo(({ context }: Props) => {
     const listEmptyComponent = useCallback(() => {
         if (!loading && value.trim().length > 0) {
             return (
-                <View className="w-screen flex justify-center items-center gap-4 pt-10">
+                <View className="w-full flex justify-center items-center gap-4 pt-10">
                     <MaterialIcons
                         name="playlist-remove"
                         size={120}
@@ -568,7 +568,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                         gap: tasksGap,
                         paddingBottom: taskHeight
                     }}
-                    contentContainerClassName="w-full flex items-center pt-[150px] px-3"
+                    contentContainerClassName="w-full flex pt-[150px] px-3"
                 />
 
                 <LinearGradient

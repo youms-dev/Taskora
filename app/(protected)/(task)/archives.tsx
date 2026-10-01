@@ -731,7 +731,7 @@ export default function Archives() {
                     style={{
                         gap: tasksGap,
                     }}
-                    className="w-full flex items-center px-3"
+                    className="w-full flex items-center"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (

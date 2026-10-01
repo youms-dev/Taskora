@@ -137,5 +137,8 @@
     "layout_(protected)_snooze": "In 5 minutes",
     "layout_(protected)_mark_done": "Mark as done",
     "sessions_list_title": "Logged devices",
-    "sessions_list_explanation": "Manage the devices connected to or active on your account"
+    "sessions_list_explanation": "Manage the devices connected to or active on your account",
+    "sessions_list_confirm_box_desc": "Are you sure you want to delete this device? This action will disconnect you from this account on this device.",
+    "sessions_list_confirm_box_submit": "Delete",
+    "sessions_list_confirm_box_cancel": "Cancel"
 }

@@ -9,10 +9,12 @@ import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { BackHandler, Pressable, Text, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 export default function SessionsPage() {
     const { theme, themeShared } = useTheme();
@@ -23,8 +25,13 @@ export default function SessionsPage() {
     const threshold = deviceHeight;
     const scrollY = useSharedValue<number>(0);
     const headerContainerWidth = useSharedValue<number>(0);
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const [loading, setLoading] = useState<boolean>(false);
+    const [selected, setSelected] = useState<number | null>(null);
+    const confirmBoxActive = useSharedValue<boolean>(false);
+    const random = useSharedValue<number>(0);
+    const screenHeightShared = useSharedValue<number>(screenHeight);
+    const router = useRouter();
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         borderWidth: 1,
@@ -69,70 +76,58 @@ export default function SessionsPage() {
                 style={{
                     height: deviceHeight,
                 }}
-                className="w-full h-[200px] flex flex-row items-center gap-3 dark:bg-white/10 bg-white px-3 rounded-2xl"
+                className="w-full flex flex-row items-center gap-3 dark:bg-white/10 bg-white px-3 rounded-2xl py-2"
             >
-                <View className="py-2">
+                <View
+                    style={{
+                        borderRadius: 10 // 12 for IOS and 10 for android,
+                    }}
+                    className="w-[45px] h-full dark:bg-black bg-white"
+                >
                     <View
                         style={{
                             borderRadius: 10 // 12 for IOS and 10 for android,
                         }}
-                        className="w-[45px] h-full dark:bg-black bg-white"
+                        className="size-full flex items-center dark:bg-black bg-[rgba(0,0,0,.06)] py-1"
                     >
                         <View
                             style={{
-                                borderRadius: 10 // 12 for IOS and 10 for android,
+                                transform: [
+                                    {
+                                        translateY: 5,
+                                    }
+                                ]
                             }}
-                            className="size-full flex items-center dark:bg-black bg-[rgba(0,0,0,.06)] py-1"
-                        >
-                            <View
-                                style={{
-                                    transform: [
-                                        {
-                                            translateY: 5,
-                                        }
-                                    ]
-                                }}
-                                className="absolute w-[40%] h-[4px] dark:bg-white/15 bg-black/15 rounded-2xl"
-                            />
+                            className="absolute w-[40%] h-[4px] dark:bg-white/15 bg-black/15 rounded-2xl"
+                        />
 
-                            <View className="size-full flex justify-center items-center">
-                                <MaterialCommunityIcons
-                                    name="android"
-                                    // name="apple"
-                                    size={25}
-                                    color={COLORS.emerald[500]}
-                                // color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                />
-                            </View>
+                        <View className="size-full flex justify-center items-center">
+                            <MaterialCommunityIcons
+                                name="android"
+                                // name="apple"
+                                size={25}
+                                color={COLORS.emerald[500]}
+                            // color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                            />
                         </View>
                     </View>
                 </View>
 
-                <View className="w-[80%] flex items-center gap-1">
-                    <View className="w-full flex flex-row flex-wrap items-center gap-2">
+                <View className="w-[80%] h-full flex justify-center items-center gap-1">
+                    <View className="w-full flex flex-row items-center gap-2">
                         <TextAnimated
                             numberOfLines={1}
                             className="text-lg font-medium opacity-90 tracking-widest"
                         >
                             {Device.deviceName ?? ""}
-                        </TextAnimated>
-
-                        <TextAnimated
-                            numberOfLines={1}
-                            className="text-lg font-medium opacity-90 tracking-widest"
-                        >
+                            &nbsp;
                             &bull;
-                        </TextAnimated>
-
-                        <TextAnimated
-                            numberOfLines={1}
-                            className="text-lg font-medium opacity-90 tracking-widest"
-                        >
+                            &nbsp;
                             {Device.modelName ?? ""}
                         </TextAnimated>
                     </View>
 
-                    <View className="w-full flex flex-row flex-wrap items-center gap-2">
+                    <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
                         <View className="px-3 py-1 dark:bg-black/30 bg-[rgba(0,0,0,.06)] rounded-2xl border dark:border-white/10 border-black/10">
                             <Text
                                 numberOfLines={1}
@@ -148,6 +143,19 @@ export default function SessionsPage() {
                         >
                             {format(new Date(), i18n.language == "en" ? "dd-MM-yyyy HH:mm:ss" : "yyyy-MM-dd HH:mm:ss")}
                         </TextAnimated>
+                    </View>
+
+                    <View className="w-full flex flex-row justify-end">
+                        <PressableAnimated
+                            scale={.95}
+                            onPress={() => setSelected(index)}
+                        >
+                            <Entypo
+                                name="trash"
+                                size={25}
+                                color={COLORS.red[500]}
+                            />
+                        </PressableAnimated>
                     </View>
                 </View>
             </Animated.View>
@@ -188,14 +196,13 @@ export default function SessionsPage() {
     }));
 
     const listFooterComponent = useCallback(() => {
-        // if (loading) {
-        if (true) {
+        if (loading) {
             return (
                 <View
                     style={{
                         gap: devicesGap,
                     }}
-                    className="w-screen flex items-center px-3"
+                    className="w-full flex items-center"
                 >
                     {
                         Array(3).fill(0).map((_, i) => (
@@ -207,7 +214,7 @@ export default function SessionsPage() {
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: deviceHeight
+                                    height: deviceHeight,
                                 }}
                                 className="w-full rounded-2xl overflow-hidden"
                             >
@@ -220,6 +227,96 @@ export default function SessionsPage() {
         }
         return null;
     }, [loading]);
+
+    useEffect(() => {
+        confirmBoxActive.value = selected != null;
+    }, [selected]);
+
+    const confirmBoxContainerAnimation = useAnimatedStyle(() => ({
+        pointerEvents: confirmBoxActive.value ? "auto" : "none",
+    }));
+
+    const confirmBoxAnimation = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: (
+                    confirmBoxActive.value ?
+                        withTiming(1, {
+                            duration: 300,
+                            easing: Easing.inOut(Easing.quad),
+                        })
+                        :
+                        withDelay(
+                            500,
+                            withTiming(0),
+                        )
+                ),
+            },
+            {
+                rotate: (
+                    confirmBoxActive.value ?
+                        withTiming("0deg")
+                        :
+                        withSequence(
+                            withTiming(random.value >= .6 ? "45deg" : "-45deg", {
+                                duration: 500,
+                                easing: Easing.inOut(Easing.linear),
+                            }),
+                            withTiming("0deg")
+                        )
+                ),
+            },
+            {
+                translateY: (
+                    confirmBoxActive.value ?
+                        withTiming(0)
+                        :
+                        withSequence(
+                            withTiming(screenHeightShared.value, {
+                                duration: 500,
+                                easing: Easing.inOut(Easing.linear),
+                            }),
+                            withTiming(0)
+                        )
+                ),
+            },
+        ],
+        opacity: (
+            confirmBoxActive.value ?
+                1
+                :
+                withDelay(
+                    200,
+                    withTiming(0)
+                )
+        ),
+    }));
+
+    const setRandomInt = useCallback(() => random.value = Math.random(), []);
+
+    useAnimatedReaction(
+        () => confirmBoxActive.value,
+        () => {
+            scheduleOnRN(setRandomInt);
+        }
+    );
+
+    useEffect(() => {
+        screenHeightShared.value = screenHeight;
+    }, [screenHeight]);
+
+    useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (selected != null) {
+                setSelected(null);
+                return true;
+            }
+
+            return false;
+        });
+
+        return () => remove();
+    }, [selected]);
 
     return (
         <Container centerX>
@@ -297,6 +394,16 @@ export default function SessionsPage() {
 
                         <PressableAnimated
                             scale={.95}
+                            onPress={() => {
+                                if (router.canGoBack()) {
+                                    router.back();
+                                }
+                                else {
+                                    router.dismissTo({
+                                        pathname: "/(protected)/(tabs)/settings"
+                                    });
+                                }
+                            }}
                             className="size-[50px] dark:bg-black bg-white rounded-full"
                         >
                             <View className="size-full flex justify-center items-center border-2 dark:border-white/5 border-black/5 rounded-full dark:bg-white/10 bg-white">
@@ -350,7 +457,8 @@ export default function SessionsPage() {
                 horizontal={false}
                 showsVerticalScrollIndicator={false}
                 updateCellsBatchingPeriod={0}
-                data={Array(2)}
+                scrollEventThrottle={16}
+                data={Array(10)}
                 keyExtractor={(item, i) => i.toString()}
                 renderItem={renderItem}
                 onScroll={onScroll}
@@ -363,6 +471,67 @@ export default function SessionsPage() {
                 }}
                 contentContainerClassName="w-full flex px-3 pt-[400px]"
             />
+
+            {/* Confirmation box */}
+
+            <Animated.View
+                style={confirmBoxContainerAnimation}
+                className="absolute left-0 top-0 w-screen h-screen flex justify-center items-center z-[100] px-8"
+            >
+                <Pressable
+                    onPress={() => {
+                        setSelected(null);
+                    }}
+                    className="absolute left-0 top-0 size-full"
+                />
+
+                <Animated.View
+                    style={confirmBoxAnimation}
+                    className="w-full sm:w-[500px] rounded-2xl dark:bg-black bg-white z-[10]"
+                >
+                    <View
+                        style={{
+                            transform: [
+                                {
+                                    translateY: 8,
+                                },
+                            ],
+                            filter: "blur(5px)",
+                        }}
+                        className="absolute size-full dark:bg-back/50 bg-black/30 rounded-2xl"
+                    />
+
+                    <View className="w-full min-h-[200px] flex justify-center items-center gap-5 rounded-2xl p-3 border-2 dark:border-white/5 border-black/5 dark:bg-white/10 bg-white">
+                        <TextAnimated className="text-lg text-center">
+                            {t("sessions_list_confirm_box_desc")}
+                        </TextAnimated>
+
+                        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-3">
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={() => {
+                                    setSelected(null);
+                                }}
+                                className="w-[120px] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-emerald-500"
+                            >
+                                <Text className="text-black/80 font-bold tracking-wider text-xl">
+                                    {t("sessions_list_confirm_box_cancel")}
+                                </Text>
+                            </PressableAnimated>
+
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={() => { }}
+                                className="w-[120px] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-red-500"
+                            >
+                                <Text className="text-white/80 font-extrabold tracking-wider text-xl">
+                                    {t("sessions_list_confirm_box_submit")}
+                                </Text>
+                            </PressableAnimated>
+                        </View>
+                    </View>
+                </Animated.View>
+            </Animated.View>
 
             {/* Bottom linear gradient */}
 
