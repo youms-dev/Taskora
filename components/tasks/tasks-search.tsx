@@ -11,11 +11,12 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -120,7 +121,7 @@ export const TasksSearch = memo(({ context }: Props) => {
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useAnimatedRef<Animated.FlatList>();
     const scrollCheckPoint = 100;
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const screenWidthShared = useSharedValue<typeof screenWidth>(0);
     const themeShared = useSharedValue<typeof theme>("dark");
     const sectionActive = useSharedValue<typeof searchSectionActive>(false);
@@ -133,12 +134,23 @@ export const TasksSearch = memo(({ context }: Props) => {
     const { } = useToast();
     const [count, setCount] = useState<number>(0);
     const [tasks, setTasks] = useState<TaskType[]>([]);
-    const pathname = usePathname();
     const { t, i18n } = useTranslation();
     const taskHeight = 100;
     const tasksGap = 20;
     const textInputWidth = useSharedValue<number>(0);
     const router = useRouter();
+    const screenHeightShared = useSharedValue<number>(screenHeight);
+    const random = useSharedValue<number>(0);
+    const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+
+    const setRandomInt = () => random.value = Math.random();
+
+    useAnimatedReaction(
+        () => sectionActive.value,
+        () => {
+            scheduleOnRN(setRandomInt);
+        }
+    );
 
     const tasksMap = useMemo(() => {
         return (
@@ -195,14 +207,42 @@ export const TasksSearch = memo(({ context }: Props) => {
                 translateY: sectionActive.value ? withTiming(0, {
                     duration: 200,
                     easing: Easing.inOut(Easing.quad),
-                }) : 50,
-            }
+                })
+                    :
+                    withTiming(screenHeightShared.value, {
+                        duration: 500,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+            },
+            {
+                rotate: sectionActive.value ?
+                    withTiming("0deg", {
+                        duration: 1,
+                    })
+                    :
+                    withSequence(
+                        withTiming(random.value >= .6 ? "45deg" : "-45deg", {
+                            duration: 500,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
+                        withTiming("0deg", {
+                            duration: 1,
+                        }),
+                    )
+            },
         ],
-        opacity: sectionActive.value ? withTiming(1, {
-            duration: 200,
-            easing: Easing.inOut(Easing.linear),
-        }) : 0,
-        zIndex: sectionActive.value ? 100 : -100,
+        opacity: (
+            sectionActive.value ?
+                1
+                :
+                withDelay(
+                    500,
+                    withTiming(0, {
+                        duration: 1,
+                    }),
+                )
+        ),
+        pointerEvents: sectionActive.value ? "auto" : "none",
     }));
 
     useEffect(() => {
@@ -214,7 +254,7 @@ export const TasksSearch = memo(({ context }: Props) => {
     }, [theme]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
-        if (pathname != "/" || value.trim().length == 0) {
+        if (value.trim().length == 0) {
             setLoading(false);
             setCount(0);
             setTasks([]);
@@ -250,7 +290,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                 console.log(e);
             }
         }, 100);
-    }, [pathname, tasksMap]);
+    }, [tasksMap]);
 
     const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => (
         <Animated.View
@@ -345,20 +385,23 @@ export const TasksSearch = memo(({ context }: Props) => {
 
     const handleClose = useCallback(() => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
+        closeTimeout.current && clearTimeout(closeTimeout.current);
         textInputRef.current?.blur();
-        setSearchSectionActive(false);
-        setCount(0);
-        setTasks([]);
-        setValue("");
-        setLoading(false);
         event.emit(SHOW_NAVBAR);
-
+        closeTimeout.current = setTimeout(() => {
+            setSearchSectionActive(false);
+            setCount(0);
+            setTasks([]);
+            setValue("");
+            setLoading(false);
+        }, 500);
     }, []);
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (searchSectionActive && pathname == "/") {
+            if (searchSectionActive) {
                 handleClose();
+
                 return true;
             }
 
@@ -378,7 +421,7 @@ export const TasksSearch = memo(({ context }: Props) => {
             remove();
             searchTimeout.current && clearTimeout(searchTimeout.current);
         };
-    }, [searchSectionActive, pathname]);
+    }, [searchSectionActive]);
 
     const onMomentumScrollEnd = useAnimatedProps(() => ({
         onMomentumScrollEnd: () => {
@@ -409,10 +452,14 @@ export const TasksSearch = memo(({ context }: Props) => {
         }
     }, [tasks, count, loading]);
 
+    useEffect(() => {
+        screenHeightShared.value = screenHeight;
+    }, [screenHeightShared]);
+
     return (
         <Animated.View
             style={searchSectionAnimation}
-            className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white"
+            className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white z-[100]"
         >
             <View className="w-full h-full flex items-center dark:bg-black bg-[rgba(0,0,0,.05)]">
                 <LinearGradient

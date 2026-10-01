@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, SharedValue, useAnimatedProps, useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
@@ -120,7 +120,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
     const scrollY = useSharedValue<number>(0);
     const flatListRef = useAnimatedRef<Animated.FlatList>();
     const scrollCheckPoint = 100;
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const screenWidthShared = useSharedValue<typeof screenWidth>(0);
     const themeShared = useSharedValue<typeof theme>("dark");
     const textInputRef = useRef<TextInput>(null);
@@ -135,7 +135,12 @@ export const CalendarSearch = memo(({ active }: Props) => {
     const { t, i18n } = useTranslation();
     const eventsGap = 20;
     const textInputWidth = useSharedValue<number>(0);
-    const router = useRouter();
+    const router = useRouter();;
+    const screenHeightShared = useSharedValue<number>(screenHeight);
+    const random = useSharedValue<number>(0);
+    const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+
+    const setRandomInt = useCallback(() => random.value = Math.random(), []);
 
     const tasksMap = useMemo(() => {
         return (
@@ -190,16 +195,44 @@ export const CalendarSearch = memo(({ active }: Props) => {
         transform: [
             {
                 translateY: active.value ? withTiming(0, {
-                    duration: 500,
+                    duration: 200,
                     easing: Easing.inOut(Easing.quad),
-                }) : 50,
-            }
+                })
+                    :
+                    withTiming(screenHeightShared.value, {
+                        duration: 500,
+                        easing: Easing.inOut(Easing.quad),
+                    }),
+            },
+            {
+                rotate: active.value ?
+                    withTiming("0deg", {
+                        duration: 1,
+                    })
+                    :
+                    withSequence(
+                        withTiming(random.value >= .6 ? "45deg" : "-45deg", {
+                            duration: 500,
+                            easing: Easing.inOut(Easing.quad),
+                        }),
+                        withTiming("0deg", {
+                            duration: 1,
+                        }),
+                    )
+            },
         ],
-        opacity: active.value ? withTiming(1, {
-            duration: 500,
-            easing: Easing.inOut(Easing.linear),
-        }) : 0,
-        zIndex: active.value ? 100 : -100,
+        opacity: (
+            active.value ?
+                1
+                :
+                withDelay(
+                    500,
+                    withTiming(0, {
+                        duration: 1,
+                    }),
+                )
+        ),
+        pointerEvents: active.value ? "auto" : "none",
     }));
 
     useEffect(() => {
@@ -342,14 +375,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
             if (active.value) {
-                searchTimeout.current && clearTimeout(searchTimeout.current);
-                textInputRef.current?.blur();
-                setCount(0);
-                setEvents([]);
-                setValue("");
-                setLoading(false);
-                active.value = false;
-                event.emit(SHOW_NAVBAR);
+                handleClose();
 
                 return true;
             }
@@ -395,13 +421,16 @@ export const CalendarSearch = memo(({ active }: Props) => {
 
     const handleClose = useCallback(() => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
+        closeTimeout.current && clearTimeout(closeTimeout.current);
         textInputRef.current?.blur();
-        setCount(0);
-        setEvents([]);
-        setValue("");
-        setLoading(false);
         active.value = false;
         event.emit(SHOW_NAVBAR);
+        closeTimeout.current = setTimeout(() => {
+            setCount(0);
+            setEvents([]);
+            setValue("");
+            setLoading(false);
+        }, 500);
     }, []);
 
     const handleFocus = useCallback(() => {
@@ -417,6 +446,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
             else if (next != prev && next) {
                 scheduleOnRN(handleFocus);
             }
+            scheduleOnRN(setRandomInt);
         }
     )
 
@@ -432,10 +462,14 @@ export const CalendarSearch = memo(({ active }: Props) => {
         }
     }, [value]);
 
+    useEffect(() => {
+        screenHeightShared.value = screenHeight;
+    }, [screenHeight]);
+
     return (
         <Animated.View
             style={searchSectionAnimation}
-            className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white"
+            className="absolute left-0 top-0 w-screen h-screen dark:bg-black bg-white z-[100]"
         >
             <View className="w-full h-full flex items-center dark:bg-black bg-[rgba(0,0,0,.05)]">
                 <LinearGradient
