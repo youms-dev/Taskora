@@ -24,7 +24,7 @@ import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
 
-export const CALENDAR_TASK_HEIGHT = 85;
+export const EVENT_HEIGHT = 85;
 
 export const parseCalendarDate = (entry: Date | number) => {
     const date = new Date(entry);
@@ -134,7 +134,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                     onPress={() => onPress(event)}
                     onLongPress={(e) => onLongPress(e, event)}
                     style={{
-                        height: CALENDAR_TASK_HEIGHT,
+                        height: EVENT_HEIGHT,
                     }}
                     className={clsx(
                         "w-full flex flex-row justify-between items-center dark:bg-black bg-[rgba(0,0,0,.05)] rounded-2xl px-3 border-2",
@@ -232,7 +232,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: CALENDAR_TASK_HEIGHT
+                                    height: EVENT_HEIGHT
                                 }}
                                 className="w-full rounded-2xl overflow-hidden"
                             >
@@ -333,8 +333,8 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     }, [targetDate]);
 
     const getItemLayout = useCallback((_data: unknown, index: number) => ({
-        length: CALENDAR_TASK_HEIGHT + eventsGap,
-        offset: index * (eventsGap + CALENDAR_TASK_HEIGHT),
+        length: EVENT_HEIGHT + eventsGap,
+        offset: index * (eventsGap + EVENT_HEIGHT),
         index,
     }), []);
 

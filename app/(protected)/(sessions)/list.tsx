@@ -1,14 +1,18 @@
 import { Container } from "@/components/container";
 import { MultiSessionAnimation } from "@/components/multi-session-animation";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
+import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { Entypo } from "@expo/vector-icons";
+import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
+import { format } from "date-fns";
+import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, FadeOutUp, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { Text, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 export default function SessionsPage() {
     const { theme, themeShared } = useTheme();
@@ -20,6 +24,7 @@ export default function SessionsPage() {
     const scrollY = useSharedValue<number>(0);
     const headerContainerWidth = useSharedValue<number>(0);
     const { width: screenWidth } = useWindowDimensions();
+    const [loading, setLoading] = useState<boolean>(false);
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         borderWidth: 1,
@@ -64,12 +69,90 @@ export default function SessionsPage() {
                 style={{
                     height: deviceHeight,
                 }}
-                className="w-full h-[200px] dark:bg-white/10 bg-white rounded-2xl"
+                className="w-full h-[200px] flex flex-row items-center gap-3 dark:bg-white/10 bg-white px-3 rounded-2xl"
             >
+                <View className="py-2">
+                    <View
+                        style={{
+                            borderRadius: 10 // 12 for IOS and 10 for android,
+                        }}
+                        className="w-[45px] h-full dark:bg-black bg-white"
+                    >
+                        <View
+                            style={{
+                                borderRadius: 10 // 12 for IOS and 10 for android,
+                            }}
+                            className="size-full flex items-center dark:bg-black bg-[rgba(0,0,0,.06)] py-1"
+                        >
+                            <View
+                                style={{
+                                    transform: [
+                                        {
+                                            translateY: 5,
+                                        }
+                                    ]
+                                }}
+                                className="absolute w-[40%] h-[4px] dark:bg-white/15 bg-black/15 rounded-2xl"
+                            />
 
+                            <View className="size-full flex justify-center items-center">
+                                <MaterialCommunityIcons
+                                    name="android"
+                                    // name="apple"
+                                    size={25}
+                                    color={COLORS.emerald[500]}
+                                // color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                <View className="w-[80%] flex items-center gap-1">
+                    <View className="w-full flex flex-row flex-wrap items-center gap-2">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-lg font-medium opacity-90 tracking-widest"
+                        >
+                            {Device.deviceName ?? ""}
+                        </TextAnimated>
+
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-lg font-medium opacity-90 tracking-widest"
+                        >
+                            &bull;
+                        </TextAnimated>
+
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="text-lg font-medium opacity-90 tracking-widest"
+                        >
+                            {Device.modelName ?? ""}
+                        </TextAnimated>
+                    </View>
+
+                    <View className="w-full flex flex-row flex-wrap items-center gap-2">
+                        <View className="px-3 py-1 dark:bg-black/30 bg-[rgba(0,0,0,.06)] rounded-2xl border dark:border-white/10 border-black/10">
+                            <Text
+                                numberOfLines={1}
+                                className="text-emerald-500 tracking-widest"
+                            >
+                                {(Device.brand ?? "").toUpperCase()}
+                            </Text>
+                        </View>
+
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="tracking-widest"
+                        >
+                            {format(new Date(), i18n.language == "en" ? "dd-MM-yyyy HH:mm:ss" : "yyyy-MM-dd HH:mm:ss")}
+                        </TextAnimated>
+                    </View>
+                </View>
             </Animated.View>
         );
-    }, []);
+    }, [theme]);
 
     const onScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -103,6 +186,40 @@ export default function SessionsPage() {
             }
         ]
     }));
+
+    const listFooterComponent = useCallback(() => {
+        // if (loading) {
+        if (true) {
+            return (
+                <View
+                    style={{
+                        gap: devicesGap,
+                    }}
+                    className="w-screen flex items-center px-3"
+                >
+                    {
+                        Array(3).fill(0).map((_, i) => (
+                            <Animated.View
+                                key={i}
+                                entering={FadeInUp
+                                    .delay(i * 100)
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                style={{
+                                    height: deviceHeight
+                                }}
+                                className="w-full rounded-2xl overflow-hidden"
+                            >
+                                <Skeleton delay={i * 200} />
+                            </Animated.View>
+                        ))
+                    }
+                </View>
+            );
+        }
+        return null;
+    }, [loading]);
 
     return (
         <Container centerX>
@@ -238,6 +355,7 @@ export default function SessionsPage() {
                 renderItem={renderItem}
                 onScroll={onScroll}
                 getItemLayout={getItemLayout}
+                ListFooterComponent={listFooterComponent}
                 className="w-full h-full"
                 contentContainerStyle={{
                     gap: devicesGap,

@@ -15,7 +15,7 @@ import { usePathname, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, PressableProps, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeIn, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOut, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -296,7 +296,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                         Array(3).fill(0).map((_, i) => (
                             <Animated.View
                                 key={i}
-                                entering={FadeIn
+                                entering={FadeInUp
                                     .delay(i * 100)
                                     .duration(300)
                                     .easing(Easing.inOut(Easing.quad))
@@ -519,8 +519,9 @@ export const TasksSearch = memo(({ context }: Props) => {
                     className="w-full"
                     contentContainerStyle={{
                         gap: tasksGap,
+                        paddingBottom: taskHeight
                     }}
-                    contentContainerClassName="w-full flex items-center pt-[150px] pb-[120px] px-3"
+                    contentContainerClassName="w-full flex items-center pt-[150px] px-3"
                 />
 
                 <LinearGradient

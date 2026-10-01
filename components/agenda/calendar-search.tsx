@@ -19,7 +19,7 @@ import { Icon } from "../icon";
 import { PressableAnimated } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { CALENDAR_TASK_HEIGHT, parseCalendarDate } from "./calendar-day-events";
+import { EVENT_HEIGHT, parseCalendarDate } from "./calendar-day-events";
 
 interface EventCardProps {
     task: TaskType;
@@ -37,12 +37,7 @@ const EventCard = memo(({ task }: EventCardProps) => {
     }
 
     return (
-        <Animated.View
-            style={{
-                height: CALENDAR_TASK_HEIGHT,
-            }}
-            className="w-full flex flex-row justify-between items-center dark:bg-white/5 bg-white rounded-2xl px-3 border-2 dark:border-white/5 border-black/5"
-        >
+        <Animated.View className="w-full h-full flex flex-row justify-between items-center dark:bg-white/5 bg-white rounded-2xl px-3 border-2 dark:border-white/5 border-black/5">
             <View className="w-[20%] flex items-center">
                 {
                     iconData && (
@@ -274,6 +269,9 @@ export const CalendarSearch = memo(({ active }: Props) => {
                     });
                     handleClose();
                 }}
+                style={{
+                    height: EVENT_HEIGHT,
+                }}
                 className="w-full"
             >
                 <EventCard task={event} />
@@ -300,7 +298,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: CALENDAR_TASK_HEIGHT
+                                    height: EVENT_HEIGHT
                                 }}
                                 className="w-full rounded-2xl overflow-hidden"
                             >
@@ -384,10 +382,10 @@ export const CalendarSearch = memo(({ active }: Props) => {
     }));
 
     const getItemLayout = useCallback((data: any, index: number) => ({
-        length: (CALENDAR_TASK_HEIGHT + eventsGap),
-        offset: index * (CALENDAR_TASK_HEIGHT + eventsGap),
+        length: (EVENT_HEIGHT + eventsGap),
+        offset: index * (EVENT_HEIGHT + eventsGap),
         index,
-    }), [CALENDAR_TASK_HEIGHT, eventsGap]);
+    }), [EVENT_HEIGHT, eventsGap]);
 
     const onEndReached = useCallback(() => {
         if (events.length < count && !loading) {
@@ -495,7 +493,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                             >
                                 <TextInput
                                     ref={textInputRef}
-                                    placeholder={t("tasks_search")}
+                                    placeholder={t("agenda_search")}
                                     cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
                                     placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
                                     value={value}
@@ -544,8 +542,9 @@ export const CalendarSearch = memo(({ active }: Props) => {
                     className="w-full"
                     contentContainerStyle={{
                         gap: eventsGap,
+                        paddingBottom: EVENT_HEIGHT,
                     }}
-                    contentContainerClassName="w-full flex pt-[150px] pb-[120px] px-3"
+                    contentContainerClassName="w-full flex pt-[150px] px-3"
                 />
 
                 <LinearGradient
