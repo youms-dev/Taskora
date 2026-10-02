@@ -4,7 +4,8 @@ export type SettingType = {
     language?: "en" | "fr" | null;
     confirmBeforeDelete?: boolean | null;
     notificationSound?: string | null;
-    enable2FA?: boolean | null;
+    _2FA?: boolean | null;
+    autoSync?: boolean | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -15,7 +16,8 @@ export type SQLiteSettingType = {
     language?: "en" | "fr" | null;
     confirm_before_delete?: boolean | null;
     notification_sound?: string | null;
-    enable_2FA?: boolean | null;
+    _2FA?: boolean | null;
+    auto_sync?: boolean | null;
     created_at: Date;
     updated_at: Date;
 }

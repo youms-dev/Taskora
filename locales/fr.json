@@ -142,5 +142,7 @@
     "sessions_list_confirm_box_desc": "Êtes-vous sûr de vouloir supprimer cet appareil ?\nCette action vous déconnecteras de ce compte sur cet appareil.",
     "sessions_list_confirm_box_submit": "Supprimer",
     "sessions_list_confirm_box_cancel": "Annuler",
-    "auto-sync_list_confirm_box_cancel": "Annuler"
+    "auto-sync_title": "Synchronisation automatique",
+    "auto-sync_explanation": "Synchronisez vos données avec les autres appareils connectés.\nVous n'aurez pas à programmer les mêmes évènements ou tâches sur chaque appareil lié à ce compte.",
+    "auto-sync_enable": "Autoriser la synchronisation"
 }

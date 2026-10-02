@@ -141,5 +141,8 @@
     "sessions_list_explanation": "Manage the devices connected to or active on your account",
     "sessions_list_confirm_box_desc": "Are you sure you want to remove this device ?\nThis action will disconnect you from this account on this device.",
     "sessions_list_confirm_box_submit": "Remove",
-    "sessions_list_confirm_box_cancel": "Cancel"
+    "sessions_list_confirm_box_cancel": "Cancel",
+    "auto-sync_title": "Auto-sync",
+    "auto-sync_explanation": "Sync your data with other connected devices.\nYou won't have to schedule the same events or tasks on each device linked to this account.",
+    "auto-sync_enable": "Enable auto-sync"
 }

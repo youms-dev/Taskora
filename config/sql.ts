@@ -173,7 +173,8 @@ ${drop}
             "name": "Sound 2",
             "fileName": "sound02.wav"
         }',
-        enable_2FA BOOLEAN DEFAULT 0,
+        _2FA BOOLEAN DEFAULT 1,
+        auto_sync BOOLEAN DEFAULT 1,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
     );

@@ -9,7 +9,7 @@ export const useSettings = () => {
 
         try {
             const data = await db.getFirstAsync("SELECT * FROM setting") as SQLiteSettingType;
-            const { id_setting, id_user, notification_sound, confirm_before_delete, enable_2FA, created_at, updated_at, ...rest } = data;
+            const { id_setting, id_user, notification_sound, confirm_before_delete, _2FA, auto_sync, created_at, updated_at, ...rest } = data;
 
             return {
                 ...rest,
@@ -17,7 +17,8 @@ export const useSettings = () => {
                 idUser: id_user,
                 notificationSound: notification_sound,
                 confirmBeforeDelete: Boolean(confirm_before_delete),
-                enable2FA: Boolean(enable_2FA),
+                _2FA: Boolean(_2FA),
+                autoSync: Boolean(auto_sync),
                 createdAt: created_at,
                 updatedAt: updated_at,
             } as SettingType;
@@ -31,7 +32,7 @@ export const useSettings = () => {
         if (!db) return;
 
         try {
-            await db.runAsync("UPDATE setting SET language = ?, notification_sound = ?, confirm_before_delete = ?, enable_2FA = ?", [data.language, data.notificationSound, Boolean(data.confirmBeforeDelete), Boolean(data.enable2FA)]);
+            await db.runAsync("UPDATE setting SET language = ?, notification_sound = ?, confirm_before_delete = ?, _2FA = ?, auto_sync = ?", [data.language, data.notificationSound, Number(data.confirmBeforeDelete), Number(data._2FA), Number(data.autoSync)]);
 
             return true;
         }

@@ -25,7 +25,7 @@ import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedProps, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
@@ -194,13 +194,6 @@ export default function Settings() {
             Extrapolation.CLAMP,
         )
     }));
-
-    const handleConfirmToggle = useCallback(async () => {
-        setSetting({
-            ...setting!,
-            confirmBeforeDelete: !setting!.confirmBeforeDelete,
-        });
-    }, [setting]);
 
     return (
         <Container
@@ -488,7 +481,10 @@ export default function Settings() {
                                 <View className="w-[20%] h-full flex items-center shrink-0">
                                     <Toggle
                                         active={setting?.confirmBeforeDelete == true}
-                                        onPress={handleConfirmToggle}
+                                        onPress={() => setting && setSetting({
+                                            ...setting,
+                                            confirmBeforeDelete: !setting.confirmBeforeDelete,
+                                        })}
                                     />
                                 </View>
                             </PressableAnimated>
@@ -593,11 +589,8 @@ export default function Settings() {
                                     </View>
                                 </View>
 
-                                <View>
-                                    <Toggle
-                                        active
-                                        onPress={() => { }}
-                                    />
+                                <View className="pointer-events-none">
+                                    <Toggle active={!!setting?.autoSync} />
                                 </View>
                             </Pressable>
                         </View>
@@ -682,7 +675,11 @@ export default function Settings() {
                                     </View>
 
                                     <Toggle
-
+                                        active={!!setting?._2FA}
+                                        onPress={() => setting && setSetting({
+                                            ...setting,
+                                            _2FA: !(!!setting._2FA),
+                                        })}
                                     />
                                 </View>
 
@@ -743,6 +740,8 @@ export default function Settings() {
                         </View>
                     </View>
 
+                    {/* Bottom */}
+
                     <View className="w-full flex items-center gap-2 pt-10">
                         <TextGradient
                             colors={[COLORS.emerald[500], theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"]}
@@ -752,7 +751,7 @@ export default function Settings() {
                         </TextGradient>
 
                         <TextAnimated>
-                            V0.0
+                            V 0.0
                         </TextAnimated>
                     </View>
                 </Animated.ScrollView>
