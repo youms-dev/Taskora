@@ -179,7 +179,7 @@ export default function SessionsPage() {
     const overviewAnimation = useAnimatedStyle(() => ({
         opacity: interpolate(
             scrollY.value,
-            [0, threshold * .6],
+            [0, threshold * .8],
             [1, 0],
             Extrapolation.CLAMP,
         ),
@@ -187,8 +187,8 @@ export default function SessionsPage() {
             {
                 translateY: interpolate(
                     scrollY.value,
-                    [0, threshold],
-                    [80, 100],
+                    [0, threshold / 2, threshold],
+                    [80, 40, 100],
                     Extrapolation.CLAMP,
                 ),
             }
@@ -458,7 +458,7 @@ export default function SessionsPage() {
                 showsVerticalScrollIndicator={false}
                 updateCellsBatchingPeriod={0}
                 scrollEventThrottle={16}
-                data={Array(10)}
+                data={Array(4)}
                 keyExtractor={(item, i) => i.toString()}
                 renderItem={renderItem}
                 onScroll={onScroll}
@@ -467,7 +467,7 @@ export default function SessionsPage() {
                 className="w-full h-full"
                 contentContainerStyle={{
                     gap: devicesGap,
-                    paddingBottom: threshold,
+                    paddingBottom: 220,
                 }}
                 contentContainerClassName="w-full flex px-3 pt-[400px]"
             />
