@@ -8,6 +8,8 @@ export default function UserLayout() {
                 headerShown: false,
             }}>
             <Stack.Screen name="profile" />
+
+            <Stack.Screen name="sessions" />
         </Stack>
     );
 }

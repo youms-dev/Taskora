@@ -25,22 +25,22 @@ const SOUNDS: SoundType[] = [
     {
         id: "sound01.wav",
         name: "Sound 1",
-        source: require("../../../assets/sounds/sound01.wav")
+        source: require("../../assets/sounds/sound01.wav")
     },
     {
         id: "sound02.wav",
         name: "Sound 2",
-        source: require("../../../assets/sounds/sound02.wav")
+        source: require("../../assets/sounds/sound02.wav")
     },
     {
         id: "sound03.wav",
         name: "Sound 3",
-        source: require("../../../assets/sounds/sound03.wav")
+        source: require("../../assets/sounds/sound03.wav")
     },
     {
         id: "sound04.wav",
         name: "Sound 4",
-        source: require("../../../assets/sounds/sound04.wav")
+        source: require("../../assets/sounds/sound04.wav")
     },
 ];
 

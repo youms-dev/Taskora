@@ -35,6 +35,7 @@
     "settings_check_updates": "Vérifier les mises à jour",
     "settings_sessions": "Appareils connectés",
     "settings_lock_app": "Verrouillage de l'app",
+    "settings_auto_sync": "Synchronisation automatique des données",
     "tasks_no_tasks": "Le planning est vide pour l'instant",
     "tasks_filter": "Filtre",
     "tasks_filter_all": "Tout",
@@ -138,7 +139,8 @@
     "layout_(protected)_mark_done": "Marquer comme faite",
     "sessions_list_title": "Appareils connectés",
     "sessions_list_explanation": "Gérez les appareils connectés ou actifs à votre ce compte",
-    "sessions_list_confirm_box_desc": "Êtes-vous sûr de vouloir supprimer cet appareil ? Cette action vous déconnecteras de ce compte sur cet appareil.",
+    "sessions_list_confirm_box_desc": "Êtes-vous sûr de vouloir supprimer cet appareil ?\nCette action vous déconnecteras de ce compte sur cet appareil.",
     "sessions_list_confirm_box_submit": "Supprimer",
-    "sessions_list_confirm_box_cancel": "Annuler"
+    "sessions_list_confirm_box_cancel": "Annuler",
+    "auto-sync_list_confirm_box_cancel": "Annuler"
 }

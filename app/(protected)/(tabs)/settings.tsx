@@ -507,7 +507,7 @@ export default function Settings() {
                         <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
                             <Pressable
                                 onPress={() => router.navigate({
-                                    pathname: "/(protected)/(sounds)/list",
+                                    pathname: "/(protected)/sounds",
                                 })}
                                 className="self-start flex flex-row gap-5"
                             >
@@ -552,10 +552,10 @@ export default function Settings() {
                             </TextAnimated>
                         </View>
 
-                        <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+                        <View className="w-full flex items-center gap-6 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
                             <Pressable
                                 onPress={() => router.navigate({
-                                    pathname: "/(protected)/(folder)/list",
+                                    pathname: "/(protected)/(folders)/list",
                                 })}
                                 className="flex flex-row items-center gap-5 self-start"
                             >
@@ -569,6 +569,36 @@ export default function Settings() {
                                 <TextAnimated className="text-lg">
                                     {t("settings_management_folders")}
                                 </TextAnimated>
+                            </Pressable>
+
+                            <Pressable
+                                onPress={() => router.navigate({
+                                    pathname: "/(protected)/sync-data",
+                                })}
+                                className="w-full flex flex-row justify-between items-center gap-3 self-start"
+                            >
+                                <View className="max-w-[80%] flex flex-row items-center gap-5 overflow-hidden">
+                                    <View>
+                                        <MaterialCommunityIcons
+                                            name="cloud-sync"
+                                            size={30}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                        />
+                                    </View>
+
+                                    <View className="max-w-[80%]">
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_auto_sync")}
+                                        </TextAnimated>
+                                    </View>
+                                </View>
+
+                                <View>
+                                    <Toggle
+                                        active
+                                        onPress={() => { }}
+                                    />
+                                </View>
                             </Pressable>
                         </View>
                     </View>
@@ -589,7 +619,7 @@ export default function Settings() {
                             <PressableAnimated
                                 scale={1}
                                 onPress={() => router.navigate({
-                                    pathname: "/(protected)/(sessions)/list",
+                                    pathname: "/(protected)/(user)/sessions",
                                 })}
                                 className="flex self-start flex-row gap-[16px]"
                             >
@@ -727,6 +757,8 @@ export default function Settings() {
                     </View>
                 </Animated.ScrollView>
             </View>
+
+            {/* Bottom gradient */}
 
             <LinearGradient
                 colors={theme == "dark" ?
