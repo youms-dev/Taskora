@@ -574,7 +574,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                                 >
                                                     <PressableAnimated onPress={() => {
                                                         router.navigate({
-                                                            pathname: "/(protected)/(folder)/create",
+                                                            pathname: "/(protected)/(folders)/create",
                                                         });
                                                     }}>
                                                         <FontAwesome5

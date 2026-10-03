@@ -10,6 +10,7 @@ import { format, startOfMonth } from "date-fns";
 import { memo, RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, FlatList, Pressable, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, Extrapolation, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
@@ -27,9 +28,11 @@ interface Props {
     searchSectionActive: SharedValue<boolean>;
     translateY: SharedValue<number>;
     refreshing: SharedValue<boolean>;
+    isListOpen: SharedValue<boolean>;
+    gesture: ReturnType<typeof Gesture.Native>;
 }
 
-export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef, searchSectionActive, translateY, refreshing }: Props) => {
+export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListRef, currentMonth, mutation, flatListRef, animationRef, searchSectionActive, translateY, refreshing, isListOpen, gesture }: Props) => {
     const { theme } = useTheme();
     const showYearsList = useSharedValue<boolean>(false);
     const { months, years, generateMonths } = context;
@@ -332,12 +335,12 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
             :
             (
                 translateY.value > 0 ?
-                1
-                :
-                withTiming(0, {
-                    duration: 300,
-                    easing: Easing.inOut(Easing.linear),
-                })
+                    1
+                    :
+                    withTiming(0, {
+                        duration: 300,
+                        easing: Easing.inOut(Easing.linear),
+                    })
             )
         ),
     }));
@@ -345,6 +348,10 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
     useEffect(() => {
         screenWidthShared.value = screenWidth;
     }, [screenWidth]);
+
+    useEffect(() => {
+        isListOpen.value = listActive;
+    }, [listActive]);
 
     return (
         <View className="w-full">
@@ -496,23 +503,26 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
                         />
 
                         <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
-                            <FlatList
-                                ref={monthsFlatListRef}
-                                showsVerticalScrollIndicator={false}
-                                initialScrollIndex={currentMonth.getMonth()}
-                                data={monthsTranslation[currentLanguage]}
-                                keyExtractor={(month) => month}
-                                renderItem={renderMonthsListItem}
-                                getItemLayout={monthsGetItemLayout}
-                                scrollEventThrottle={16}
-                                updateCellsBatchingPeriod={0}
-                                removeClippedSubviews={false}
-                                className="absolute w-full h-[200px]"
-                                contentContainerStyle={{
-                                    gap: monthsGap,
-                                }}
-                                contentContainerClassName="flex py-2"
-                            />
+                            <GestureDetector gesture={gesture}>
+                                <FlatList
+                                    ref={monthsFlatListRef}
+                                    nestedScrollEnabled
+                                    showsVerticalScrollIndicator={false}
+                                    initialScrollIndex={currentMonth.getMonth()}
+                                    data={monthsTranslation[currentLanguage]}
+                                    keyExtractor={(month) => month}
+                                    renderItem={renderMonthsListItem}
+                                    getItemLayout={monthsGetItemLayout}
+                                    scrollEventThrottle={16}
+                                    updateCellsBatchingPeriod={0}
+                                    removeClippedSubviews={false}
+                                    className="absolute w-full h-[200px]"
+                                    contentContainerStyle={{
+                                        gap: monthsGap,
+                                    }}
+                                    contentContainerClassName="flex py-2"
+                                />
+                            </GestureDetector>
                         </View>
                     </Animated.View>
                 </View>
@@ -542,26 +552,29 @@ export const CalendarHeader = memo(({ context, monthsFlatListRef, yearsFlatListR
                         />
 
                         <View className="size-full flex items-center dark:bg-white/10 bg-white rounded-xl border dark:border-white/10 border-white p-2 px-3 overflow-hidden">
-                            <FlatList
-                                ref={yearsFlatListRef}
-                                showsVerticalScrollIndicator={false}
-                                data={years}
-                                keyExtractor={(year) => String(year)}
-                                renderItem={renderYearsListItem}
-                                initialScrollIndex={currentYearIndex}
-                                scrollEventThrottle={16}
-                                initialNumToRender={200}
-                                removeClippedSubviews={false}
-                                maxToRenderPerBatch={100}
-                                windowSize={100}
-                                updateCellsBatchingPeriod={0}
-                                className="absolute w-full h-[200px]"
-                                getItemLayout={yearsGetItemLayout}
-                                contentContainerStyle={{
-                                    gap: yearsGap,
-                                }}
-                                contentContainerClassName="flex py-2"
-                            />
+                            <GestureDetector gesture={gesture}>
+                                <FlatList
+                                    ref={yearsFlatListRef}
+                                    nestedScrollEnabled
+                                    showsVerticalScrollIndicator={false}
+                                    data={years}
+                                    keyExtractor={(year) => String(year)}
+                                    renderItem={renderYearsListItem}
+                                    initialScrollIndex={currentYearIndex}
+                                    scrollEventThrottle={16}
+                                    initialNumToRender={200}
+                                    removeClippedSubviews={false}
+                                    maxToRenderPerBatch={100}
+                                    windowSize={100}
+                                    updateCellsBatchingPeriod={0}
+                                    className="absolute w-full h-[200px]"
+                                    getItemLayout={yearsGetItemLayout}
+                                    contentContainerStyle={{
+                                        gap: yearsGap,
+                                    }}
+                                    contentContainerClassName="flex py-2"
+                                />
+                            </GestureDetector>
                         </View>
                     </Animated.View>
                 </View>

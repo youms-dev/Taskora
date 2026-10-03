@@ -18,7 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, TextInputProps, Vibration, View } from "react-native";
+import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, TextInputProps, useWindowDimensions, Vibration, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextInputProps {
@@ -179,6 +179,7 @@ export default function CreateFolderPager() {
     const { getTasks, getTasksCount } = useTasks();
     const { setToast } = useToast();
     const { createFolder, updateFolder } = useFolders();
+    const { height: screenHeight } = useWindowDimensions();
 
     const selectMap = useMemo(() => {
         return (
@@ -478,7 +479,12 @@ export default function CreateFolderPager() {
                                     </View>
                                 )}
                             >
-                                <View className="w-full h-[400px] dark:bg-white/10 bg-white rounded-xl overflow-hidden">
+                                <View
+                                    style={{
+                                        maxHeight: screenHeight * .5,
+                                    }}
+                                    className="w-full dark:bg-white/10 bg-white rounded-xl overflow-hidden"
+                                >
                                     <View className="absolute left-0 top-0 w-full h-[30px] z-[1]">
                                         <LinearGradient
                                             colors={theme == "dark" ?

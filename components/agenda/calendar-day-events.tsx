@@ -270,7 +270,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     }, [loading, events, theme]);
 
     const handleGetEvents = useCallback(async (refresh: boolean = false) => {
-        if (loadingRef.current || !targetDate || !active.value) return;
+        if (loadingRef.current || !targetDate || !active.value || selected) return;
         setLoading(true);
 
         try {
@@ -285,10 +285,10 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language, targetDate, events]);
+    }, [i18n.language, targetDate, events, selected]);
 
     const handleGetEventsCount = useCallback(async () => {
-        if (!targetDate) return;
+        if (!targetDate || selected) return;
 
         try {
             const data = await getEventsCountByDate(targetDate) as number;
@@ -298,7 +298,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
         catch (e) {
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language, targetDate]);
+    }, [i18n.language, targetDate, selected]);
 
     useEffect(() => {
         const onBackPress = () => {
@@ -366,6 +366,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     }));
 
     const handleClose = useCallback(() => {
+        if (selected) return;
         closeTimeout.current && clearTimeout(closeTimeout.current);
         active.value = false;
         position.value = null;
@@ -376,7 +377,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             setEventsCount(0);
         }, 500);
         eventEmitter.emit(TOUCHABLE_NAVBAR);
-    }, []);
+    }, [selected]);
 
     const contextMenuAnimation = useAnimatedStyle(() => ({
         transform: [
@@ -630,6 +631,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                                 <View className="flex flex-row items-center gap-6">
                                     <PressableAnimated
                                         scale={.95}
+                                        disabled={!!selected}
                                         onPress={() => handleGetEvents(true)}
                                     >
                                         {
@@ -652,6 +654,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
                                     </PressableAnimated>
 
                                     <PressableAnimated
+                                        disabled={!!selected}
                                         onPress={handleClose}
                                         className="size-[40px] shrink-0 dark:bg-black bg-white rounded-full"
                                     >

@@ -3,8 +3,10 @@ import clsx from "clsx";
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Text, useWindowDimensions, View } from "react-native";
-import { SharedValue } from "react-native-reanimated";
+import { Easing, SharedValue, withTiming } from "react-native-reanimated";
 import { CalendarDay } from "./calendar-day";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { THRESHOLD } from "./calendar-header";
 
 interface Props {
     context: CalendarType;
@@ -14,9 +16,10 @@ interface Props {
     flatListRef: RefObject<FlatList | null>;
     setTargetDate: (entry: Date | null) => void;
     refreshing: SharedValue<boolean>;
+    translateY: SharedValue<number>;
 }
 
-export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef, setTargetDate, refreshing }: Props) => {
+export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, flatListRef, setTargetDate, refreshing, translateY }: Props) => {
     const { months, appendFutureMonths, prependPastMonths, loading, years } = context;
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { i18n } = useTranslation();
@@ -95,7 +98,7 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
         }
     }, [monthsMap]);
 
-    const getItemLayout = useCallback((data: unknown, index: number) => ({
+    const getItemLayout = useCallback((_data: unknown, index: number) => ({
         length: screenWidth,
         offset: screenWidth * index,
         index,
@@ -152,36 +155,67 @@ export const Calendar = ({ context, currentMonth, setCurrentMonth, mutation, fla
         }
     }, [monthsMap]);
 
+    const panGesture = useMemo(() => {
+        return (
+            Gesture.Pan()
+                .failOffsetX([-5, 5])
+                .activeOffsetY(1)
+                .onUpdate(({ translationY: y }) => {
+                    if (y > 0 && !refreshing.value) {
+                        translateY.value = y;
+                    }
+                })
+                .onEnd(({ translationY: y }) => {
+                    if (refreshing.value || y < THRESHOLD * .8) {
+                        translateY.value = withTiming(0, {
+                            duration: 300,
+                            easing: Easing.inOut(Easing.quad),
+                        });
+
+                        return;
+                    }
+
+                    translateY.value = withTiming(THRESHOLD / 2, {
+                        duration: 300,
+                        easing: Easing.inOut(Easing.quad),
+                    });
+                    refreshing.value = true;
+                })
+        );
+    }, []);
+
     return (
         <View className="w-full flex items-center">
             <View className="w-full flex flex-row justify-center mb-2">
                 {displayedDays()}
             </View>
 
-            <FlatList
-                ref={flatListRef}
-                horizontal
-                pagingEnabled
-                scrollEventThrottle={16}
-                windowSize={100}
-                updateCellsBatchingPeriod={0}
-                maxToRenderPerBatch={24}
-                removeClippedSubviews={false}
-                initialScrollIndex={INITIAL_RANGE}
-                initialNumToRender={INITIAL_RANGE}
-                showsHorizontalScrollIndicator={false}
-                data={months}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.toISOString()}
-                getItemLayout={getItemLayout}
-                onMomentumScrollEnd={onMomentumScrollEnd}
-                onLayout={(e) => setViewWidth(e.nativeEvent.layout.width)}
-                className="w-full"
-                style={{
-                    height: calendarHeight,
-                }}
-                contentContainerClassName="h-full"
-            />
+            <GestureDetector gesture={panGesture}>
+                <FlatList
+                    ref={flatListRef}
+                    horizontal
+                    pagingEnabled
+                    scrollEventThrottle={16}
+                    windowSize={100}
+                    updateCellsBatchingPeriod={0}
+                    maxToRenderPerBatch={24}
+                    removeClippedSubviews={false}
+                    initialScrollIndex={INITIAL_RANGE}
+                    initialNumToRender={INITIAL_RANGE}
+                    showsHorizontalScrollIndicator={false}
+                    data={months}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.toISOString()}
+                    getItemLayout={getItemLayout}
+                    onMomentumScrollEnd={onMomentumScrollEnd}
+                    onLayout={(e) => setViewWidth(e.nativeEvent.layout.width)}
+                    className="w-full"
+                    style={{
+                        height: calendarHeight,
+                    }}
+                    contentContainerClassName="h-full"
+                />
+            </GestureDetector>
         </View>
     );
 };

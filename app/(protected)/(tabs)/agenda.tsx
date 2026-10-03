@@ -1,16 +1,18 @@
 import { Calendar } from "@/components/agenda/calendar";
+import { CalendarDayEvents } from "@/components/agenda/calendar-day-events";
 import { CalendarHeader, THRESHOLD } from "@/components/agenda/calendar-header";
 import { CalendarSearch } from "@/components/agenda/calendar-search";
-import { CalendarDayEvents } from "@/components/agenda/calendar-day-events";
+import { CalendarSelectDate } from "@/components/agenda/calendar-select-date";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
 import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR } from "@/lib/event-emitter";
 import { startOfMonth } from "date-fns";
 import { usePathname } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 export default function Agenda() {
     const pathname = usePathname();
@@ -27,6 +29,8 @@ export default function Agenda() {
     const searchSectionActive = useSharedValue<boolean>(false);
     const translateY = useSharedValue<number>(0);
     const refreshing = useSharedValue<boolean>(false);
+    const isListOpen = useSharedValue<boolean>(false);
+    const nativeGesture = useMemo(() => Gesture.Native(), []);
 
     useEffect(() => {
         if (pathname == "/agenda") {
@@ -73,35 +77,6 @@ export default function Agenda() {
         ]
     }));
 
-    const panGesture = useMemo(() => {
-        return (
-            Gesture.Pan()
-                .failOffsetX([-5, 5])
-                .activeOffsetY(1)
-                .onUpdate(({ translationY: y }) => {
-                    if (y > 0 && !refreshing.value) {
-                        translateY.value = y;
-                    }
-                })
-                .onEnd(({ translationY: y }) => {
-                    if (refreshing.value || y < THRESHOLD * .8) {
-                        translateY.value = withTiming(0, {
-                            duration: 300,
-                            easing: Easing.inOut(Easing.quad),
-                        });
-
-                        return;
-                    }
-
-                    translateY.value = withTiming(THRESHOLD / 2, {
-                        duration: 300,
-                        easing: Easing.inOut(Easing.quad),
-                    });
-                    refreshing.value = true;
-                })
-        );
-    }, []);
-
     useAnimatedReaction(
         () => refreshing.value,
         (next, prev) => {
@@ -116,35 +91,37 @@ export default function Agenda() {
 
     return (
         <Container centerX>
-            <GestureDetector gesture={panGesture}>
-                <Animated.View
-                    style={generateAnimation}
-                    className="w-full flex items-center"
-                >
-                    <CalendarHeader
-                        context={context}
-                        currentMonth={currentMonth}
-                        monthsFlatListRef={monthsFlatListRef}
-                        yearsFlatListRef={yearsFlatListRef}
-                        mutation={mutation}
-                        flatListRef={flatListRef}
-                        animationRef={animationRef}
-                        searchSectionActive={searchSectionActive}
-                        translateY={translateY}
-                        refreshing={refreshing}
-                    />
+            <Animated.View
+                style={generateAnimation}
+                className="w-full flex items-center"
+            >
+                <CalendarHeader
 
-                    <Calendar
-                        context={context}
-                        currentMonth={currentMonth}
-                        setCurrentMonth={setCurrentMonth}
-                        mutation={mutation}
-                        flatListRef={flatListRef}
-                        setTargetDate={setDateEvents}
-                        refreshing={refreshing}
-                    />
-                </Animated.View>
-            </GestureDetector>
+                    context={context}
+                    currentMonth={currentMonth}
+                    monthsFlatListRef={monthsFlatListRef}
+                    yearsFlatListRef={yearsFlatListRef}
+                    mutation={mutation}
+                    flatListRef={flatListRef}
+                    animationRef={animationRef}
+                    searchSectionActive={searchSectionActive}
+                    translateY={translateY}
+                    refreshing={refreshing}
+                    isListOpen={isListOpen}
+                    gesture={nativeGesture}
+                />
+
+                <Calendar
+                    context={context}
+                    currentMonth={currentMonth}
+                    setCurrentMonth={setCurrentMonth}
+                    mutation={mutation}
+                    flatListRef={flatListRef}
+                    setTargetDate={setDateEvents}
+                    refreshing={refreshing}
+                    translateY={translateY}
+                />
+            </Animated.View>
 
             <CalendarDayEvents
                 targetDate={dateEvents}
@@ -153,6 +130,11 @@ export default function Agenda() {
             />
 
             <CalendarSearch active={searchSectionActive} />
+
+            <CalendarSelectDate
+                context={context}
+                date={currentMonth}
+            />
         </Container>
     );
 }

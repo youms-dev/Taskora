@@ -177,7 +177,10 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
                     eventsContainerHeight === prevEventsContainerHeight.current
                 )
             )
-        ) return;
+        ) {
+            return;
+        }
+        
         timeout.current && clearTimeout(timeout.current);
 
         timeout.current = setTimeout(async () => {
