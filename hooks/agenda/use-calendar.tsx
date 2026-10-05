@@ -62,28 +62,15 @@ export const useCalendar = (init: boolean = true, date: Date | null = null) => {
         setMonths((prev) => [...prev, ...nextMonths]);
     }, [months, years]);
 
-    const generateMonths = useCallback((target: "month" | "year", entry: number, currentDate: Date = new Date()) => {
+    const generateMonths = useCallback((date: Date) => {
         if (loading.current) return;
         loading.current = true;
 
-        if (target == "month") {
-            const targetDate = new Date(currentDate.getFullYear(), entry, 1);
+        const months = Array((INITIAL_RANGE * 2) + 1).fill(0).map((_, i) => {
+            return startOfMonth(addMonths(date, i - INITIAL_RANGE));
+        });
 
-            const months = Array((INITIAL_RANGE * 2) + 1).fill(0).map((_, i) => {
-                return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
-            });
-
-            setMonths(months);
-        }
-        else {
-            const targetDate = new Date(entry, currentDate.getMonth(), 1);
-
-            const months = Array((INITIAL_RANGE * 2) + 1).fill(0).map((_, i) => {
-                return startOfMonth(addMonths(targetDate, i - INITIAL_RANGE));
-            });
-
-            setMonths(months);
-        }
+        setMonths(months);
     }, []);
 
     return ({

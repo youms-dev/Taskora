@@ -12,8 +12,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, GestureResponderEvent, Pressable, ScrollView, Text, useWindowDimensions, Vibration, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeInUp, FadeOutUp, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { GestureResponderEvent, Pressable, Text, useWindowDimensions, Vibration, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, FadeOutUp, interpolate, SharedValue, SlideInLeft, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { PageTitle } from "../page-title";
 import { PressableAnimated, PressableAnimatedProps } from "../pressable-animated";
 import { Skeleton } from "../skeleton";
@@ -72,10 +72,10 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
     const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone, setFolderSelected } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
-    const foldersFlatListRef = useRef<FlatList>(null);
+    const foldersFlatListRef = useRef<Animated.FlatList>(null);
     const { width: screenWidth } = useWindowDimensions();
     const screenWidthShared = useSharedValue<number>(screenWidth);
-    const filterScrollViewRef = useRef<ScrollView>(null);
+    const filterScrollViewRef = useRef<Animated.ScrollView>(null);
     const loadingShared = useSharedValue<boolean>(loading);
     const refreshPosition = useSharedValue<number>(0);
     const foldersButtonsSizes = useRef<number[]>([]);
@@ -479,7 +479,13 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
 
                     {/* Fake search input */}
 
-                    <View className="w-full flex items-center px-3">
+                    <Animated.View
+                        entering={FadeInUp
+                            .duration(300)
+                            .easing(Easing.inOut(Easing.quad))
+                        }
+                        className="w-full flex items-center px-3"
+                    >
                         <Pressable
                             onPress={() => {
                                 setTasksSelected([]);
@@ -512,29 +518,40 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                 />
                             </View>
                         </Pressable>
-                    </View>
+                    </Animated.View>
 
                     {/* Folders & filters */}
 
                     <View className="w-full flex items-center gap-1">
+
                         {/* Folders */}
 
                         <View className="flex items-center">
                             <View className="w-full flex flex-row items-center gap-5 px-3 py-1">
                                 {
                                     loading && folders.length == 0 && (
-                                        <View className="w-full">
+                                        <Animated.View
+                                            entering={SlideInLeft
+                                                .duration(300)
+                                                .easing(Easing.inOut(Easing.quad))
+                                            }
+                                            exiting={FadeOutDown
+                                                .duration(300)
+                                                .easing(Easing.inOut(Easing.quad))
+                                            }
+                                            className="w-full"
+                                        >
                                             <View className="w-[70%] sm:w-[300px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
                                                 <Skeleton />
                                             </View>
-                                        </View>
+                                        </Animated.View>
                                     )
                                 }
 
                                 {
                                     (!loading || folders.length > 0) && (
                                         <>
-                                            <FlatList
+                                            <Animated.FlatList
                                                 ref={foldersFlatListRef}
                                                 horizontal
                                                 showsHorizontalScrollIndicator={false}
@@ -546,6 +563,10 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                                 initialNumToRender={3}
                                                 maxToRenderPerBatch={Math.ceil(displayedFolders.length / 2)}
                                                 removeClippedSubviews={false}
+                                                entering={SlideInLeft
+                                                    .duration(300)
+                                                    .easing(Easing.inOut(Easing.quad))
+                                                }
                                                 className="w-full"
                                                 contentContainerClassName="flex flex-row items-center gap-[10px] pr-[40px]"
                                             />
@@ -596,9 +617,20 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                         <View className="w-full flex flex-row items-center gap-3 px-3 py-1">
                             {
                                 loading && tasks.length == 0 && (
-                                    <View className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden">
+                                    <Animated.View
+                                        entering={SlideInLeft
+                                            .delay(100)
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        exiting={FadeOutDown
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        className="w-[50%] sm:w-[200px] h-[30px] flex flex-row items-center rounded-3xl overflow-hidden"
+                                    >
                                         <Skeleton />
-                                    </View>
+                                    </Animated.View>
                                 )
                             }
 
@@ -642,11 +674,15 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
 
                             {
                                 (!loading || tasks.length > 0) && (
-                                    <ScrollView
+                                    <Animated.ScrollView
                                         ref={filterScrollViewRef}
                                         horizontal
                                         showsHorizontalScrollIndicator={false}
                                         nestedScrollEnabled
+                                        entering={SlideInLeft
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
                                         className="w-full"
                                         contentContainerClassName="flex flex-row items-center gap-[10px] pl-[85px] pr-[30px]"
                                     >
@@ -655,7 +691,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                                 <Animated.View
                                                     key={i}
                                                     entering={FadeInUp
-                                                        .delay(i * 100)
+                                                        .delay(i * 200)
                                                         .duration(300)
                                                         .easing(Easing.inOut(Easing.quad))
                                                     }
@@ -685,7 +721,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                                 </Animated.View>
                                             ))
                                         }
-                                    </ScrollView>
+                                    </Animated.ScrollView>
                                 )
                             }
 

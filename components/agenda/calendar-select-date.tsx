@@ -2,23 +2,27 @@ import { monthsTranslation } from "@/constants/calendar";
 import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
 import { FontAwesome6 } from "@expo/vector-icons";
+import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { Modal } from "../modal";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
-import Animated, { Easing, FadeInDown, FadeOutUp } from "react-native-reanimated";
-import { format } from "date-fns";
 
 interface Props {
     context: CalendarType;
     date: Date;
+    active: boolean;
+    onClose: () => void;
+    mutation: RefObject<"generate" | "append" | "prepend" | null>;
+    animationRef: RefObject<boolean>;
+    flatListRef: RefObject<FlatList | null>;
 }
 
-export const CalendarSelectDate = memo(({ context, date }: Props) => {
-    const [active, setActive] = useState<boolean>(false);
+export const CalendarSelectDate = memo(({ context, date, active, onClose, mutation, animationRef, flatListRef }: Props) => {
     const { t, i18n } = useTranslation();
     const displayMonths = useMemo(() => monthsTranslation[i18n.language], [i18n.language]);
     const { height: screenHeight } = useWindowDimensions();
@@ -28,7 +32,8 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
     const { theme } = useTheme();
     const monthsFlatListRef = useRef<FlatList>(null);
     const yearsFlatListRef = useRef<FlatList>(null);
-    const { years } = context;
+    const { years, generateMonths, months } = context;
+    const [showSubmitButton, setShowSubmitButton] = useState<boolean>(false);
 
     const yearsMap = useMemo(() => {
         return (
@@ -37,6 +42,14 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
             )
         );
     }, [years]);
+
+    const monthsMap = useMemo(() => {
+        return (
+            new Map(
+                months.map((m, i) => [format(m, "yyyy-MM"), i]),
+            )
+        );
+    }, [months]);
 
     const onMonthPress = useCallback((index: number) => {
         if (currentDate.getMonth() != index) {
@@ -104,41 +117,76 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
 
     const onMomentumScrollMonthsEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
-        const index = Math.floor(y / itemHeight);
+        const index = Math.round(y / itemHeight);
 
-        setCurrentDate(new Date(currentDate.getFullYear(), index, currentDate.getDate()));
-    }, [itemHeight, currentDate]);
+        setCurrentDate(prev => new Date(prev.getFullYear(), index, prev.getDate()));
+    }, [itemHeight]);
 
     const onMomentumScrollYearsEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
-        const index = Math.floor(y / itemHeight);
+        const index = Math.round(y / itemHeight);
 
-        setCurrentDate(new Date(yearsMap.get(index) ?? 0, currentDate.getMonth(), currentDate.getDate()));
-    }, [itemHeight, currentDate, yearsMap]);
+        setCurrentDate(prev => new Date(yearsMap.get(index) ?? new Date().getFullYear(), prev.getMonth(), prev.getDate()));
+    }, [itemHeight, yearsMap]);
 
     useEffect(() => {
-        if(active) {
+        if (active) {
             const yearIndex = years.findIndex((year) => year == date.getFullYear());
-    
+
             monthsFlatListRef.current?.scrollToIndex({
                 index: date.getMonth(),
                 animated: false,
             });
-    
+
             yearsFlatListRef.current?.scrollToIndex({
                 index: yearIndex == -1 ? 0 : yearIndex,
                 animated: false,
             });
+
+            setCurrentDate(date);
         }
     }, [date, years, active]);
+
+    const submitDate = useCallback(() => {
+        if (!active || !showSubmitButton || date.getTime() == currentDate.getTime()) {
+            setShowSubmitButton(false);
+            onClose();
+
+            return;
+        }
+        const month = monthsMap.get(format(currentDate, "yyyy-MM"));
+
+        if (month) {
+            flatListRef.current?.scrollToIndex({
+                index: month,
+            });
+            setShowSubmitButton(false);
+            onClose();
+        }
+        else {
+            mutation.current = "generate";
+            animationRef.current = true;
+            setShowSubmitButton(false);
+            onClose();
+            generateMonths(currentDate);
+        }
+
+    }, [currentDate, active, date, showSubmitButton, monthsMap]);
+
+    useEffect(() => {
+        if (active) {
+            setShowSubmitButton(format(date, "yyyy-MM") != format(currentDate, "yyyy-MM"));
+        }
+    }, [currentDate, date, active]);
 
     return (
         <Modal
             active={active}
-            // active
             height={screenHeight * .5}
-            onClose={() => setActive(false)}
+            onClose={onClose}
             scrollableContent={false}
+            animationDuration={500}
+            closeAnimationDuration={500}
             closable={false}
             dragHandler={(
                 <View className="w-full rounded-t-[30px] dark:bg-black bg-white">
@@ -154,6 +202,7 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
 
                         <PressableAnimated
                             scale={.95}
+                            onPress={onClose}
                             className="size-[45px] flex justify-center items-center bg-black rounded-full"
                         >
                             <View
@@ -382,13 +431,13 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
                 {/* Submit button */}
 
                 {
-                    format(date, "yyyy-MM-dd") != format(currentDate, "yyyy-MM-dd") && (
+                    showSubmitButton && (
                         <Animated.View
                             entering={FadeInDown
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
-                            exiting={FadeOutUp
+                            exiting={FadeOutDown
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
@@ -396,6 +445,7 @@ export const CalendarSelectDate = memo(({ context, date }: Props) => {
                         >
                             <PressableAnimated
                                 scale={.95}
+                                onPress={submitDate}
                                 className="size-full flex justify-center items-center bg-black rounded-3xl"
                             >
                                 <View

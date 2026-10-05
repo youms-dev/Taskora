@@ -351,7 +351,7 @@ export default function CreateTaskPage() {
 
     const handleSubmit = useCallback(async () => {
         if (loadingRef.current) return;
-        if (target == "task") {
+        if (target == "event") {
             if (!inputsValues.title || inputsValues.title.trim().length == 0) {
                 titleRef.current?.focus();
                 return;

@@ -10,6 +10,13 @@ export default function UserLayout() {
             <Stack.Screen name="[id]" />
 
             <Stack.Screen name="archives" />
+
+            <Stack.Screen
+                name="create"
+                options={{
+                    animation: "fade_from_bottom",
+                }}
+            />
         </Stack>
     );
 }

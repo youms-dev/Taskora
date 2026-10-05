@@ -1,24 +1,20 @@
 import { Calendar } from "@/components/agenda/calendar";
 import { CalendarDayEvents } from "@/components/agenda/calendar-day-events";
-import { CalendarHeader, THRESHOLD } from "@/components/agenda/calendar-header";
+import { CalendarHeader } from "@/components/agenda/calendar-header";
 import { CalendarSearch } from "@/components/agenda/calendar-search";
 import { CalendarSelectDate } from "@/components/agenda/calendar-select-date";
 import { Container } from "@/components/container";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
-import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR } from "@/lib/event-emitter";
+import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR } from "@/lib/event-emitter";
 import { startOfMonth } from "date-fns";
 import { usePathname } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
 export default function Agenda() {
     const pathname = usePathname();
     const context = useCalendar();
-    const monthsFlatListRef = useRef<FlatList>(null);
-    const yearsFlatListRef = useRef<FlatList>(null);
     const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
     const mutation = useRef<"append" | "prepend" | "generate">(null);
     const flatListRef = useRef<FlatList<Date>>(null);
@@ -29,8 +25,7 @@ export default function Agenda() {
     const searchSectionActive = useSharedValue<boolean>(false);
     const translateY = useSharedValue<number>(0);
     const refreshing = useSharedValue<boolean>(false);
-    const isListOpen = useSharedValue<boolean>(false);
-    const nativeGesture = useMemo(() => Gesture.Native(), []);
+    const [dateListActive, setDateListActive] = useState<boolean>(false);
 
     useEffect(() => {
         if (pathname == "/agenda") {
@@ -96,19 +91,15 @@ export default function Agenda() {
                 className="w-full flex items-center"
             >
                 <CalendarHeader
-
                     context={context}
                     currentMonth={currentMonth}
-                    monthsFlatListRef={monthsFlatListRef}
-                    yearsFlatListRef={yearsFlatListRef}
                     mutation={mutation}
                     flatListRef={flatListRef}
                     animationRef={animationRef}
                     searchSectionActive={searchSectionActive}
                     translateY={translateY}
                     refreshing={refreshing}
-                    isListOpen={isListOpen}
-                    gesture={nativeGesture}
+                    openDateList={setDateListActive}
                 />
 
                 <Calendar
@@ -134,6 +125,14 @@ export default function Agenda() {
             <CalendarSelectDate
                 context={context}
                 date={currentMonth}
+                active={dateListActive}
+                onClose={() => {
+                    setDateListActive(false);
+                    event.emit(SHOW_NAVBAR);
+                }}
+                mutation={mutation}
+                animationRef={animationRef}
+                flatListRef={flatListRef}
             />
         </Container>
     );
