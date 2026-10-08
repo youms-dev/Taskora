@@ -1,9 +1,9 @@
-import { useTheme } from '@/hooks/use-theme';
-import clsx from 'clsx';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from "@/hooks/use-theme";
+import clsx from "clsx";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
   children: React.ReactNode;
@@ -11,37 +11,34 @@ interface Props {
   centerX?: boolean;
   centerY?: boolean;
   safeArea?: boolean;
-  background?: {
-    dark: string;
-    light: string;
-  }
+  background?: string
   statusBarColor?: "light" | "dark";
 }
 
 /**
  * 
- * @param children Container children
- * @param center Whether the container is centered
+ * @param children
+ * @param center
  * @default false
  * 
- * @param centerX Whether the container is centered in the x axis
+ * @param centerX
  * @default false
  * 
- * @param centerY Whether the container is centered in the y axis
+ * @param centerY
  * @default false
  * 
  * @param safeArea Whether the container is safe area
  * @default true
  * 
- * @param background The container background
+ * @param background
  * 
- * @param statusBarColor The status bar text color
+ * @param statusBarColor
  * 
  * @returns Container component
  */
 
 export const Container = ({ children, center, centerX, centerY, safeArea = true, background: bg, statusBarColor }: Props) => {
-  const { theme, themeShared } = useTheme();
+  const { theme } = useTheme();
   const background = useSharedValue<typeof bg>(bg);
 
   useEffect(() => {
@@ -49,14 +46,17 @@ export const Container = ({ children, center, centerX, centerY, safeArea = true,
   }, [bg]);
 
   const viewAnimation = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(background.value ?
-      (themeShared.value == "dark" ? background.value.dark : background.value.light)
-      :
-      "rgba(0, 0, 0, 0)",
+    backgroundColor: withTiming((
+      background.value ?
+        background.value
+        :
+        "rgba(0, 0, 0, 0)"
+    ),
       {
         duration: 300,
         easing: Easing.inOut(Easing.quad),
-      }),
+      }
+    ),
   }));
 
   const Render = (
@@ -69,15 +69,16 @@ export const Container = ({ children, center, centerX, centerY, safeArea = true,
       <Animated.View
         style={viewAnimation}
         className={clsx(
-          'size-full flex flex-col',
-          center && !centerX && !centerY && 'items-center justify-center',
-          !center && centerX && !centerY && 'items-center',
-          !center && !centerX && centerY && 'justify-center',
+          "flex-1 flex flex-col",
+          center && !centerX && !centerY && "items-center justify-center",
+          !center && centerX && !centerY && "items-center",
+          !center && !centerX && centerY && "justify-center",
         )}>
         {children}
       </Animated.View>
     </>
   );
+
 
   if (safeArea) {
     return (

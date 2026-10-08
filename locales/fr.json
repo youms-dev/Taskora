@@ -152,5 +152,17 @@
     "login_item_2": "Connectez vous et accédez à vous évènements, rappels et autres activités",
     "login_email": "Email",
     "login_password": "Mot de passe",
-    "login_submit": "Soumettre"
+    "login_submit": "Soumettre",
+    "login_item_3": "Pas encore de compte ?",
+    "login_item_4": "S'inscrire",
+    "login_item_5": "Mot de passe oublié ?",
+    "register_item_1": "Créer votre compte {{name}}",
+    "register_item_2": "Inscrivez-vous et gérez vos évènements, rappels et autres activités facilement",
+    "register_email": "Email",
+    "register_password": "Mot de passe",
+    "register_confirm_password": "Confirmez votre mot de passe",
+    "register_counter": "Compteur",
+    "register_submit": "Soumettre",
+    "register_item_3": "Vous avez déjà un compte ?",
+    "register_item_4": "Connexion"
 }

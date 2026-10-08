@@ -1,15 +1,19 @@
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
+import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
+import { COLORS } from '@/constants/colors';
 import { APP_NAME } from '@/constants/names';
 import { useTheme } from '@/hooks/use-theme';
-import { FontAwesome6, Fontisto } from '@expo/vector-icons';
+import { FontAwesome5, FontAwesome6, Fontisto } from '@expo/vector-icons';
+import clsx from 'clsx';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useWindowDimensions, View } from 'react-native';
-import { KeyboardAwareScrollView, useKeyboardHandler } from 'react-native-keyboard-controller';
-import Animated from 'react-native-reanimated';
+import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 export default function Login() {
   const initialInputsValues = {
@@ -20,13 +24,7 @@ export default function Login() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { theme } = useTheme();
   const { t } = useTranslation();
-
-  useKeyboardHandler({
-    onMove: (e) => {
-      "worklet";
-      console.log("height :", e.height);
-    }
-  });
+  const [loading, setLoading] = useState<boolean>(false);
 
   return (
     <Container centerX safeArea={false}>
@@ -44,9 +42,19 @@ export default function Login() {
         />
       </View>
 
-      <View className="w-full flex pt-[250px] px-3">
-        <View className="w-full flex items-center gap-3 px-5">
-          <TextAnimated className="text-3xl font-extrabold">
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        bottomOffset={15}
+        className="w-full"
+        contentContainerClassName="px-3 pb-[60px]"
+      >
+        <View
+          style={{
+            marginTop: screenHeight * .3
+          }}
+          className="w-full flex items-center gap-3 px-5"
+        >
+          <TextAnimated className="text-3xl font-extrabold text-center">
             {t("login_item_1", { name: APP_NAME })}
           </TextAnimated>
 
@@ -121,14 +129,146 @@ export default function Login() {
             )}
           />
         </View>
-      </View>
-      <Animated.View
+
+        <View className="w-full flex flex-row justify-end px-3 mt-5">
+          <Link href={{
+            pathname: "/register",
+          }}>
+            <TextAnimated className="text-lg">
+              {t("login_item_5")}
+            </TextAnimated>
+          </Link>
+        </View>
+
+        <View className="w-full flex flex-row justify-center px-3 mt-[45px]">
+          <PressableAnimated
+            scale={.95}
+            disabled={loading}
+            className={clsx(
+              "sm:w-[250px] w-3/4 h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl",
+              loading && "opacity-50",
+            )}
+          >
+            {
+              loading ?
+                (
+                  <ActivityIndicator
+                    size={30}
+                    color="black"
+                  />
+                )
+                :
+                (
+                  <Text
+                    numberOfLines={1}
+                    className="text-2xl text-black/80 font-medium">
+                    {t("login_submit")}
+                  </Text>
+                )
+            }
+          </PressableAnimated>
+        </View>
+
+        <View className="w-full flex flex-row justify-center px-3 mt-[45px]">
+          <TextAnimated className="text-lg">
+            {t("login_item_3")}
+            &nbsp;
+            <Link href={{
+              pathname: "/register",
+            }}>
+              <Text className="text-emerald-500">
+                {t("login_item_4")}
+              </Text>
+            </Link>
+          </TextAnimated>
+        </View>
+
+        {/* 0Auth */}
+
+        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-5 px-3 mt-10">
+          <PressableAnimated
+            scale={.95}
+            disabled={loading}
+            className={clsx(
+              "dark:bg-black bg-white rounded-full",
+              loading && "opacity-50",
+            )}
+          >
+            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+              <FontAwesome5
+                name="google"
+                size={25}
+                color={COLORS.emerald[500]}
+              />
+            </View>
+          </PressableAnimated>
+
+          <PressableAnimated
+            scale={.95}
+            disabled={loading}
+            className={clsx(
+              "dark:bg-black bg-white rounded-full",
+              loading && "opacity-50",
+            )}
+          >
+            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+              <FontAwesome5
+                name="facebook-f"
+                size={25}
+                color={COLORS.emerald[500]}
+              />
+            </View>
+          </PressableAnimated>
+
+          <PressableAnimated
+            scale={.95}
+            disabled={loading}
+            className={clsx(
+              "dark:bg-black bg-white rounded-full",
+              loading && "opacity-50",
+            )}
+          >
+            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
+              <FontAwesome5
+                name="linkedin-in"
+                size={25}
+                color={COLORS.emerald[500]}
+              />
+            </View>
+          </PressableAnimated>
+        </View>
+      </KeyboardAwareScrollView>
+
+      <LinearGradient
+        colors={theme == "dark" ?
+          ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+          :
+          ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+        }
+        start={{ x: 0, y: 1 }}
+        end={{ x: 0, y: 0 }}
+        locations={[0, .6, 1]}
         style={{
-          height: 100,
-          marginBottom: 500,
+          transform: [
+            {
+              translateY: 2,
+            }
+          ]
         }}
-        className="w-full bg-emerald-900"
-      />
+        className="absolute left-0 bottom-0 w-full h-[60px]"
+      >
+        <LinearGradient
+          colors={theme == "dark" ?
+            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+            :
+            ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(0, 0, 0, 0)"]
+          }
+          start={{ x: 0, y: 1 }}
+          end={{ x: 0, y: 0 }}
+          locations={[0, .6, 1]}
+          className="size-full"
+        />
+      </LinearGradient>
     </Container>
   );
 }

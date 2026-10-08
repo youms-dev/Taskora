@@ -152,5 +152,17 @@
     "login_item_2": "Sign in to access your events, reminders, and other activities",
     "login_email": "Email",
     "login_password": "Password",
-    "login_submit": "Submit"
+    "login_submit": "Submit",
+    "login_item_3": "No account yet ?",
+    "login_item_4": "Sign up",
+    "login_item_5": "Password forgot ?",
+    "register_item_1": "Create your {{name}} account",
+    "register_item_2": "Sign up and handle your events, reminders, and other activities",
+    "register_email": "Email",
+    "register_password": "Password",
+    "register_confirm_password": "Confirm your password",
+    "register_counter": "Counter",
+    "register_submit": "Submit",
+    "register_item_3": "Already have an account ?",
+    "register_item_4": "Sign in"
 }
