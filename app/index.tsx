@@ -1,16 +1,15 @@
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
 import { TextAnimated } from '@/components/text-animated';
-import { TextGradient } from '@/components/text-gradient';
-import { COLORS } from '@/constants/colors';
 import { APP_NAME } from '@/constants/names';
 import { useTheme } from '@/hooks/use-theme';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, Text, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
+import { KeyboardAwareScrollView, useKeyboardHandler } from 'react-native-keyboard-controller';
+import Animated from 'react-native-reanimated';
 
 export default function Login() {
   const initialInputsValues = {
@@ -21,6 +20,13 @@ export default function Login() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { theme } = useTheme();
   const { t } = useTranslation();
+
+  useKeyboardHandler({
+    onMove: (e) => {
+      "worklet";
+      console.log("height :", e.height);
+    }
+  });
 
   return (
     <Container centerX safeArea={false}>
@@ -38,11 +44,7 @@ export default function Login() {
         />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS == "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={200}
-        className="w-full flex items-center pt-[250px] pb-[50px] px-3"
-      >
+      <View className="w-full flex pt-[250px] px-3">
         <View className="w-full flex items-center gap-3 px-5">
           <TextAnimated className="text-3xl font-extrabold">
             {t("login_item_1", { name: APP_NAME })}
@@ -119,7 +121,14 @@ export default function Login() {
             )}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
+      <Animated.View
+        style={{
+          height: 100,
+          marginBottom: 500,
+        }}
+        className="w-full bg-emerald-900"
+      />
     </Container>
   );
 }
