@@ -285,7 +285,7 @@ export default function Settings() {
                                                 color={COLORS.emerald[500]}
                                             />
                                             <Text className="text-xl text-emerald-500 font-bold">
-                                                {t("settings")}
+                                                {t("settings_title")}
                                             </Text>
                                         </View>
                                     </PageTitle>

@@ -259,7 +259,7 @@ export default function Layout() {
                             />
 
                             <NavButton
-                                name={t("agenda")}
+                                name={t("nav_agenda")}
                                 focused={pathname == "/agenda"}
                                 icon={(
                                     <Fontisto
@@ -277,7 +277,7 @@ export default function Layout() {
                             />
 
                             <NavButton
-                                name={t("notifications")}
+                                name={t("nav_notifications")}
                                 focused={pathname == "/notifications"}
                                 icon={(
                                     <Entypo
@@ -295,7 +295,7 @@ export default function Layout() {
                             />
 
                             <NavButton
-                                name={t("settings")}
+                                name={t("nav_settings")}
                                 focused={pathname == "/settings"}
                                 icon={(
                                     <FontAwesome6

@@ -127,7 +127,8 @@ const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label
                     onBlur?.(e);
                 }}
                 value={value}
-                cursorColor={theme == "dark" ? "rgba(255, 255, 255, .5)" : COLORS.emerald[500]}
+                cursorColor={COLORS.emerald[500]}
+                selectionColor={COLORS.emerald[500]}
                 textAlignVertical="top"
                 multiline={multiline}
                 style={{

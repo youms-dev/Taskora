@@ -4,8 +4,8 @@ import { Eye } from "@/components/eye";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
-import { COLORS } from "@/constants/colors";
 import { AUTH_STORAGE } from "@/constants/async-storage";
+import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -64,7 +64,7 @@ export default function Profile() {
                                 light={COLORS.emerald[500]}
                                 className="text-2xl font-bold"
                             >
-                                {t("profile")}
+                                {t("profile_title")}
                             </TextAnimated>
 
                             <AntDesign
@@ -129,7 +129,7 @@ export default function Profile() {
                             <View className="flex gap-2 pr-[120px]">
                                 <View className="flex flex-row gap-5">
                                     <TextAnimated className="text-xl">
-                                        {t("name")}
+                                        {t("profile_name")}
                                     </TextAnimated>
 
                                     <PressableAnimated scale={.8}>
@@ -164,7 +164,7 @@ export default function Profile() {
                             <View className="flex gap-2 pr-[120px]">
                                 <View className="flex flex-row gap-5">
                                     <TextAnimated className="text-xl">
-                                        {t("email")}
+                                        {t("profile_email")}
                                     </TextAnimated>
 
                                     <PressableAnimated scale={.8}>
@@ -198,7 +198,7 @@ export default function Profile() {
                             />
 
                             <TextAnimated className="text-xl">
-                                {t("change_password")}
+                                {t("profile_change_password")}
                             </TextAnimated>
                         </PressableAnimated>
                     </View>
@@ -214,7 +214,7 @@ export default function Profile() {
                                 color="red"
                             />
                             <Text className="w-max text-red-500 text-xl">
-                                {t("logout")}
+                                {t("profile_logout")}
                             </Text>
                         </PressableAnimated>
                     </View>
@@ -226,14 +226,11 @@ export default function Profile() {
                 active={modalActive}
                 onClose={() => setModalActive(false)}
                 dragHandler={false}
-                contentContainerStyle={{
-                    paddingBottom: 80,
-                }}
                 className="border dark:border-t-white/20 border-t-black/20 border-transparent"
             >
                 <View className="w-full flex items-center px-3 mt-5">
                     <TextAnimated className="text-xl">
-                        {t("logout_question")}
+                        {t("profile_logout_question")}
                     </TextAnimated>
                 </View>
 
@@ -244,7 +241,7 @@ export default function Profile() {
                         className="w-[150px] h-[45px] flex justify-center items-center p-3 border dark:border-white/20 border-black/20 bg-emerald-500 rounded-2xl"
                     >
                         <Text className="text-lg text-black font-bold">
-                            {t("discard")}
+                            {t("profile_discard")}
                         </Text>
                     </PressableAnimated>
 
@@ -254,7 +251,7 @@ export default function Profile() {
                         className="w-[150px] h-[45px] flex justify-center items-center p-3 border dark:border-white/20 border-black/20 bg-red-500 rounded-2xl"
                     >
                         <Text className="text-lg text-white font-bold">
-                            {t("logout_confirmed")}
+                            {t("profile_logout_confirmed")}
                         </Text>
                     </PressableAnimated>
                 </View>
@@ -264,10 +261,7 @@ export default function Profile() {
                 height={"35%"}
                 active={cameraModalActive}
                 onClose={() => setCameraModalActive(false)}
-                contentContainerStyle={{
-                    paddingBottom: 80,
-                }}
-                className=" dark:bg-white/90 bg-white/90"
+                className="dark:bg-white/90 bg-white/90"
             >
                 <View className="w-full flex items-center gap-6 px-3 mt-5">
                     <PressableAnimated

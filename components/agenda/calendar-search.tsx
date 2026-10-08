@@ -528,7 +528,8 @@ export const CalendarSearch = memo(({ active }: Props) => {
                                 <TextInput
                                     ref={textInputRef}
                                     placeholder={t("agenda_search")}
-                                    cursorColor={theme === "dark" ? "white" : COLORS.emerald[500]}
+                                    cursorColor={COLORS.emerald[500]}
+                                    selectionColor={COLORS.emerald[500]}
                                     placeholderTextColor={theme === "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
                                     value={value}
                                     onChangeText={(e) => {

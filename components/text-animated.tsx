@@ -1,10 +1,10 @@
 import { useTheme } from "@/hooks/use-theme";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { TextProps } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props extends TextProps {
-    children: (string | number)[] | string | number;
+    children: (string | number)[] | string | number | ReactNode;
     style?: TextProps["style"];
     dark?: string;
     light?: string;

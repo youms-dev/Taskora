@@ -1,143 +1,162 @@
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { DimensionValue, Keyboard, TextInput, TextInputProps, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import { Entypo } from "@expo/vector-icons";
+import { forwardRef, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Keyboard, TextInput, TextInputProps, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { PressableAnimated } from "./pressable-animated";
 import { TextAnimated } from "./text-animated";
 
 interface Props extends TextInputProps {
-  width?: DimensionValue;
-  height?: DimensionValue;
-  onFocus?: TextInputProps["onFocus"];
-  onBlur?: TextInputProps["onBlur"];
   placeholder?: string;
   label?: string;
   icon?: ReactNode;
+  paddingLeft?: number;
   paddingRight?: number;
   value: TextInputProps["value"];
+  eye?: boolean;
 }
 
 /**
+ * @param placeholder
  * 
- * @param width Sets the input's width
+ * @param label
  * 
- * @param height Sets the input's height
+ * @param icon
  * 
- * @param onFocus Define the method that will be called when the input will get the focus
+ * @param paddingLeft
  * 
- * @param onBlur Define the method that will be called when the input will lose the focus
+ * @param paddingRight
  * 
- * @param onBlur Define the method that will be called when the input will lose the focus
+ * @param value
  * 
- * @param placeholder Define the input's placeholder
- * 
- * @param label Define the input's label
- * 
- * @param icon Define the icon that will be show on the input's right side
- * 
- * @param paddingRight Define the right space that will be set to another element like a icon
- * 
- * @param value Define the input's value
+ * @param eye
  * 
  * @returns The input component
  */
 
-export const Input = ({ width = "100%", height = 45, onFocus, onBlur, placeholder, label, icon, paddingRight, value: inputValue, ...rest }: Props) => {
-  const focus = useSharedValue<boolean>(false);
-  const { theme: appTheme } = useTheme();
-  const theme = useSharedValue<typeof appTheme>("light");
+export const Input = forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, ...rest }: Props, inputRef) => {
+  const { theme, themeShared } = useTheme();
   const ref = useRef<TextInput>(null);
-  const [isFocused, setIsFocused] = useState<boolean>(false);
-  const text = useSharedValue<typeof inputValue>("");
-  const borderWidth = useSharedValue<number>(0);
-
-  const animation = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(focus.value ? COLORS.emerald[500] : (theme.value == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"), {
-      duration: 200,
-      easing: Easing.inOut(Easing.quad),
-    }),
-    width: !focus.value ? borderWidth.value : withSequence(
-      withTiming(0, {
-        duration: 100,
-        easing: Easing.inOut(Easing.quad),
-      }),
-      withTiming(borderWidth.value, {
-        duration: 300,
-        easing: Easing.inOut(Easing.quad),
-      }),
-    ),
-  }));
+  const [focus, setFocus] = useState<boolean>(false);
+  const focusShared = useSharedValue<boolean>(false);
+  const [visible, setVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    theme.value = appTheme;
-    text.value = inputValue;
-  }, [appTheme, inputValue, borderWidth]);
-
-  useEffect(() => {
-    const onHide = () => {
+    const { remove } = Keyboard.addListener("keyboardDidHide", () => {
       ref.current?.blur();
-      setIsFocused(false);
-    }
-    const { remove } = Keyboard.addListener("keyboardDidHide", onHide);
+    });
 
     return () => remove();
   }, []);
 
-  const labelAnimation = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: withTiming(focus.value ? -20 : (text.value && text.value.trim().length > 0 ? -20 : 9), {
-          duration: 200,
-          easing: Easing.inOut(Easing.quad),
-        }),
-      },
-    ]
+  const handleRef = useCallback((entry: TextInput | null) => {
+    ref.current = entry;
+
+    if (typeof inputRef == "function") {
+      inputRef(entry);
+    }
+    else if (inputRef) {
+      inputRef.current = entry;
+    }
+  }, [inputRef]);
+
+  useEffect(() => {
+    focusShared.value = focus;
+  }, [focus]);
+
+  const focusAnimation = useAnimatedStyle(() => ({
+    borderWidth: 2,
+    borderColor: focusShared.value ?
+      COLORS.emerald[500]
+      :
+      themeShared.value == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .1)"
   }));
 
   return (
-    <View className="w-full flex items-center px-3">
-      <TextInput
-        {...rest}
-        ref={ref}
-        onLayout={(e) => borderWidth.value = e.nativeEvent.layout.width}
-        onFocus={(e) => {
-          onFocus && onFocus(e);
-          focus.value = true;
-          setIsFocused(true);
-        }}
-        onBlur={(e) => {
-          onBlur && onBlur(e);
-          focus.value = false;
-          setIsFocused(false);
-        }}
-        cursorColor={appTheme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-        placeholder={placeholder}
-        placeholderTextColor={isFocused ? (appTheme == "dark" ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)") : "transparent"}
-        style={{
-          width,
-          height,
-          paddingRight,
-        }}
-        className="text-xl dark:text-white/80 text-black/80"
-      />
+    <View className="w-full flex items-center gap-2">
+      <View className="w-full">
+        <TextAnimated className="text-xl">
+          {label}
+        </TextAnimated>
+      </View>
+
       <Animated.View
-        style={animation}
-        className="absolute bottom-0 h-[2px]"
-      />
-      {
-        label && label.trim().length > 0 && (
-          <TextAnimated
-            style={labelAnimation}
-            className="absolute left-4 text-xl font-bold"
-          >
-            {label}
-          </TextAnimated>
-        )
-      }
+        style={focusAnimation}
+        className="w-full dark:bg-black bg-white rounded-2xl"
+      >
+        <TextInput
+          {...rest}
+          ref={handleRef}
+          cursorColor={COLORS.emerald[500]}
+          selectionColor={COLORS.emerald[500]}
+          placeholder={placeholder}
+          placeholderTextColor={theme == "dark" ? "rgba(255, 255, 255, .4)" : "rgba(0, 0, 0, .4)"}
+          secureTextEntry={eye ? !visible : false}
+          value={value}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          style={{
+            paddingLeft,
+            paddingRight: eye ? 50 : paddingRight,
+          }}
+          className="w-full h-[50px] dark:bg-white/10 bg-white rounded-2xl dark:text-white/80 text-black/80 text-xl tracking-wider"
+        />
+      </Animated.View>
 
       {
         icon && icon
       }
+
+      {
+        eye && (
+          <View
+            style={{
+              transform: [
+                {
+                  translateX: -15,
+                },
+                {
+                  translateY: 44,
+                },
+              ]
+            }}
+            className="absolute right-0 top-0 z-[10]"
+          >
+            <PressableAnimated onPress={() => setVisible(prev => !prev)}>
+              {
+                visible && (
+                  <Animated.View
+                    style={{
+                      transform: [
+                        {
+                          translateX: -0,
+                        },
+                        {
+                          translateY: 12,
+                        },
+                        {
+                          rotate: "35deg",
+                        },
+                        {
+                          scale: 1.2,
+                        },
+                      ]
+                    }}
+                    className="absolute left-0 top-0 w-full h-[3px] dark:bg-white/50 bg-black/50 rounded-2xl"
+                  />
+                )
+              }
+
+              <Entypo
+                name="eye"
+                size={28}
+                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+              />
+            </PressableAnimated>
+          </View>
+        )
+      }
     </View>
   );
-}
+});
