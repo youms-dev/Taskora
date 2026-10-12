@@ -1,6 +1,6 @@
-import { Task } from "../entities/task.entity";
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
+import { Task } from "../entities/task.entity";
 
 export class MainSeeder implements Seeder {
     public async run(dataSource: DataSource, factoryManager: SeederFactoryManager) {
