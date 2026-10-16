@@ -95,10 +95,12 @@
       ],
       "expo-asset",
       "expo-background-task",
-      "@react-native-google-signin/google-signin",
-      {
-        "iosUrlScheme": "com.googleusercontent.apps.712341966499-80jr8hfiu6a5s3g4a0l0sd9bqo3nr62e"
-      }
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.712341966499-80jr8hfiu6a5s3g4a0l0sd9bqo3nr62e"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
