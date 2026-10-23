@@ -1,11 +1,13 @@
+import { OAuthButton } from '@/components/0auth-button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
 import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
+import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { APP_NAME } from '@/constants/names';
 import { useTheme } from '@/hooks/use-theme';
-import { Entypo, FontAwesome5, FontAwesome6, Fontisto } from '@expo/vector-icons';
+import { Entypo, FontAwesome6, Fontisto } from '@expo/vector-icons';
 import clsx from 'clsx';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,22 +16,26 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import Animated, { Easing, FadeInDown, FadeOutDown } from 'react-native-reanimated';
 
 export default function Register() {
   const initialInputsValues = {
     email: "",
     password: "",
-    confirm: "",
   };
   const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
+  const [with0Auth, setWith0Auth] = useState<boolean>(true);
   const router = useRouter();
 
   return (
     <Container centerX safeArea={false}>
+
+      {/* Back button */}
+
       <View
         style={{
           transform: [
@@ -70,6 +76,8 @@ export default function Register() {
         </PressableAnimated>
       </View>
 
+      {/* Banner */}
+
       <View className="absolute w-full pointer-events-none">
         <Image
           source={theme == "dark" ?
@@ -90,6 +98,8 @@ export default function Register() {
         className="w-full"
         contentContainerClassName="px-3 pb-[60px]"
       >
+        {/* Section 1 */}
+
         <View
           style={{
             marginTop: screenHeight * .3
@@ -105,190 +115,311 @@ export default function Register() {
           </TextAnimated>
         </View>
 
-        <View className="w-full">
-          <Input
-            label={(t("register_email"))}
-            placeholder="email@example.com"
-            value={inputsValues.email}
-            onChangeText={(e) => setInputsValues(prev => ({
-              ...prev,
-              email: e,
-            }))}
-            icon={(
-              <View
-                style={{
-                  transform: [
-                    {
-                      translateX: 15,
-                    },
-                    {
-                      translateY: 47,
-                    },
-                  ]
-                }}
-                className="absolute left-0 top-0"
-              >
-                <FontAwesome6
-                  name="envelope-open-text"
-                  size={20}
-                  color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+        {/* 0Auth */}
+
+        {
+          with0Auth && (
+            <Animated.View
+              entering={FadeInDown
+                .duration(300)
+                .easing(Easing.inOut(Easing.quad))
+              }
+              exiting={FadeOutDown
+                .duration(300)
+                .easing(Easing.inOut(Easing.quad))
+              }
+              className="w-full flex items-center mt-10"
+            >
+              <View className="sm:w-[400px] w-full flex items-center gap-5 px-10">
+
+                {/* Google */}
+
+                <OAuthButton
+                  name="Google"
+                  icon="google"
+                  loading={loading}
+                />
+
+                {/* Facebook */}
+
+                <OAuthButton
+                  name="Facebook"
+                  icon="facebook-f"
+                  loading={loading}
+                />
+
+                {/* LinkedIn */}
+
+                <OAuthButton
+                  name="LinkedIn"
+                  icon="linkedin-in"
+                  loading={loading}
                 />
               </View>
-            )}
-          />
-        </View>
 
-        <View className="w-full mt-5">
-          <Input
-            label={(t("register_password"))}
-            placeholder="• • • • • • • •"
-            value={inputsValues.password}
-            onChangeText={(e) => setInputsValues(prev => ({
-              ...prev,
-              password: e,
-            }))}
-            eye
-            icon={(
-              <View
-                style={{
-                  transform: [
-                    {
-                      translateX: 15,
-                    },
-                    {
-                      translateY: 47,
-                    },
-                  ]
-                }}
-                className="absolute left-0 top-0"
-              >
-                <Fontisto
-                  name="locked"
-                  size={20}
-                  color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
-                />
-              </View>
-            )}
-          />
-        </View>
-
-        <View className="w-full flex flex-row items-center px-3 mt-5">
-          <TextAnimated className="text-lg">
-            {t("register_counter")} :
-            &nbsp;
-            <Text className="text-emerald-500 font-bold">
-              {inputsValues.confirm.length}
-            </Text>
-          </TextAnimated>
-        </View>
-
-        <View className="w-full flex flex-row justify-center px-3 mt-[45px]">
-          <PressableAnimated
-            scale={.95}
-            disabled={loading}
-            className={clsx(
-              "sm:w-[250px] w-3/4 h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl",
-              loading && "opacity-50",
-            )}
-          >
-            {
-              loading ?
-                (
-                  <ActivityIndicator
-                    size={30}
-                    color="black"
+              <View className="w-full flex flex-row justify-between items-center mt-8 px-3">
+                <LinearGradient
+                  colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
+                    :
+                    ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  locations={[.3, .8]}
+                  className="w-[40%] h-[2px]"
+                >
+                  <LinearGradient
+                    colors={theme == "dark" ?
+                      ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                      :
+                      ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    locations={[.3, .8]}
+                    className="size-full"
                   />
-                )
-                :
-                (
+                </LinearGradient>
+
+                <View className="w-[20%] px-2">
+                  <TextAnimated
+                    numberOfLines={1}
+                    ellipsizeMode="clip"
+                    className="text-lg text-center"
+                  >
+                    {t("auth_item_2")}
+                  </TextAnimated>
+                </View>
+
+                <LinearGradient
+                  colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
+                    :
+                    ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
+                  }
+                  start={{ x: 1, y: 0 }}
+                  end={{ x: 0, y: 0 }}
+                  locations={[.3, .8]}
+                  className="w-[40%] h-[2px]"
+                >
+                  <LinearGradient
+                    colors={theme == "dark" ?
+                      ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                      :
+                      ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                    }
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 0 }}
+                    locations={[.3, .8]}
+                    className="size-full"
+                  />
+                </LinearGradient>
+              </View>
+
+              <View className="w-full flex flex-row justify-center px-3 mt-8">
+                <PressableAnimated
+                  scale={.95}
+                  onPress={() => setWith0Auth(false)}
+                >
+                  <TextGradient
+                    colors={[theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)", COLORS.emerald[500]]}
+                    className="text-xl font-bold tracking-widest"
+                  >
+                    {t("auth_item_3")}
+                  </TextGradient>
+                </PressableAnimated>
+              </View>
+            </Animated.View>
+          )
+        }
+
+        {/* Email and password */}
+
+        {
+          !with0Auth && (
+            <Animated.View
+              entering={FadeInDown
+                .duration(300)
+                .easing(Easing.inOut(Easing.quad))
+              }
+              exiting={FadeOutDown
+                .duration(300)
+                .easing(Easing.inOut(Easing.quad))
+              }
+              className="w-full flex items-center"
+            >
+              <View className="w-full">
+                <Input
+                  label={(t("register_email"))}
+                  placeholder="email@example.com"
+                  value={inputsValues.email}
+                  onChangeText={(e) => setInputsValues(prev => ({
+                    ...prev,
+                    email: e,
+                  }))}
+                  icon={(
+                    <View
+                      style={{
+                        transform: [
+                          {
+                            translateX: 15,
+                          },
+                          {
+                            translateY: 47,
+                          },
+                        ]
+                      }}
+                      className="absolute left-0 top-0"
+                    >
+                      <FontAwesome6
+                        name="envelope-open-text"
+                        size={20}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+
+              <View className="w-full mt-5">
+                <Input
+                  label={(t("register_password"))}
+                  placeholder="• • • • • • • •"
+                  value={inputsValues.password}
+                  onChangeText={(e) => setInputsValues(prev => ({
+                    ...prev,
+                    password: e,
+                  }))}
+                  eye
+                  icon={(
+                    <View
+                      style={{
+                        transform: [
+                          {
+                            translateX: 15,
+                          },
+                          {
+                            translateY: 47,
+                          },
+                        ]
+                      }}
+                      className="absolute left-0 top-0"
+                    >
+                      <Fontisto
+                        name="locked"
+                        size={20}
+                        color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+
+              <View className="w-full px-3 mt-5">
+                <TextAnimated className="text-lg tracking-wider">
+                  <Text>
+                    {t("register_item_5")} :
+                  </Text>
+                  &nbsp;
                   <Text
                     numberOfLines={1}
-                    className="text-2xl text-black/80 font-medium">
-                    {t("register_submit")}
+                    className={clsx(
+                      "text-xl font-bold",
+                      inputsValues.password.length < 8 ? "text-amber-500" : "text-emerald-500",
+                    )}
+                  >
+                    {inputsValues.password.length}
                   </Text>
-                )
-            }
-          </PressableAnimated>
-        </View>
+                </TextAnimated>
+              </View>
 
-        <View className="w-full flex flex-row justify-center px-3 mt-[45px]">
+              <View className="w-full flex flex-row justify-center mt-10 mb-3">
+                <View className="sm:w-[500px] w-full flex flex-row justify-center gap-3 px-3">
+                  <PressableAnimated
+                    scale={.95}
+                    disabled={loading}
+                    onPress={() => setWith0Auth(true)}
+                    className={clsx(
+                      "w-[35%] h-[50px] rounded-2xl dark:bg-black bg-white",
+                      loading && "opacity-50",
+                    )}
+                  >
+                    <View className="w-full h-full flex justify-center items-center dark:bg-white/10 bg-black/80 px-3 rounded-2xl border dark:border-white/5 border-white/5">
+                      {
+                        loading ?
+                          (
+                            <ActivityIndicator
+                              size={30}
+                              color="black"
+                            />
+                          )
+                          :
+                          (
+                            <Text
+                              numberOfLines={1}
+                              ellipsizeMode="clip"
+                              className="text-2xl text-white/80 font-medium">
+                              {t("auth_item_4")}
+                            </Text>
+                          )
+                      }
+                    </View>
+                  </PressableAnimated>
+
+                  <PressableAnimated
+                    scale={.95}
+                    disabled={loading}
+                    className={clsx(
+                      "w-[60%] h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl px-3",
+                      loading && "opacity-50",
+                    )}
+                  >
+                    {
+                      loading ?
+                        (
+                          <ActivityIndicator
+                            size={30}
+                            color="black"
+                          />
+                        )
+                        :
+                        (
+                          <Text
+                            numberOfLines={1}
+                            ellipsizeMode="clip"
+                            className="text-2xl text-black/80 font-medium">
+                            {t("register_submit")}
+                          </Text>
+                        )
+                    }
+                  </PressableAnimated>
+                </View>
+              </View>
+            </Animated.View>
+          )
+        }
+
+        <View className="w-full flex flex-row justify-center px-3 mt-5">
           <TextAnimated className="text-lg">
             {t("register_item_3")}
             &nbsp;
-            <Link
-              href={{
-                pathname: "/",
-              }}
-              replace
-            >
+            <Link href={{
+              pathname: "/",
+            }} replace>
               <Text className="text-emerald-500">
                 {t("register_item_4")}
               </Text>
             </Link>
           </TextAnimated>
         </View>
-
-        {/* 0Auth */}
-
-        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-5 px-3 mt-10">
-          <PressableAnimated
-            scale={.95}
-            disabled={loading}
-            className={clsx(
-              "dark:bg-black bg-white rounded-full",
-              loading && "opacity-50",
-            )}
-          >
-            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
-              <FontAwesome5
-                name="google"
-                size={25}
-                color={COLORS.emerald[500]}
-              />
-            </View>
-          </PressableAnimated>
-
-          <PressableAnimated
-            scale={.95}
-            disabled={loading}
-            className={clsx(
-              "dark:bg-black bg-white rounded-full",
-              loading && "opacity-50",
-            )}
-          >
-            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
-              <FontAwesome5
-                name="facebook-f"
-                size={25}
-                color={COLORS.emerald[500]}
-              />
-            </View>
-          </PressableAnimated>
-
-          <PressableAnimated
-            scale={.95}
-            disabled={loading}
-            className={clsx(
-              "dark:bg-black bg-white rounded-full",
-              loading && "opacity-50",
-            )}
-          >
-            <View className="size-[60px] flex justify-center items-center dark:bg-white/10 bg-white rounded-full border-2 dark:border-white/5 border-black/5">
-              <FontAwesome5
-                name="linkedin-in"
-                size={25}
-                color={COLORS.emerald[500]}
-              />
-            </View>
-          </PressableAnimated>
-        </View>
       </KeyboardAwareScrollView>
 
       <LinearGradient
         colors={theme == "dark" ?
-          ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+          ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
           :
-          ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 0)"]
+          ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, 0)"]
         }
         start={{ x: 0, y: 1 }}
         end={{ x: 0, y: 0 }}
@@ -304,9 +435,9 @@ export default function Register() {
       >
         <LinearGradient
           colors={theme == "dark" ?
-            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]
+            ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
             :
-            ["rgba(0, 0, 0, .1)", "rgba(0, 0, 0, .1)", "rgba(0, 0, 0, 0)"]
+            ["rgba(0, 0, 0, .05)", "rgba(0, 0, 0, .05)", "rgba(0, 0, 0, 0)"]
           }
           start={{ x: 0, y: 1 }}
           end={{ x: 0, y: 0 }}

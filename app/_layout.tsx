@@ -19,11 +19,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 
 preventAutoHideAsync();
 
@@ -78,7 +78,7 @@ export default function Layout() {
                     <DatabaseProvider db={db}>
                         <GestureHandlerRootView style={{
                             flex: 1,
-                            backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .1)",
+                            backgroundColor: colorScheme == "dark" ? "black" : "white"
                         }}>
                             <ToastProvider>
                                 <AuthProvider>
@@ -101,7 +101,7 @@ export default function Layout() {
                                                     headerShown: false,
                                                     animation: "fade",
                                                     contentStyle: {
-                                                        backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .01)"
+                                                        backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
                                                     }
                                                 }}
                                             >

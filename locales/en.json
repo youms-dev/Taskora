@@ -148,6 +148,10 @@
     "auto-sync_title": "Auto-sync",
     "auto-sync_explanation": "Sync your data with other connected devices.\nYou won't have to schedule the same events or tasks on each device linked to this account.",
     "auto-sync_enable": "Enable auto-sync",
+    "auth_item_1": "Continue with {{name}}",
+    "auth_item_2": "Or",
+    "auth_item_3": "Continue with password",
+    "auth_item_4": "Back",
     "login_item_1": "Welcome back to {{name}}",
     "login_item_2": "Sign in to access your events, reminders, and other activities",
     "login_email": "Email",
@@ -160,9 +164,8 @@
     "register_item_2": "Sign up and handle your events, reminders, and other activities",
     "register_email": "Email",
     "register_password": "Password",
-    "register_confirm_password": "Confirm your password",
-    "register_counter": "Counter",
     "register_submit": "Submit",
     "register_item_3": "Already have an account ?",
-    "register_item_4": "Sign in"
+    "register_item_4": "Sign in",
+    "register_item_5": "Counter"
 }

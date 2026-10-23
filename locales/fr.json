@@ -148,6 +148,10 @@
     "auto-sync_title": "Synchronisation automatique",
     "auto-sync_explanation": "Synchronisez vos données avec les autres appareils connectés.\nVous n'aurez pas à programmer les mêmes évènements ou tâches sur chaque appareil lié à ce compte.",
     "auto-sync_enable": "Autoriser la synchronisation",
+    "auth_item_1": "Continuer avec {{name}}",
+    "auth_item_2": "Continuer avec le mot passe",
+    "auth_item_3": "Ou",
+    "auth_item_4": "Retour",
     "login_item_1": "Bon retour sur {{name}}",
     "login_item_2": "Connectez vous et accédez à vous évènements, rappels et autres activités",
     "login_email": "Email",
@@ -160,9 +164,8 @@
     "register_item_2": "Inscrivez-vous et gérez vos évènements, rappels et autres activités facilement",
     "register_email": "Email",
     "register_password": "Mot de passe",
-    "register_confirm_password": "Confirmez votre mot de passe",
-    "register_counter": "Compteur",
     "register_submit": "Soumettre",
     "register_item_3": "Vous avez déjà un compte ?",
-    "register_item_4": "Connexion"
+    "register_item_4": "Connexion",
+    "register_item_5": "Compteur"
 }
