@@ -152,6 +152,8 @@
     "auth_item_2": "Continuer avec le mot passe",
     "auth_item_3": "Ou",
     "auth_item_4": "Retour",
+    "auth_canceled": "Authentification annulée",
+    "auth_error": "Une erreur s'est produite",
     "login_item_1": "Bon retour sur {{name}}",
     "login_item_2": "Connectez vous et accédez à vous évènements, rappels et autres activités",
     "login_email": "Email",

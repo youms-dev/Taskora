@@ -7,16 +7,19 @@ import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { APP_NAME } from '@/constants/names';
 import { useTheme } from '@/hooks/use-theme';
+import { useToast } from '@/hooks/use-toast';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import clsx from 'clsx';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import "../config/task-manager";
 
 export default function Login() {
   const initialInputsValues = {
@@ -26,9 +29,76 @@ export default function Login() {
   const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [with0Auth, setWith0Auth] = useState<boolean>(true);
+  const loadingRef = useRef<boolean>(false);
+  const { setToast } = useToast();
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const handle0AuthSignIn = useCallback(async (provider: "google" | "facebook" | "linkedin") => {
+    if (loadingRef.current) return;
+    try {
+      setLoading(true);
+      loadingRef.current = true;
+
+      await GoogleSignin.signOut();
+      const { data: authData, type } = await GoogleSignin.signIn();
+
+      if (type == "cancelled") {
+        setLoading(false);
+        loadingRef.current = false;
+        setToast(t("auth_canceled"), "error");
+
+        return;
+      }
+      else if (!authData || !authData.user) {
+        setLoading(false);
+        loadingRef.current = false;
+        setToast(t("auth_error"), "error");
+
+        return;
+      }
+
+      console.log("User :", authData);
+      setLoading(false);
+      loadingRef.current = false;
+    }
+    catch (e) {
+      setLoading(false);
+      loadingRef.current = false;
+      console.log(e);
+    }
+  }, [i18n.language, setToast]);
+
+  const handleRegister = useCallback(async () => {
+    if (loadingRef.current) return;
+
+    if (inputsValues.email.trim().length == 0) {
+      emailRef.current?.focus();
+      return;
+    }
+    else if (inputsValues.password.trim().length == 0) {
+      passwordRef.current?.focus();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      loadingRef.current = true;
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      setLoading(false);
+      loadingRef.current = false;
+    }
+    catch (e) {
+      setLoading(false);
+      loadingRef.current = false;
+      console.log(e);
+    }
+  }, [i18n.language, inputsValues, setToast]);
 
   return (
     <Container centerX safeArea={false}>
@@ -95,6 +165,7 @@ export default function Login() {
                   name="Google"
                   icon="google"
                   loading={loading}
+                  onPress={() => handle0AuthSignIn("google")}
                 />
 
                 {/* Facebook */}
@@ -103,6 +174,7 @@ export default function Login() {
                   name="Facebook"
                   icon="facebook-f"
                   loading={loading}
+                  onPress={() => handle0AuthSignIn("facebook")}
                 />
 
                 {/* LinkedIn */}
@@ -111,6 +183,7 @@ export default function Login() {
                   name="LinkedIn"
                   icon="linkedin-in"
                   loading={loading}
+                  onPress={() => handle0AuthSignIn("linkedin")}
                 />
               </View>
 
@@ -208,6 +281,7 @@ export default function Login() {
             >
               <View className="w-full">
                 <Input
+                  ref={emailRef}
                   label={(t("login_email"))}
                   placeholder="email@example.com"
                   value={inputsValues.email}
@@ -241,6 +315,7 @@ export default function Login() {
 
               <View className="w-full mt-5">
                 <Input
+                  ref={passwordRef}
                   label={(t("login_password"))}
                   placeholder="• • • • • • • •"
                   value={inputsValues.password}
@@ -300,7 +375,7 @@ export default function Login() {
                           (
                             <ActivityIndicator
                               size={30}
-                              color="black"
+                              color="rgba(255, 255, 255, .8)"
                             />
                           )
                           :
@@ -319,6 +394,7 @@ export default function Login() {
                   <PressableAnimated
                     scale={.95}
                     disabled={loading}
+                    onPress={handleRegister}
                     className={clsx(
                       "w-[60%] h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl px-3",
                       loading && "opacity-50",

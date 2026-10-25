@@ -9,7 +9,9 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { Session } from "@supabase/supabase-js";
+import * as BackgroundTask from "expo-background-task";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -17,7 +19,7 @@ import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { AppState, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -34,6 +36,11 @@ export default function Layout() {
     const [locales] = useLocales();
     const { i18n } = useTranslation();
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
+
+    GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    });
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -66,6 +73,20 @@ export default function Layout() {
             }
         })();
     }, [db]);
+
+    useEffect(() => {
+        const { remove } = AppState.addEventListener("change", async (state) => {
+            if (state == "background") {
+                console.log("We're in background");
+                await BackgroundTask.triggerTaskWorkerForTestingAsync();
+            }
+            else if (state == "active") {
+                console.log("We're active");
+            }
+        });
+
+        () => remove();
+    }, []);
 
     if (!db) return (
         <SplashScreen />

@@ -162,7 +162,7 @@ export default function ProtectedLayout() {
         return () => remove();
     }, []);
 
-    const handleRegisterTask = useCallback(async () => {
+    const handleRegisterTasks = useCallback(async () => {
         const isNotificationsTaskRegistered = await TaskManager.isTaskRegisteredAsync(NOTIFICATION_BACKGROUND_MANAGEMENT);
         const isBackgroundTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_TASK_MANAGEMENT);
 
@@ -178,7 +178,7 @@ export default function ProtectedLayout() {
     }, []);
 
     useEffect(() => {
-        handleRegisterTask();
+        handleRegisterTasks();
     }, []);
 
     return (

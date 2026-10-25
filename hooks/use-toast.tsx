@@ -54,28 +54,40 @@ export const ToastProvider = ({ children }: Props) => {
     const screenWHeightShared = useSharedValue<number>(0);
     const typeShared = useSharedValue<typeof type>("default");
     const availableShared = useSharedValue<boolean>(true);
+    const scale = useSharedValue<number>(0);
+    const defaultTranslateY = 10;
+    const maxScale = 100;
+    const translateTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
     const setToast = useCallback((value: string, type: ToastType = "default", duration: number = 3000) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
         loadTimeout.current && clearTimeout(loadTimeout.current);
         timeout.current && clearTimeout(timeout.current);
-        setText(value);
-        setType(type);
+        translateTimeout.current && clearTimeout(translateTimeout.current);
         if (text.trim().length > 0) {
-            translateY.value = withTiming(-200, {
+            scale.value = withTiming(0, {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad),
             });
+            translateTimeout.current = setTimeout(() => {
+                translateY.value = toastHideValue.value;
+            }, 200);
             loadTimeout.current = setTimeout(() => {
-                translateY.value = withTiming(0, {
+                setText(value);
+                setType(type);
+                scale.value = maxScale;
+                translateY.value = withTiming(defaultTranslateY, {
                     duration: 200,
                     easing: Easing.inOut(Easing.quad),
                 });
-            }, 200);
+            }, 400);
         }
         else {
+            setText(value);
+            setType(type);
+            scale.value = maxScale;
             loadTimeout.current = setTimeout(() => {
-                translateY.value = withTiming(0, {
+                translateY.value = withTiming(defaultTranslateY, {
                     duration: 200,
                     easing: Easing.inOut(Easing.quad),
                 });
@@ -90,13 +102,16 @@ export const ToastProvider = ({ children }: Props) => {
         left: toastPosition.value,
         transform: [
             {
-                translateY: interpolate(
-                    translateY.value,
-                    [0, -100],
-                    [0, -100],
+                translateY: translateY.value,
+            },
+            {
+                scale: interpolate(
+                    scale.value,
+                    [0, maxScale],
+                    [0, 1],
                     Extrapolation.CLAMP,
                 ),
-            }
+            },
         ],
         opacity: textValue.value.length > 0 ? 1 : 0,
         pointerEvents: textValue.value.length > 0 ? "auto" : "none",
@@ -106,11 +121,13 @@ export const ToastProvider = ({ children }: Props) => {
         loadTimeout.current && clearTimeout(loadTimeout.current);
         timeout.current && clearTimeout(timeout.current);
         closeTimeout.current && clearTimeout(closeTimeout.current);
-        translateY.value = withTiming(toastHideValue.value, {
+        translateTimeout.current && clearTimeout(translateTimeout.current);
+        scale.value = withTiming(0, {
             duration: 200,
             easing: Easing.inOut(Easing.quad),
         });
         closeTimeout.current = setTimeout(() => {
+            translateY.value = toastHideValue.value;
             setText("");
             setType("default");
         }, 200);
@@ -119,6 +136,7 @@ export const ToastProvider = ({ children }: Props) => {
     const pan = useMemo(() => {
         return (
             Gesture.Pan()
+                .failOffsetX(0)
                 .onUpdate(({ translationY: y }) => {
                     if (y < 0) translateY.value = y;
                 })
@@ -127,13 +145,23 @@ export const ToastProvider = ({ children }: Props) => {
                         scheduleOnRN(handleClose);
                         return;
                     }
-                    translateY.value = 0;
+                    translateY.value = withTiming(defaultTranslateY, {
+                        duration: 200,
+                        easing: Easing.inOut(Easing.quad),
+                    });
                 })
         );
     }, [handleClose]);
 
+    if (text.trim().length > 0) {
+        pan.activeOffsetY(-1)
+    }
+    else {
+        pan.failOffsetY(0)
+    }
+
     useEffect(() => {
-        textValue.value = text;
+        textValue.value = text.trim();
     }, [text]);
 
     const setDismiss = useCallback((action: (() => void) | null = null, reverse: (() => void) | null = null, duration: number = 5, position: number = 0) => {
@@ -273,7 +301,7 @@ export const ToastProvider = ({ children }: Props) => {
                                         duration: 100,
                                         easing: Easing.inOut(Easing.quad),
                                     }),
-                                    withTiming(10, {
+                                    withTiming(defaultTranslateY, {
                                         duration: 100,
                                         easing: Easing.inOut(Easing.quad),
                                     }),

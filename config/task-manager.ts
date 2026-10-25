@@ -68,7 +68,7 @@ TaskManager.defineTask<NotificationTaskPayload>(NOTIFICATION_BACKGROUND_MANAGEME
 });
 
 TaskManager.defineTask(BACKGROUND_TASK_MANAGEMENT, async ({ data, error }) => {
-    console.log("Background task");
+    console.log("Background task :", data);
     if (error) {
         console.log("Error");
         return;
