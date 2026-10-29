@@ -10,6 +10,6 @@ export const dataSource = new DataSource({
     url: process.env.DATABASE_URL,
     synchronize: false,
     logging: true,
-    entities: [__dirname + "/**/*.entity{.ts,.js}"],
-    migrations: ["src/migrations/*.ts"],
+    entities: [__dirname + "/entities/*.entity{.ts,.js}"],
+    migrations: [__dirname + "/migrations/*{.js,.ts}"],
 });

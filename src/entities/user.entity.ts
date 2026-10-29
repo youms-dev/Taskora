@@ -1,30 +1,42 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Task } from "./task.entity";
+import { Session } from "./session.entity";
+import { Setting } from "./setting.entity";
 
 @Entity()
 export class User {
     @PrimaryGeneratedColumn("uuid", {
         name: "id_user",
     })
-    iduser: string;
+    idUser: string;
 
     @Column({
-        unique: true
+        unique: true,
     })
     email: string;
+
+    @Column()
+    password: string;
 
     @CreateDateColumn({
         name: "created_at",
     })
-    createdAt: Date;
+    createdAt?: Date;
 
     @UpdateDateColumn({
         name: "updated_at",
     })
-    updatedAt: Date;
+    updatedAt?: Date;
 
-    @OneToMany(() => Task, (task) => task.user, {
-        onDelete: "CASCADE",
+    @OneToMany(() => Task, (task) => task.user)
+    tasks: Task[];
+
+    @OneToMany(() => Session, (session) => session.user)
+    session: Task[];
+
+    @OneToOne(() => Setting, (setting) => setting.user)
+    @JoinColumn({
+        name: "id_setting",
     })
-    task: Task[];
+    setting: Setting;
 }
