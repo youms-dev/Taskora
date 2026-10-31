@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthUser } from '@supabase/supabase-js';
-import { Task } from 'src/entities/task.entity';
-import { User } from 'src/entities/user.entity';
+import { Task } from 'src/database/entities/task.entity';
+import { User } from 'src/database/entities/user.entity';
 import { In, Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { DeleteTaskDto } from './dto/delete-task.dto copy';

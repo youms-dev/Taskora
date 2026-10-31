@@ -1,7 +1,8 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Task } from "./task.entity";
+import { Folder } from "./folder.entity";
 import { Session } from "./session.entity";
 import { Setting } from "./setting.entity";
+import { Task } from "./task.entity";
 
 @Entity()
 export class User {
@@ -9,6 +10,11 @@ export class User {
         name: "id_user",
     })
     idUser: string;
+
+    @Column({
+        nullable: true,
+    })
+    name?: string;
 
     @Column({
         unique: true,
@@ -39,4 +45,7 @@ export class User {
         name: "id_setting",
     })
     setting: Setting;
+
+    @OneToOne(() => Folder, (folder) => folder.user)
+    folders: Folder[];
 }

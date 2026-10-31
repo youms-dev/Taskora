@@ -9,7 +9,7 @@ export class Setting {
     idSetting: string;
 
     @Column({
-        default: null,
+        nullable: true,
     })
     language?: string;
 
@@ -31,14 +31,14 @@ export class Setting {
     autoSync?: boolean;
 
     @CreateDateColumn({
-        name: "created_at"
+        name: "created_at",
     })
-    createdAt: Date;
+    createdAt?: Date;
 
     @UpdateDateColumn({
-        name: "updated_at"
+        name: "updated_at",
     })
-    updatedAt: Date;
+    updatedAt?: Date;
 
     @OneToMany(() => User, (user) => user.setting, {
         onDelete: "CASCADE",

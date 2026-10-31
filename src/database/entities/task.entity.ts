@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Folder } from './folder.entity';
+import { User } from './user.entity';
 
 export enum TaskType {
     TASK = "TASK",
@@ -14,31 +14,43 @@ export class Task {
     })
     idTask: string;
 
-    @Column()
+    @Column({
+        type: "text",
+        nullable: true,
+    })
     title?: string;
 
-    @Column()
-    content: string;
+    @Column({
+        type: "text",
+        nullable: true,
+    })
+    content?: string;
 
     @Column({
         type: "json",
+        nullable: true,
     })
     icon?: string;
 
-    @Column({ default: false })
-    done: boolean;
+    @Column({
+        nullable: true,
+    })
+    done?: boolean;
 
-    @Column({ default: null })
+    @Column({
+        nullable: true,
+    })
     archived?: boolean;
 
     @Column({
         name: "start_at",
+        type: "bigint",
     })
     startAt: number;
 
     @Column({
         name: "end_at",
-        default: null,
+        nullable: true,
     })
     endAt?: Date;
 
@@ -51,33 +63,29 @@ export class Task {
 
     @Column({
         name: "remind_before",
-        default: null,
+        nullable: true,
     })
     remindBefore?: number;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     pinned?: boolean;
 
-    @Column({
-        name: "notification_id",
-    })
-    notificationId: string;
-
     @CreateDateColumn({
-        name: "created_at"
+        name: "created_at",
     })
     createdAt?: Date;
 
     @UpdateDateColumn({
-        name: "updated_at"
+        name: "updated_at",
     })
     updatedAt?: Date;
 
-    @ManyToOne(() => Folder, (folder) => folder.tasks,
-        {
-            onDelete: "CASCADE",
-            nullable: true,
-        })
+    @ManyToOne(() => Folder, (folder) => folder.tasks, {
+        onDelete: "SET NULL",
+        nullable: true,
+    })
     @JoinColumn({
         name: "id_folder",
     })

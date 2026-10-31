@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthUser } from "@supabase/supabase-js";
-import { User } from 'src/entities/user.entity';
+import { User } from 'src/database/entities/user.entity';
 import { supabaseAdmin } from 'src/lib/supabase';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';

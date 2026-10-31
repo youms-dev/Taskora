@@ -4,6 +4,7 @@ export class Init1793308094337 implements MigrationInterface {
     name = 'Init1793308094337'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE TABLE "user" ("id_user" uuid NOT NULL DEFAULT uuid_generate_v4(), "email" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_user" PRIMARY KEY ("id_user"), CONSTRAINT "UQ_user_email" UNIQUE ("email"))`);
         await queryRunner.query(`CREATE TABLE "folder" ("id_folder" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_91da80d44dfb30b9d27457a7714" PRIMARY KEY ("id_folder"))`);
         await queryRunner.query(`CREATE TYPE "public"."task_type_enum" AS ENUM('TASK', 'EVENT')`);
         await queryRunner.query(`CREATE TABLE "task" ("id_task" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "content" character varying NOT NULL, "icon" json NOT NULL, "done" boolean NOT NULL DEFAULT false, "archived" boolean, "start_at" integer NOT NULL, "end_at" TIMESTAMP, "type" "public"."task_type_enum" NOT NULL DEFAULT 'TASK', "remind_before" integer, "pinned" boolean NOT NULL, "notification_id" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "id_folder" uuid, "id_user" uuid, CONSTRAINT "PK_03217f55c891ad98816877c7a6b" PRIMARY KEY ("id_task"))`);
@@ -26,6 +27,7 @@ export class Init1793308094337 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "user" DROP CONSTRAINT "UQ_a6e3bf94a056b43228c14f5a221"`);
         await queryRunner.query(`ALTER TABLE "user" DROP COLUMN "id_setting"`);
         await queryRunner.query(`ALTER TABLE "user" DROP COLUMN "password"`);
+        await queryRunner.query(`DROP TABLE "user"`);
         await queryRunner.query(`DROP TABLE "setting"`);
         await queryRunner.query(`DROP TABLE "session"`);
         await queryRunner.query(`DROP TABLE "task"`);

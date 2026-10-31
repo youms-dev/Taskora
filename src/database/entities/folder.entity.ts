@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Task } from "./task.entity";
+import { User } from "./user.entity";
 
 @Entity()
 export class Folder {
@@ -21,8 +22,14 @@ export class Folder {
     })
     updatedAt?: Date;
 
-    @OneToMany(() => Task, (task) => task.folder, {
-        onDelete: "SET NULL",
-    })
+    @OneToMany(() => Task, (task) => task.folder)
     tasks: Task[];
+
+    @ManyToOne(() => User, (user) => user.folders, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({
+        name: "id_user",
+    })
+    user: User;
 }
