@@ -9,6 +9,7 @@ import { MainSeeder } from "./database/seeding/main.seeder";
 
 config({
     path: [".env", ".env.development"],
+    quiet: true,
 });
 
 const options: DataSourceOptions & SeederOptions = {

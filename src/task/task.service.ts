@@ -74,13 +74,13 @@ export class TaskService {
     }
 
     async find({ skip, take }: PaginationDto, authUser: AuthUser) {
-        const user = await this.userRepo.findOne({
-            where: {
-                email: authUser.email,
-            }
-        });
+        // const user = await this.userRepo.findOne({
+        //     where: {
+        //         email: authUser.email,
+        //     }
+        // });
 
-        if (!user) throw new NotFoundException("User not found");
+        // if (!user) throw new NotFoundException("User not found");
 
         return await this.repo.find({
             skip: skip ? +skip : undefined,
@@ -92,9 +92,9 @@ export class TaskService {
                 user: true,
             },
             where: {
-                user: {
-                    email: user.email
-                }
+                // user: {
+                //     email: user.email
+                // }
             }
         });
     }

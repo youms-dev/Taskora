@@ -40,7 +40,9 @@ export class User {
     @OneToMany(() => Session, (session) => session.user)
     session: Task[];
 
-    @OneToOne(() => Setting, (setting) => setting.user)
+    @OneToOne(() => Setting, (setting) => setting.user, {
+        onDelete: "CASCADE",
+    })
     @JoinColumn({
         name: "id_setting",
     })

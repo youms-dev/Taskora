@@ -8,6 +8,11 @@ export class Session {
     })
     idSession: string;
 
+    @Column({
+        nullable: true,
+    })
+    provider?: string;
+
     @Column()
     device: string;
 
@@ -16,20 +21,15 @@ export class Session {
     })
     refreshToken: string;
 
-    @Column({
-        name: "last_connection",
-    })
-    lastConnection: string;
-
     @CreateDateColumn({
         name: "created_at",
     })
     createdAt?: Date;
 
     @UpdateDateColumn({
-        name: "updated_at",
+        name: "last_connection",
     })
-    updatedAt?: Date;
+    lastConnection?: Date;
 
     @ManyToOne(() => User, (user) => user.session, {
         onDelete: "CASCADE",

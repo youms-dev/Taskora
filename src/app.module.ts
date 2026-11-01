@@ -1,11 +1,14 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { TaskModule } from "./task/task.module";
+import { JwtModule } from "@nestjs/jwt";
+import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { UserModule } from "./user/user.module";
 import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
+import { AuthModule } from './auth/auth.module';
 import { dataSource } from "./datasource";
+import { PingModule } from "./ping/ping.module";
+import { TaskModule } from "./task/task.module";
+import { UserModule } from "./user/user.module";
 
 @Module({
   imports: [
@@ -15,9 +18,12 @@ import { dataSource } from "./datasource";
     }),
     TaskModule,
     TypeOrmModule.forRoot(dataSource.options),
-    UserModule
+    UserModule,
+    JwtModule.register({}),
+    PingModule,
+    ScheduleModule.forRoot(),
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule { }

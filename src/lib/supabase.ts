@@ -3,6 +3,7 @@ import { config } from "dotenv";
 
 config({
     path: [".env", ".env.development"],
+    quiet: true,
 });
 
 export const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {

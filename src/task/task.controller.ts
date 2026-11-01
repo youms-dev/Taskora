@@ -1,16 +1,16 @@
-import { Body, Controller, Delete, Param, Patch, Post, Query, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGard } from 'src/guards/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { DeleteTaskDto } from './dto/delete-task.dto copy';
+import { PaginationDto } from './dto/pagination.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
-import { PaginationDto } from './dto/pagination.dto';
-import { DeleteTaskDto } from './dto/delete-task.dto copy';
-import { SupabaseAuthGuard } from 'src/guards/auth/auth.guard';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(JwtAuthGard)
 @Controller('task')
 export class TaskController {
     constructor(private readonly service: TaskService) { }
-    
+
     @Post("list")
     tasks(@Query() { skip, take }: PaginationDto, @Req() req) {
         return this.service.find({ skip, take }, req.user);

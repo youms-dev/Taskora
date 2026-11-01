@@ -3,11 +3,13 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { User } from 'src/database/entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SupabaseAuthGuard } from 'src/guards/auth/auth.guard';
+import { JwtStrategy } from 'src/strategies/jwt.strategy';
+import { JwtAuthGard } from 'src/guards/jwt-auth.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [UserController],
-  providers: [UserService, SupabaseAuthGuard],
+  providers: [UserService, JwtStrategy, JwtAuthGard],
+  exports: [UserService],
 })
 export class UserModule { }
