@@ -1,6 +1,7 @@
 import { OAuthButton } from '@/components/0auth-button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
+import { Modal } from '@/components/modal';
 import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
@@ -16,9 +17,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import Animated, { Easing, FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, FadeOutDown } from 'react-native-reanimated';
 
 export default function Register() {
   const initialInputsValues = {
@@ -36,6 +37,8 @@ export default function Register() {
   const { setToast } = useToast();
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+  const [modalActive, setModalActive] = useState<boolean>(false);
+  const [checked, setChecked] = useState<boolean>(false);
 
   const handle0AuthSignIn = useCallback(async (provider: "google" | "facebook" | "linkedin") => {
     if (loadingRef.current) return;
@@ -171,7 +174,7 @@ export default function Register() {
 
         <View
           style={{
-            marginTop: screenHeight * .3
+            marginTop: screenHeight * .25
           }}
           className="w-full flex items-center gap-3 px-5"
         >
@@ -197,36 +200,92 @@ export default function Register() {
                 .duration(300)
                 .easing(Easing.inOut(Easing.quad))
               }
-              className="w-full flex items-center mt-10"
+              className="w-full flex items-center mt-5"
             >
               <View className="sm:w-[400px] w-full flex items-center gap-5 px-10">
 
                 {/* Google */}
 
-                <OAuthButton
-                  name="Google"
-                  icon="google"
-                  loading={loading}
-                  onPress={() => handle0AuthSignIn("google")}
+                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
+                  <OAuthButton
+                    name="Google"
+                    icon="google"
+                    loading={loading}
+                    onPress={() => handle0AuthSignIn("google")}
                   />
+                </View>
 
                 {/* Facebook */}
 
-                <OAuthButton
-                  name="Facebook"
-                  icon="facebook-f"
-                  loading={loading}
-                  onPress={() => handle0AuthSignIn("facebook")}
+                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
+                  <OAuthButton
+                    name="Facebook"
+                    icon="facebook-f"
+                    loading={loading}
+                    onPress={() => handle0AuthSignIn("facebook")}
                   />
+                </View>
 
                 {/* LinkedIn */}
 
-                <OAuthButton
-                  name="LinkedIn"
-                  icon="linkedin-in"
-                  loading={loading}
-                  onPress={() => handle0AuthSignIn("linkedin")}
-                />
+                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
+                  <OAuthButton
+                    name="LinkedIn"
+                    icon="linkedin-in"
+                    loading={loading}
+                    onPress={() => handle0AuthSignIn("linkedin")}
+                  />
+                </View>
+              </View>
+
+              <View className="w-full flex flex-row items-center gap-5 px-3 mt-5">
+                <PressableAnimated
+                  scale={.95}
+                  onPress={() => setChecked(!checked)}
+                  className="size-[30px] dark:bg-black bg-white rounded-[10px]"
+                >
+                  <View className={clsx(
+                    "size-full flex justify-center items-center rounded-[10px]",
+                    checked ? "bg-emerald-500" : " dark:bg-white/10 bg-white",
+                  )}>
+                    {
+                      checked && (
+                        <Animated.View
+                          entering={
+                            FadeIn
+                              .duration(300)
+                              .easing(Easing.inOut(Easing.quad))
+                          }
+                          exiting={
+                            FadeOut
+                              .duration(300)
+                              .easing(Easing.inOut(Easing.quad))
+                          }
+                        >
+                          <Entypo
+                            name='check'
+                            size={22}
+                            color="rgba(0, 0, 0, .8)"
+                          />
+                        </Animated.View>
+                      )
+                    }
+                  </View>
+                </PressableAnimated>
+
+                <View className="max-w-[85%] flex flex-row flex-wrap items-center gap-1">
+                  <TextAnimated>
+                    <Text>
+                      {t("register_item_6")}
+                    </Text>
+                  </TextAnimated>
+
+                  <Pressable onPress={() => setModalActive(true)}>
+                    <Text className="text-emerald-500 font-medium">
+                      {t("register_item_7")}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
 
               <View className="w-full flex flex-row justify-between items-center mt-8 px-3">
@@ -408,6 +467,56 @@ export default function Register() {
                 </TextAnimated>
               </View>
 
+              <View className="w-full flex flex-row items-center gap-5 px-3 mt-5">
+                <PressableAnimated
+                  scale={.95}
+                  onPress={() => setChecked(!checked)}
+                  className="size-[30px] dark:bg-black bg-white rounded-[10px]"
+                >
+                  <View className={clsx(
+                    "size-full flex justify-center items-center rounded-[10px]",
+                    checked ? "bg-emerald-500" : " dark:bg-white/10 bg-white",
+                  )}>
+                    {
+                      checked && (
+                        <Animated.View
+                          entering={
+                            FadeIn
+                              .duration(300)
+                              .easing(Easing.inOut(Easing.quad))
+                          }
+                          exiting={
+                            FadeOut
+                              .duration(300)
+                              .easing(Easing.inOut(Easing.quad))
+                          }
+                        >
+                          <Entypo
+                            name='check'
+                            size={22}
+                            color="rgba(0, 0, 0, .8)"
+                          />
+                        </Animated.View>
+                      )
+                    }
+                  </View>
+                </PressableAnimated>
+
+                <View className="max-w-[85%] flex flex-row flex-wrap items-center gap-1">
+                  <TextAnimated>
+                    <Text>
+                      {t("register_item_6")}
+                    </Text>
+                  </TextAnimated>
+
+                  <Pressable onPress={() => setModalActive(true)}>
+                    <Text className="text-emerald-500 font-medium">
+                      {t("register_item_7")}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
               <View className="w-full flex flex-row justify-center mt-10 mb-3">
                 <View className="sm:w-[500px] w-full flex flex-row justify-center gap-3 px-3">
                   <PressableAnimated
@@ -443,11 +552,11 @@ export default function Register() {
 
                   <PressableAnimated
                     scale={.95}
-                    disabled={loading}
+                    disabled={loading || !checked}
                     onPress={handleRegister}
                     className={clsx(
                       "w-[60%] h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl px-3",
-                      loading && "opacity-50",
+                      (loading || !checked) && "opacity-50",
                     )}
                   >
                     {
@@ -520,6 +629,32 @@ export default function Register() {
           className="size-full"
         />
       </LinearGradient>
+
+      {/* Modal */}
+
+      <Modal
+        active={modalActive}
+        onClose={() => setModalActive(false)}
+        dragHandlerContainerBackground={theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(255, 255, 255, 1)"}
+        dragHandlerBackground={theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .2)"}
+        backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .4)" : "rgba(0, 0, 0, .2)"}
+        animationDuration={500}
+        closeAnimationDuration={500}
+        className="dark:bg-black bg-white"
+        contentContainerClassName="w-full min-h-full dark:bg-white/10 bg-white py-[50px]"
+      >
+        <View className="w-full px-3">
+          <TextAnimated className="text-lg">
+            {t("register_item_8", {
+              appName: APP_NAME,
+              lastUpdated: "Nov, 2026",
+              developerName: "Youmbi Le-duc",
+              email: "youmsdeveloper@gmail.com",
+              website: "youmsfolio.vercel.app",
+            })}
+          </TextAnimated>
+        </View>
+      </Modal>
     </Container>
   );
 }
