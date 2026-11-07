@@ -1,6 +1,17 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "./user.entity";
 
+export enum DEVICE_TYPE {
+    IOS = "IOS",
+    ANDROID = "ANDROID",
+}
+
+export enum SESSION_PROVIDER {
+    GOOGLE = "GOOGLE",
+    FACEBOOK = "FACEBOOK",
+    LINKEDIN = "LINKEDIN",
+}
+
 @Entity()
 export class Session {
     @PrimaryGeneratedColumn("uuid", {
@@ -9,17 +20,37 @@ export class Session {
     idSession: string;
 
     @Column({
+        name: "id_device",
+        nullable: true,
+        unique: true,
+    })
+    idDevice: string;
+
+    @Column({
+        type: "enum",
+        enum: SESSION_PROVIDER,
         nullable: true,
     })
-    provider?: string;
+    provider?: SESSION_PROVIDER;
+
+    @Column({
+        name: "device_name",
+    })
+    deviceName: string;
 
     @Column()
-    device: string;
+    brand?: string;
 
     @Column({
         name: "refresh_token",
     })
     refreshToken: string;
+
+    @Column({
+        type: "enum",
+        enum: DEVICE_TYPE,
+    })
+    type: DEVICE_TYPE;
 
     @CreateDateColumn({
         name: "created_at",

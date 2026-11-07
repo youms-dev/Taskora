@@ -2,6 +2,8 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGard } from 'src/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { OAuthLoginDto } from './dto/oaut-login.dto';
+import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -14,9 +16,19 @@ export class AuthController {
     return this.authService.register(data);
   }
 
+  @Post("oauth-register")
+  oAuthRegister(@Body() data: OAuthRegisterDto) {
+    return this.authService.oAuthRegister(data);
+  }
+
   @Post("login")
   login(@Body() data: LoginDto) {
     return this.authService.login(data);
+  }
+
+  @Post("oauth-login")
+  oAuthLogin(@Body() data: OAuthLoginDto) {
+    return this.authService.oAuthLogin(data);
   }
 
   @UseGuards(JwtAuthGard)

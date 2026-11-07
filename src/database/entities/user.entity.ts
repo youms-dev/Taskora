@@ -21,8 +21,15 @@ export class User {
     })
     email: string;
 
-    @Column()
-    password: string;
+    @Column({
+        nullable: true,
+    })
+    password?: string;
+
+    @Column({
+        nullable: true,
+    })
+    photo?: string;
 
     @CreateDateColumn({
         name: "created_at",
