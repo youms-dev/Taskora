@@ -74,19 +74,19 @@ export default function Layout() {
         })();
     }, [db]);
 
-    useEffect(() => {
-        const { remove } = AppState.addEventListener("change", async (state) => {
-            if (state == "background") {
-                console.log("We're in background");
-                await BackgroundTask.triggerTaskWorkerForTestingAsync();
-            }
-            else if (state == "active") {
-                console.log("We're active");
-            }
-        });
+    // useEffect(() => {
+    //     const { remove } = AppState.addEventListener("change", async (state) => {
+    //         if (state == "background") {
+    //             console.log("We're in background");
+    //             await BackgroundTask.triggerTaskWorkerForTestingAsync();
+    //         }
+    //         else if (state == "active") {
+    //             console.log("We're active");
+    //         }
+    //     });
 
-        () => remove();
-    }, []);
+    //     () => remove();
+    // }, []);
 
     if (!db) return (
         <SplashScreen />

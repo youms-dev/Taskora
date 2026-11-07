@@ -1,4 +1,4 @@
 export type ApiError = {
-    datas: any;
+    data: any;
     status: number;
 }

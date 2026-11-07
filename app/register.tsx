@@ -6,20 +6,106 @@ import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
+import { AUTH_STORE } from '@/constants/secure-store';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/axios';
+import { AUTH_PROVIDER } from '@/types/enums';
+import { ApiError } from '@/types/errors';
 import { Entypo, FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import clsx from 'clsx';
+import * as Device from "expo-device";
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import * as SecureStore from "expo-secure-store";
+import { memo, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, FadeOutDown } from 'react-native-reanimated';
+
+interface Props {
+  checked: boolean;
+  onCheckButtonPress: () => void;
+}
+
+const Condition = memo(({ checked, onCheckButtonPress }: Props) => {
+  const { t } = useTranslation();
+
+  return (
+    <View className="w-full flex flex-row items-center gap-5 px-3 mt-5">
+      <PressableAnimated
+        scale={.95}
+        onPress={() => onCheckButtonPress()}
+        className="size-[30px] dark:bg-black bg-white rounded-[10px]"
+      >
+        <View className={clsx(
+          "size-full flex justify-center items-center rounded-lg border dark:border-white/10 border-black/10",
+          checked ? "bg-emerald-500" : " dark:bg-white/10 bg-white",
+        )}>
+          {
+            checked && (
+              <Animated.View
+                entering={
+                  FadeIn
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+                exiting={
+                  FadeOut
+                    .duration(300)
+                    .easing(Easing.inOut(Easing.quad))
+                }
+              >
+                <Entypo
+                  name='check'
+                  size={22}
+                  color="rgba(0, 0, 0, .8)"
+                />
+              </Animated.View>
+            )
+          }
+        </View>
+      </PressableAnimated>
+
+      <View className="max-w-[85%] flex flex-row flex-wrap items-center">
+        <TextAnimated>
+          <Text>
+            {t("register_item_6")}
+          </Text>
+        </TextAnimated>
+
+        <Pressable>
+          <Text className="text-emerald-500 font-medium mx-[4px]">
+            {t("register_item_7")}
+          </Text>
+        </Pressable>
+
+        <Pressable>
+          <TextAnimated>
+            {t("register_item_8")}
+          </TextAnimated>
+        </Pressable>
+
+        <Pressable>
+          <Text className="text-emerald-500 font-medium mx-[4px]">
+            {t("register_item_9")}
+          </Text>
+        </Pressable>
+
+        <Pressable>
+          <TextAnimated>
+            {t("register_item_10", { name: APP_NAME })}.
+          </TextAnimated>
+        </Pressable>
+      </View>
+    </View>
+  );
+});
 
 export default function Register() {
   const initialInputsValues = {
@@ -40,8 +126,8 @@ export default function Register() {
   const [modalActive, setModalActive] = useState<boolean>(false);
   const [checked, setChecked] = useState<boolean>(false);
 
-  const handle0AuthSignIn = useCallback(async (provider: "google" | "facebook" | "linkedin") => {
-    if (loadingRef.current) return;
+  const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
+    if (loadingRef.current || !checked) return;
     try {
       setLoading(true);
       loadingRef.current = true;
@@ -56,7 +142,7 @@ export default function Register() {
 
         return;
       }
-      else if (!authData || !authData.user) {
+      else if (!authData.user?.email) {
         setLoading(false);
         loadingRef.current = false;
         setToast(t("auth_error"), "error");
@@ -64,19 +150,37 @@ export default function Register() {
         return;
       }
 
-      console.log("User :", authData);
+      const { data } = await api.post("/auth/oauth-register", {
+        email: authData.user.email,
+        photo: authData.user.photo ?? null,
+        deviceName: Device.deviceName,
+        deviceBrand: Device.brand,
+        deviceType: Platform.OS.toUpperCase(),
+        provider: provider,
+      });
+
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      setInputsValues(initialInputsValues);
       setLoading(false);
       loadingRef.current = false;
     }
     catch (e) {
+      const { status } = e as ApiError;
+
       setLoading(false);
       loadingRef.current = false;
-      console.log(e);
+
+      if (status == 409) {
+        setToast(t("register_conflict"), "error", 5000);
+      }
+      else {
+        setToast(t("error"), "error");
+      }
     }
-  }, [i18n.language, setToast]);
+  }, [i18n.language, setToast, checked]);
 
   const handleRegister = useCallback(async () => {
-    if (loadingRef.current) return;
+    if (loadingRef.current || !checked) return;
 
     if (inputsValues.email.trim().length == 0) {
       emailRef.current?.focus();
@@ -91,17 +195,53 @@ export default function Register() {
       setLoading(true);
       loadingRef.current = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const { data } = await api.post("/auth/register", {
+        email: inputsValues.email,
+        password: inputsValues.password,
+        deviceName: Device.deviceName,
+        deviceBrand: Device.brand,
+        deviceType: Platform.OS.toUpperCase(),
+      });
 
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+
+      setInputsValues(initialInputsValues);
       setLoading(false);
       loadingRef.current = false;
     }
     catch (e) {
+      const { status, data } = e as ApiError;
+
       setLoading(false);
       loadingRef.current = false;
-      console.log(e);
+
+      if (status == 409) {
+        setToast(t("register_conflict"), "error", 5000);
+      }
+      else if (status == 400 && data.message && Array.isArray(data.message)) {
+        const messages = data.message as Array<string>;
+
+        if (messages.includes(EMAIL_LENGTH_ERROR)) {
+          setToast(t("register_error_email_length"), "error", 5000);
+          emailRef.current?.focus();
+        }
+        else if (messages.includes(EMAIL_FORMAT_ERROR)) {
+          setToast(t("register_error_email_format"), "error", 5000);
+          emailRef.current?.focus();
+        }
+        else if (messages.includes(PASSWORD_LENGTH_ERROR)) {
+          setToast(t("register_error_password_length"), "error", 5000);
+          passwordRef.current?.focus();
+        }
+        else {
+          setToast(t("error"), "error");
+        }
+      }
+      else {
+        setToast(t("error"), "error");
+      }
     }
-  }, [i18n.language, inputsValues, setToast]);
+  }, [i18n.language, inputsValues, setToast, checked]);
 
   return (
     <Container centerX safeArea={false}>
@@ -211,7 +351,7 @@ export default function Register() {
                     name="Google"
                     icon="google"
                     loading={loading}
-                    onPress={() => handle0AuthSignIn("google")}
+                    onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
                   />
                 </View>
 
@@ -222,7 +362,7 @@ export default function Register() {
                     name="Facebook"
                     icon="facebook-f"
                     loading={loading}
-                    onPress={() => handle0AuthSignIn("facebook")}
+                    onPress={() => handle0AuthSignIn(AUTH_PROVIDER.FACEBOOK)}
                   />
                 </View>
 
@@ -233,60 +373,15 @@ export default function Register() {
                     name="LinkedIn"
                     icon="linkedin-in"
                     loading={loading}
-                    onPress={() => handle0AuthSignIn("linkedin")}
+                    onPress={() => handle0AuthSignIn(AUTH_PROVIDER.LINKEDIN)}
                   />
                 </View>
               </View>
 
-              <View className="w-full flex flex-row items-center gap-5 px-3 mt-5">
-                <PressableAnimated
-                  scale={.95}
-                  onPress={() => setChecked(!checked)}
-                  className="size-[30px] dark:bg-black bg-white rounded-[10px]"
-                >
-                  <View className={clsx(
-                    "size-full flex justify-center items-center rounded-[10px]",
-                    checked ? "bg-emerald-500" : " dark:bg-white/10 bg-white",
-                  )}>
-                    {
-                      checked && (
-                        <Animated.View
-                          entering={
-                            FadeIn
-                              .duration(300)
-                              .easing(Easing.inOut(Easing.quad))
-                          }
-                          exiting={
-                            FadeOut
-                              .duration(300)
-                              .easing(Easing.inOut(Easing.quad))
-                          }
-                        >
-                          <Entypo
-                            name='check'
-                            size={22}
-                            color="rgba(0, 0, 0, .8)"
-                          />
-                        </Animated.View>
-                      )
-                    }
-                  </View>
-                </PressableAnimated>
-
-                <View className="max-w-[85%] flex flex-row flex-wrap items-center gap-1">
-                  <TextAnimated>
-                    <Text>
-                      {t("register_item_6")}
-                    </Text>
-                  </TextAnimated>
-
-                  <Pressable onPress={() => setModalActive(true)}>
-                    <Text className="text-emerald-500 font-medium">
-                      {t("register_item_7")}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
+              <Condition
+                checked={checked}
+                onCheckButtonPress={() => setChecked(prev => !prev)}
+              />
 
               <View className="w-full flex flex-row justify-between items-center mt-8 px-3">
                 <LinearGradient
@@ -385,6 +480,7 @@ export default function Register() {
                   ref={emailRef}
                   label={(t("register_email"))}
                   placeholder="email@example.com"
+                  autoCapitalize="none"
                   value={inputsValues.email}
                   onChangeText={(e) => setInputsValues(prev => ({
                     ...prev,
@@ -467,55 +563,10 @@ export default function Register() {
                 </TextAnimated>
               </View>
 
-              <View className="w-full flex flex-row items-center gap-5 px-3 mt-5">
-                <PressableAnimated
-                  scale={.95}
-                  onPress={() => setChecked(!checked)}
-                  className="size-[30px] dark:bg-black bg-white rounded-[10px]"
-                >
-                  <View className={clsx(
-                    "size-full flex justify-center items-center rounded-[10px]",
-                    checked ? "bg-emerald-500" : " dark:bg-white/10 bg-white",
-                  )}>
-                    {
-                      checked && (
-                        <Animated.View
-                          entering={
-                            FadeIn
-                              .duration(300)
-                              .easing(Easing.inOut(Easing.quad))
-                          }
-                          exiting={
-                            FadeOut
-                              .duration(300)
-                              .easing(Easing.inOut(Easing.quad))
-                          }
-                        >
-                          <Entypo
-                            name='check'
-                            size={22}
-                            color="rgba(0, 0, 0, .8)"
-                          />
-                        </Animated.View>
-                      )
-                    }
-                  </View>
-                </PressableAnimated>
-
-                <View className="max-w-[85%] flex flex-row flex-wrap items-center gap-1">
-                  <TextAnimated>
-                    <Text>
-                      {t("register_item_6")}
-                    </Text>
-                  </TextAnimated>
-
-                  <Pressable onPress={() => setModalActive(true)}>
-                    <Text className="text-emerald-500 font-medium">
-                      {t("register_item_7")}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
+              <Condition
+                checked={checked}
+                onCheckButtonPress={() => setChecked(prev => !prev)}
+              />
 
               <View className="w-full flex flex-row justify-center mt-10 mb-3">
                 <View className="sm:w-[500px] w-full flex flex-row justify-center gap-3 px-3">
@@ -640,6 +691,7 @@ export default function Register() {
         backdropBackground={theme == "dark" ? "rgba(0, 0, 0, .4)" : "rgba(0, 0, 0, .2)"}
         animationDuration={500}
         closeAnimationDuration={500}
+        height={screenHeight * .7}
         className="dark:bg-black bg-white"
         contentContainerClassName="w-full min-h-full dark:bg-white/10 bg-white py-[50px]"
       >

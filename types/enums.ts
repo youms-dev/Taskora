@@ -1,0 +1,5 @@
+export enum AUTH_PROVIDER {
+    GOOGLE = "GOOGLE",
+    FACEBOOK = "FACEBOOK",
+    LINKEDIN = "LINKEDIN",
+}

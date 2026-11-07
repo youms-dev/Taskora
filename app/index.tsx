@@ -6,19 +6,26 @@ import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { APP_NAME } from '@/constants/names';
+import { AUTH_STORE } from '@/constants/secure-store';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/axios';
+import { AuthType } from '@/types/auth';
+import { AUTH_PROVIDER } from '@/types/enums';
+import { ApiError } from '@/types/errors';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import clsx from 'clsx';
+import * as Device from "expo-device";
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
+import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Keyboard, Text, TextInput, useWindowDimensions, Vibration, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, Pressable, Text, TextInput, useWindowDimensions, Vibration, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, FadeOutUp, SlideInRight, SlideOutLeft, SlideOutRight } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, FadeOutUp, SlideInRight, SlideOutLeft, SlideOutRight, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import "../config/task-manager";
 
 export default function Login() {
@@ -40,8 +47,9 @@ export default function Login() {
   const [_2fa, set_2fa] = useState<boolean>(false);
   const codeRef = useRef<TextInput>(null);
   const [codeFocus, setCodeFocus] = useState<boolean>(false);
+  const rotation = useSharedValue<number>(0);
 
-  const handle0AuthSignIn = useCallback(async (provider: "google" | "facebook" | "linkedin") => {
+  const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current) return;
     try {
       setLoading(true);
@@ -57,7 +65,7 @@ export default function Login() {
 
         return;
       }
-      else if (!authData || !authData.user) {
+      else if (!authData.user?.email) {
         setLoading(false);
         loadingRef.current = false;
         setToast(t("auth_error"), "error");
@@ -65,14 +73,41 @@ export default function Login() {
         return;
       }
 
-      console.log("User :", authData);
+      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
+      let session: AuthType | null = null;
+
+      if (authStore) {
+        session = JSON.parse(authStore);
+      }
+
+      const { data } = await api.post("/auth/oauth-login", {
+        email: authData.user.email,
+        deviceName: Device.deviceName,
+        deviceBrand: Device.brand,
+        deviceType: Platform.OS.toUpperCase(),
+        provider,
+      });
+
+      if (data._2FA) {
+        set_2fa(true);
+      }
+
+      console.log("Data :", data);
       setLoading(false);
       loadingRef.current = false;
     }
     catch (e) {
+      const { status } = e as ApiError;
+
+      console.log(e);
       setLoading(false);
       loadingRef.current = false;
-      console.log(e);
+      if (status == 404) {
+        setToast(t("login_oauth_not_found"), "error", 5000);
+      }
+      else {
+        setToast(t("error"), "error");
+      }
     }
   }, [i18n.language, setToast]);
 
@@ -108,6 +143,30 @@ export default function Login() {
     }
   }, [i18n.language, inputsValues, setToast, _2fa]);
 
+  const handleResendCode = useCallback(async () => {
+    if (loadingRef.current) return;
+
+    // if (inputsValues.email.trim().length == 0) {
+    //   emailRef.current?.focus();
+    //   return;
+    // }
+
+    try {
+      setLoading(true);
+      loadingRef.current = true;
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      setLoading(false);
+      loadingRef.current = false;
+    }
+    catch (e) {
+      setLoading(false);
+      loadingRef.current = false;
+      console.log(e);
+    }
+  }, [i18n.language, inputsValues, setToast]);
+
   useEffect(() => {
     const { remove } = Keyboard.addListener("keyboardDidHide", () => {
       codeRef.current?.blur();
@@ -115,6 +174,30 @@ export default function Login() {
 
     return () => remove();
   }, []);
+
+  const rotateAnimation = useAnimatedStyle(() => ({
+    transform: [
+      {
+        rotate: `${rotation.value}deg`,
+      }
+    ]
+  }));
+
+  useEffect(() => {
+    if (loading) {
+      rotation.value = withRepeat(
+        withTiming(360, {
+          duration: 1000,
+          easing: Easing.linear,
+        }),
+        -1,
+        false,
+      );
+    }
+    else {
+      rotation.value = 0;
+    }
+  }, [loading]);
 
   return (
     <Container centerX safeArea={false}>
@@ -138,7 +221,7 @@ export default function Login() {
       {/* Without 2fa */}
 
       {
-        !_2fa && (
+        _2fa && (
           <Animated.View
             entering={FadeInUp
               .duration(300)
@@ -196,7 +279,7 @@ export default function Login() {
                         name="Google"
                         icon="google"
                         loading={loading}
-                        onPress={() => handle0AuthSignIn("google")}
+                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
                       />
 
                       {/* Facebook */}
@@ -205,7 +288,7 @@ export default function Login() {
                         name="Facebook"
                         icon="facebook-f"
                         loading={loading}
-                        onPress={() => handle0AuthSignIn("facebook")}
+                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.FACEBOOK)}
                       />
 
                       {/* LinkedIn */}
@@ -214,7 +297,7 @@ export default function Login() {
                         name="LinkedIn"
                         icon="linkedin-in"
                         loading={loading}
-                        onPress={() => handle0AuthSignIn("linkedin")}
+                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.LINKEDIN)}
                       />
                     </View>
 
@@ -477,7 +560,7 @@ export default function Login() {
       {/* With 2fa */}
 
       {
-        _2fa && (
+        !_2fa && (
           <Animated.View
             entering={SlideInRight
               .duration(300)
@@ -605,6 +688,39 @@ export default function Login() {
                   }}
                   className="absolute size-0 pointer-events-none -z-[100]"
                 />
+              </View>
+
+              <View className="w-full mt-5">
+                <PressableAnimated
+                  scale={.95}
+                  disabled={loading}
+                  onPress={handleResendCode}
+                  className="flex flex-row flex-wrap items-center gap-5"
+                >
+                  <TextAnimated className={clsx(
+                    "text-lg",
+                    loading && "opacity-50",
+                  )}>
+                    {t("login_item_8")}
+                  </TextAnimated>
+
+                  <Animated.View
+                    style={rotateAnimation}
+                    className={clsx(
+                      loading && "opacity-50",
+                    )}
+                  >
+                    <FontAwesome6
+                      name="rotate-right"
+                      size={22}
+                      color={loading ?
+                        COLORS.emerald[500]
+                        :
+                        theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"
+                      }
+                    />
+                  </Animated.View>
+                </PressableAnimated>
               </View>
 
               {/* Section 3 */}
