@@ -32,11 +32,7 @@ yarn-error.*
 
 # local env files
 .env*
-<<<<<<< HEAD
-!.env.exemple*
-=======
-!.env.example
->>>>>>> 4724e99 (Update: Global changes)
+!.env.example*
 
 # typescript
 *.tsbuildinfo
@@ -50,3 +46,7 @@ app-example
 # Test
 
 *test*
+
+# Others
+
+credentials.json
