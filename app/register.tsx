@@ -206,14 +206,9 @@ export default function Register() {
       await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
 
       setInputsValues(initialInputsValues);
-      setLoading(false);
-      loadingRef.current = false;
     }
     catch (e) {
       const { status, data } = e as ApiError;
-
-      setLoading(false);
-      loadingRef.current = false;
 
       if (status == 409) {
         setToast(t("register_conflict"), "error", 5000);
@@ -240,6 +235,10 @@ export default function Register() {
       else {
         setToast(t("error"), "error");
       }
+    }
+    finally {
+      setLoading(false);
+      loadingRef.current = false;
     }
   }, [i18n.language, inputsValues, setToast, checked]);
 
@@ -352,28 +351,6 @@ export default function Register() {
                     icon="google"
                     loading={loading}
                     onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
-                  />
-                </View>
-
-                {/* Facebook */}
-
-                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
-                  <OAuthButton
-                    name="Facebook"
-                    icon="facebook-f"
-                    loading={loading}
-                    onPress={() => handle0AuthSignIn(AUTH_PROVIDER.FACEBOOK)}
-                  />
-                </View>
-
-                {/* LinkedIn */}
-
-                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
-                  <OAuthButton
-                    name="LinkedIn"
-                    icon="linkedin-in"
-                    loading={loading}
-                    onPress={() => handle0AuthSignIn(AUTH_PROVIDER.LINKEDIN)}
                   />
                 </View>
               </View>

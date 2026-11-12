@@ -29,6 +29,11 @@ import "./global.css";
 
 preventAutoHideAsync();
 
+GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+});
+
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
     const [user, setUser] = useState<Session["user"] | undefined>(undefined);
@@ -36,11 +41,6 @@ export default function Layout() {
     const [locales] = useLocales();
     const { i18n } = useTranslation();
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
-
-    GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
-    });
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {

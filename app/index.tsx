@@ -5,6 +5,7 @@ import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE } from '@/constants/secure-store';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,7 +24,7 @@ import { Link } from 'expo-router';
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Keyboard, Platform, Pressable, Text, TextInput, useWindowDimensions, Vibration, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, Text, TextInput, useWindowDimensions, Vibration, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, FadeOutUp, SlideInRight, SlideOutLeft, SlideOutRight, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import "../config/task-manager";
@@ -86,39 +87,48 @@ export default function Login() {
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
         provider,
+        idDevice: session?.idDevice,
       });
 
       if (data._2FA) {
         set_2fa(true);
+        setInputsValues(prev => ({
+          ...prev,
+          email: authData.user.email,
+        }));
       }
-
-      console.log("Data :", data);
-      setLoading(false);
-      loadingRef.current = false;
+      else if ("password" in data && data.password) {
+        setToast(t("login_password_found"), "default", 5000);
+        setInputsValues(prev => ({
+          ...prev,
+          email: authData.user.email,
+        }));
+        setWith0Auth(false);
+      }
     }
     catch (e) {
       const { status } = e as ApiError;
 
-      console.log(e);
-      setLoading(false);
-      loadingRef.current = false;
-      if (status == 404) {
+      if (status == 429) {
+        setToast(t("login_429"), "error", 5000);
+      }
+      else if (status == 404) {
         setToast(t("login_oauth_not_found"), "error", 5000);
       }
       else {
         setToast(t("error"), "error");
       }
     }
+    finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   }, [i18n.language, setToast]);
 
   const handleLogin = useCallback(async () => {
     if (loadingRef.current) return;
 
-    if (_2fa && inputsValues.code.trim().length == 0) {
-      codeRef.current?.focus();
-      return;
-    }
-    else if (inputsValues.email.trim().length == 0) {
+    if (inputsValues.email.trim().length == 0) {
       emailRef.current?.focus();
       return;
     }
@@ -131,39 +141,153 @@ export default function Login() {
       setLoading(true);
       loadingRef.current = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
+      let session: AuthType | null = null;
 
-      setLoading(false);
-      loadingRef.current = false;
+      if (authStore) {
+        session = JSON.parse(authStore);
+      }
+
+      const { data } = await api.post("/auth/login", {
+        email: inputsValues.email,
+        password: inputsValues.password,
+        deviceName: Device.deviceName,
+        deviceBrand: Device.brand,
+        deviceType: Platform.OS.toUpperCase(),
+        idDevice: session?.idDevice,
+      });
+
+      if (data._2FA) {
+        set_2fa(true);
+      }
+      else if ("password" in data && data.password == false) {
+        setToast(t("login_no_password"), "default", 5000);
+        setWith0Auth(true);
+        setInputsValues(initialInputsValues);
+      }
     }
     catch (e) {
+      const { status, data } = e as ApiError;
+
+      if (status == 429) {
+        setToast(t("login_429"), "error", 5000);
+      }
+      else if (status == 404) {
+        setToast(t("login_404"), "error", 5000);
+      }
+      else if (status == 400 && data.message && Array.isArray(data.message)) {
+        const messages = data.message as Array<string>;
+
+        if (messages.includes(EMAIL_LENGTH_ERROR)) {
+          setToast(t("login_error_email_length"), "error", 5000);
+          emailRef.current?.focus();
+        }
+        else if (messages.includes(EMAIL_FORMAT_ERROR)) {
+          setToast(t("login_error_email_format"), "error", 5000);
+          emailRef.current?.focus();
+        }
+        else if (messages.includes(PASSWORD_LENGTH_ERROR)) {
+          setToast(t("login_error_password_length"), "error", 5000);
+          passwordRef.current?.focus();
+        }
+        else {
+          setToast(t("error"), "error");
+        }
+      }
+      else {
+        setToast(t("error"), "error");
+      }
+    }
+    finally {
       setLoading(false);
       loadingRef.current = false;
-      console.log(e);
     }
   }, [i18n.language, inputsValues, setToast, _2fa]);
 
   const handleResendCode = useCallback(async () => {
     if (loadingRef.current) return;
 
-    // if (inputsValues.email.trim().length == 0) {
-    //   emailRef.current?.focus();
-    //   return;
-    // }
+    if (inputsValues.email.trim().length == 0) {
+      set_2fa(false);
+      return;
+    }
 
     try {
       setLoading(true);
       loadingRef.current = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await api.post("/auth/login/2fa/resend-code", {
+        email: inputsValues.email,
+      });
 
+      setToast(t("login_code_resent"), "success");
+    }
+    catch (e) {
+      const { status } = e as ApiError;
+
+      if (status == 429) {
+        setToast(t("login_429"), "error", 5000);
+      }
+    }
+    finally {
       setLoading(false);
       loadingRef.current = false;
     }
+  }, [i18n.language, inputsValues, setToast]);
+
+  const handleCheckCode = useCallback(async () => {
+    if (loadingRef.current) return;
+
+    if (inputsValues.code.trim().length == 0) {
+      codeRef.current?.focus();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      loadingRef.current = true;
+
+      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
+      let session: AuthType | null = null;
+
+      if (authStore) {
+        session = JSON.parse(authStore);
+      }
+
+      const { data } = await api.post("/auth/login/2fa/check-code", {
+        email: inputsValues.email,
+        code: Number(inputsValues.code),
+        deviceName: Device.deviceName,
+        deviceBrand: Device.brand,
+        deviceType: Platform.OS.toUpperCase(),
+        idDevice: session?.idDevice,
+      });
+
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+
+      setInputsValues(initialInputsValues);
+      set_2fa(false);
+    }
     catch (e) {
+      const { status } = e as ApiError;
+
+      console.log(e);
+      if (status == 429) {
+        setToast(t("login_429"), "error", 5000);
+      }
+      else if (status == 404) {
+        setToast(t("login_code_404"), "error", 5000);
+      }
+      else if (status == 400) {
+        setToast(t("login_code_400"), "error", 5000);
+      }
+      else {
+        setToast(t("error"), "error", 5000);
+      }
+    }
+    finally {
       setLoading(false);
       loadingRef.current = false;
-      console.log(e);
     }
   }, [i18n.language, inputsValues, setToast]);
 
@@ -221,7 +345,7 @@ export default function Login() {
       {/* Without 2fa */}
 
       {
-        _2fa && (
+        !_2fa && (
           <Animated.View
             entering={FadeInUp
               .duration(300)
@@ -280,24 +404,6 @@ export default function Login() {
                         icon="google"
                         loading={loading}
                         onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
-                      />
-
-                      {/* Facebook */}
-
-                      <OAuthButton
-                        name="Facebook"
-                        icon="facebook-f"
-                        loading={loading}
-                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.FACEBOOK)}
-                      />
-
-                      {/* LinkedIn */}
-
-                      <OAuthButton
-                        name="LinkedIn"
-                        icon="linkedin-in"
-                        loading={loading}
-                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.LINKEDIN)}
                       />
                     </View>
 
@@ -398,6 +504,7 @@ export default function Login() {
                         ref={emailRef}
                         label={(t("login_email"))}
                         placeholder="email@example.com"
+                        autoCapitalize="none"
                         value={inputsValues.email}
                         onChangeText={(e) => setInputsValues(prev => ({
                           ...prev,
@@ -560,7 +667,7 @@ export default function Login() {
       {/* With 2fa */}
 
       {
-        !_2fa && (
+        _2fa && (
           <Animated.View
             entering={SlideInRight
               .duration(300)
@@ -761,7 +868,7 @@ export default function Login() {
                   <PressableAnimated
                     scale={.95}
                     disabled={loading}
-                    onPress={handleLogin}
+                    onPress={handleCheckCode}
                     className={clsx(
                       "w-[60%] h-[50px] flex justify-center items-center bg-emerald-500 rounded-2xl px-3",
                       loading && "opacity-50",
