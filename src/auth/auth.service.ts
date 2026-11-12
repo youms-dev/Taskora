@@ -3,9 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
 import { compare, hash } from 'bcryptjs';
+import { render } from 'react-email';
+import CodeMail from 'src/components/code';
+import { APP_NAME } from 'src/constants/names';
 import { Session } from 'src/database/entities/session.entity';
 import { Setting } from 'src/database/entities/setting.entity';
 import { User } from 'src/database/entities/user.entity';
+import { brevo } from 'src/lib/brevo';
 import { redis } from 'src/lib/redis';
 import { formatString, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
@@ -15,13 +19,19 @@ import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
-import { render } from 'react-email';
-import CodeMail from 'src/components/code';
-import { brevo } from 'src/lib/brevo';
-import { APP_NAME } from 'src/constants/names';
+import MessageMail from 'src/components/message';
+import crypto from "crypto";
 
 @Injectable()
 export class AuthService {
+    private registerMessageTab = [
+        `Hi there ;`,
+        `Welcome to ${APP_NAME}.`,
+        `Your ${APP_NAME} account has been created successfully.`,
+        "Manage your tasks and other activities in the easiest way possible.",
+        "Remember to go to the app settings to customize your experience.",
+    ];
+
     constructor(
         @InjectRepository(User) private readonly userRepo: Repository<User>,
         @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
@@ -76,6 +86,25 @@ export class AuthService {
             refreshToken,
             brand,
             type: data.deviceType,
+        });
+
+        const mail = await render(MessageMail({
+            message: this.registerMessageTab,
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: `Welcome to ${APP_NAME}`,
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: newUser.name,
+                    email: newUser.email,
+                }
+            ],
         });
 
         return {
@@ -133,6 +162,25 @@ export class AuthService {
             refreshToken,
             brand,
             type: data.deviceType,
+        });
+
+        const mail = await render(MessageMail({
+            message: this.registerMessageTab,
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: `Welcome to ${APP_NAME}`,
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: newUser.name,
+                    email: newUser.email,
+                }
+            ],
         });
 
         return {
@@ -269,37 +317,14 @@ export class AuthService {
         }
 
         if (setting._2FA) {
-            const code = Number(String(Math.random()).slice(2, 7));
-
-            await redis.set(`_2FA-code:${user.email}`, code, {
-                ex: 60 * 5,
-            });
-
-            const mail = await render(CodeMail({
-                name: user.name,
-                code,
-                expireIn: 5,
-            }));
-
-            await brevo.transactionalEmails.sendTransacEmail({
-                subject: setting.language == "fr" ? "Code de vérification." : "Verification code.",
-                htmlContent: mail,
-                sender: {
-                    name: APP_NAME,
-                    email: process.env.APP_EMAIL,
-                },
-                to: [
-                    {
-                        name: user.name,
-                        email: user.email,
-                    }
-                ],
-            });
+            await this.sendCode(user.email);
 
             return {
                 _2FA: true,
             }
         }
+
+        await redis.del(key);
 
         const { password, ...rest } = data;
 
@@ -347,122 +372,18 @@ export class AuthService {
         }
 
         if (setting._2FA) {
-            const code = Number(String(Math.random()).slice(2, 7));
-
-            await redis.set(`_2FA-code:${user.email}`, code, {
-                ex: 60 * 5,
-            });
-
-            const mail = await render(CodeMail({
-                name: user.name,
-                code,
-                expireIn: 5,
-            }));
-
-            await brevo.transactionalEmails.sendTransacEmail({
-                subject: setting.language == "fr" ? "Code de vérification." : "Verification code.",
-                htmlContent: mail,
-                sender: {
-                    name: APP_NAME,
-                    email: process.env.APP_EMAIL,
-                },
-                to: [
-                    {
-                        name: user.name,
-                        email: user.email,
-                    }
-                ],
-            });
+            await this.sendCode(user.email);
 
             return {
                 _2FA: true,
             }
         }
 
-        const accessToken = await this.jwtService.signAsync({
-            email,
-            sub: email,
-        }, {
-            expiresIn: "15m",
-            secret: process.env.ACCESS_SECRET,
-        });
+        await redis.del(key);
 
-        const refreshToken = await this.jwtService.signAsync({
-            email,
-            sub: email,
-        }, {
-            expiresIn: "30d",
-            secret: process.env.REFRESH_SECRET,
-        });
+        const { provider, ...rest } = data;
 
-        if (data.idDevice) {
-            const session = await this.sessionRepo.findOne({
-                where: {
-                    user: {
-                        email: user.email,
-                    },
-                    idDevice: data.idDevice,
-                }
-            });
-
-            if (session) {
-                await this.sessionRepo.save({
-                    ...session,
-                    refreshToken,
-                });
-
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice: data.idDevice,
-                    email: user.email,
-                };
-            }
-            else {
-                const idDevice = createId();
-                const deviceName = formatString(data.deviceName);
-                const brand = formatString(data.deviceBrand);
-
-                await this.sessionRepo.save({
-                    user,
-                    idDevice,
-                    deviceName,
-                    refreshToken,
-                    brand,
-                    type: data.deviceType,
-                    provider: data.provider,
-                });
-
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice,
-                    email: user.email,
-                };
-            }
-        }
-        else {
-            const idDevice = createId();
-            const deviceName = formatString(data.deviceName);
-            const brand = formatString(data.deviceBrand);
-
-            await this.sessionRepo.save({
-                user,
-                idDevice,
-                deviceName,
-                refreshToken,
-                brand,
-                type: data.deviceType,
-                provider: data.provider,
-            });
-
-            return {
-                accessToken,
-                refreshToken,
-                idDevice,
-                email: user.email,
-            };
-        }
+        return await this.handleSession(user, { ...rest });
     }
 
     async validate(email: string) {
@@ -537,16 +458,13 @@ export class AuthService {
     async checkCode(data: _2FADto) {
         const email = data.email.toLowerCase();
         const attemptsKey = `login-attempts:${email}`;
-        let attempts = await redis.get(attemptsKey);
+        const attempts = await redis.incr(attemptsKey);
 
-        if (attempts && +attempts > 5) {
-            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
-        }
-
-        attempts = await redis.incr(attemptsKey);
-
-        if (Number(attempts) == 1) {
+        if (attempts == 1) {
             await redis.expire(attemptsKey, randomNumber(5, 10) * 60);
+        }
+        else if (attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
         }
 
         const user = await this.userRepo.findOne({
@@ -575,5 +493,63 @@ export class AuthService {
         const { code, ...rest } = data;
 
         return await this.handleSession(user, { ...rest });
+    }
+
+    async sendCode(email: string) {
+        const emailFormatted = email.toLocaleLowerCase().trim();
+        const key = `login-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, randomNumber(5, 10) * 60);
+        }
+        else if (attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email: emailFormatted,
+            },
+        })
+
+        if (!user) {
+            throw new NotFoundException("Account not found!");
+        }
+
+        const setting = await this.settingRepo.findOne({
+            where: {
+                user: {
+                    email: user.email,
+                }
+            }
+        });
+
+        const code = crypto.randomInt(0, 100000).toString().padStart(5, "0");
+
+        await redis.set(`_2FA-code:${user.email}`, code, {
+            ex: 60 * 5,
+        });
+
+        const mail = await render(CodeMail({
+            name: user.name,
+            code,
+            expireIn: 5,
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: setting?.language == "fr" ? "Code de vérification." : "Verification code.",
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: user.name,
+                    email: user.email,
+                }
+            ],
+        });
     }
 }

@@ -7,6 +7,8 @@ import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { _2FADto } from './dto/2fa.dto';
+import { hash } from 'bcryptjs';
+import { ResendCodeDto } from './dto/resend-code.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -35,6 +37,11 @@ export class AuthController {
   @Post("login/2fa/check-code")
   checkCode(@Body() data: _2FADto) {
     return this.authService.checkCode(data);
+  }
+
+  @Post("login/2fa/resend-code")
+  resendCode(@Body() data: ResendCodeDto) {
+    return this.authService.sendCode(data.email);
   }
 
   @UseGuards(JwtAuthGard)
