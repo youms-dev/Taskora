@@ -6,12 +6,6 @@ export enum DEVICE_TYPE {
     ANDROID = "ANDROID",
 }
 
-export enum SESSION_PROVIDER {
-    GOOGLE = "GOOGLE",
-    FACEBOOK = "FACEBOOK",
-    LINKEDIN = "LINKEDIN",
-}
-
 @Entity()
 export class Session {
     @PrimaryGeneratedColumn("uuid", {
@@ -25,13 +19,6 @@ export class Session {
         unique: true,
     })
     idDevice: string;
-
-    @Column({
-        type: "enum",
-        enum: SESSION_PROVIDER,
-        nullable: true,
-    })
-    provider?: SESSION_PROVIDER;
 
     @Column({
         name: "device_name",

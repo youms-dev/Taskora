@@ -6,6 +6,7 @@ import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { _2FADto } from './dto/2fa.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +30,11 @@ export class AuthController {
   @Post("oauth-login")
   oAuthLogin(@Body() data: OAuthLoginDto) {
     return this.authService.oAuthLogin(data);
+  }
+
+  @Post("login/2fa/check-code")
+  checkCode(@Body() data: _2FADto) {
+    return this.authService.checkCode(data);
   }
 
   @UseGuards(JwtAuthGard)

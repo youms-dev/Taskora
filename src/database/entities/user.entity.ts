@@ -4,6 +4,10 @@ import { Session } from "./session.entity";
 import { Setting } from "./setting.entity";
 import { Task } from "./task.entity";
 
+export enum SESSION_PROVIDER {
+    GOOGLE = "GOOGLE",
+}
+
 @Entity()
 export class User {
     @PrimaryGeneratedColumn("uuid", {
@@ -30,6 +34,13 @@ export class User {
         nullable: true,
     })
     photo?: string;
+
+    @Column({
+        type: "enum",
+        enum: SESSION_PROVIDER,
+        nullable: true,
+    })
+    provider?: SESSION_PROVIDER;
 
     @CreateDateColumn({
         name: "created_at",

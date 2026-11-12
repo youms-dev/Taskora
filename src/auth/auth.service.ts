@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
@@ -6,13 +6,19 @@ import { compare, hash } from 'bcryptjs';
 import { Session } from 'src/database/entities/session.entity';
 import { Setting } from 'src/database/entities/setting.entity';
 import { User } from 'src/database/entities/user.entity';
-import { formatString } from 'src/utils/tools';
+import { redis } from 'src/lib/redis';
+import { formatString, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
+import { _2FADto } from './dto/2fa.dto';
 import { LoginDto } from './dto/login.dto';
+import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
-import { OAuthLoginDto } from './dto/oaut-login.dto';
+import { render } from 'react-email';
+import CodeMail from 'src/components/code';
+import { brevo } from 'src/lib/brevo';
+import { APP_NAME } from 'src/constants/names';
 
 @Injectable()
 export class AuthService {
@@ -99,6 +105,7 @@ export class AuthService {
             email,
             setting,
             photo: data.photo ?? undefined,
+            provider: data.provider,
         });
 
         const accessToken = await this.jwtService.signAsync({
@@ -126,7 +133,6 @@ export class AuthService {
             refreshToken,
             brand,
             type: data.deviceType,
-            provider: data.provider,
         });
 
         return {
@@ -137,36 +143,24 @@ export class AuthService {
         };
     }
 
-    async login(data: LoginDto) {
-        const email = data.email.toLocaleLowerCase().trim();
-
-        const user = await this.userRepo.findOne({
-            where: {
-                email,
-            },
-        })
-
-        const matches = await compare(data.password, user?.password ?? "");
-
-        if (!matches || !user) {
-            throw new NotFoundException("Invalid credentials!");
-        }
-
+    async handleSession(user: User, data: Omit<LoginDto, "password">) {
         const accessToken = await this.jwtService.signAsync({
-            email,
-            sub: email,
+            email: user.email,
+            sub: user.email,
         }, {
             expiresIn: "15m",
             secret: process.env.ACCESS_SECRET,
         });
 
         const refreshToken = await this.jwtService.signAsync({
-            email,
-            sub: email,
+            email: user.email,
+            sub: user.email,
         }, {
             expiresIn: "30d",
             secret: process.env.REFRESH_SECRET,
         });
+
+        let finalIdDevice = "";
 
         if (data.idDevice) {
             const session = await this.sessionRepo.findOne({
@@ -184,12 +178,7 @@ export class AuthService {
                     refreshToken,
                 });
 
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice: data.idDevice,
-                    email: user.email,
-                };
+                finalIdDevice = data.idDevice;
             }
             else {
                 const idDevice = createId();
@@ -205,12 +194,7 @@ export class AuthService {
                     type: data.deviceType,
                 });
 
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice,
-                    email: user.email,
-                };
+                finalIdDevice = idDevice;
             }
         }
         else {
@@ -227,26 +211,49 @@ export class AuthService {
                 type: data.deviceType,
             });
 
-            return {
-                accessToken,
-                refreshToken,
-                idDevice,
-                email: user.email,
-            };
+            finalIdDevice = idDevice;
         }
+
+        return {
+            accessToken,
+            refreshToken,
+            idDevice: finalIdDevice,
+            email: user.email,
+        };
     }
 
-    async oAuthLogin(data: OAuthLoginDto) {
+    async login(data: LoginDto) {
         const email = data.email.toLocaleLowerCase().trim();
+        const key = `login-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, randomNumber(5, 10) * 60);
+        }
+        else if (attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
+        }
 
         const user = await this.userRepo.findOne({
             where: {
                 email,
             },
-        })
+        });
 
         if (!user) {
-            throw new NotFoundException("Account not found!");
+            throw new NotFoundException("Invalid credentials!");
+        }
+
+        if (!user.password) {
+            return {
+                password: false,
+            }
+        }
+
+        const matches = await compare(data.password, user.password);
+
+        if (!matches) {
+            throw new NotFoundException("Invalid credentials!");
         }
 
         const setting = await this.settingRepo.findOne({
@@ -262,6 +269,111 @@ export class AuthService {
         }
 
         if (setting._2FA) {
+            const code = Number(String(Math.random()).slice(2, 7));
+
+            await redis.set(`_2FA-code:${user.email}`, code, {
+                ex: 60 * 5,
+            });
+
+            const mail = await render(CodeMail({
+                name: user.name,
+                code,
+                expireIn: 5,
+            }));
+
+            await brevo.transactionalEmails.sendTransacEmail({
+                subject: setting.language == "fr" ? "Code de vérification." : "Verification code.",
+                htmlContent: mail,
+                sender: {
+                    name: APP_NAME,
+                    email: process.env.APP_EMAIL,
+                },
+                to: [
+                    {
+                        name: user.name,
+                        email: user.email,
+                    }
+                ],
+            });
+
+            return {
+                _2FA: true,
+            }
+        }
+
+        const { password, ...rest } = data;
+
+        return await this.handleSession(user, { ...rest });
+    }
+
+    async oAuthLogin(data: OAuthLoginDto) {
+        const email = data.email.toLocaleLowerCase().trim();
+        const key = `login-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, randomNumber(5, 10) * 60);
+        }
+        else if (attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email,
+            },
+        })
+
+        if (!user) {
+            throw new NotFoundException("Account not found!");
+        }
+
+        if (user.password) {
+            return {
+                password: true,
+            }
+        }
+
+        const setting = await this.settingRepo.findOne({
+            where: {
+                user: {
+                    idUser: user.idUser,
+                }
+            }
+        });
+
+        if (!setting) {
+            throw new InternalServerErrorException("An error occurred!");
+        }
+
+        if (setting._2FA) {
+            const code = Number(String(Math.random()).slice(2, 7));
+
+            await redis.set(`_2FA-code:${user.email}`, code, {
+                ex: 60 * 5,
+            });
+
+            const mail = await render(CodeMail({
+                name: user.name,
+                code,
+                expireIn: 5,
+            }));
+
+            await brevo.transactionalEmails.sendTransacEmail({
+                subject: setting.language == "fr" ? "Code de vérification." : "Verification code.",
+                htmlContent: mail,
+                sender: {
+                    name: APP_NAME,
+                    email: process.env.APP_EMAIL,
+                },
+                to: [
+                    {
+                        name: user.name,
+                        email: user.email,
+                    }
+                ],
+            });
+
             return {
                 _2FA: true,
             }
@@ -320,7 +432,7 @@ export class AuthService {
                     type: data.deviceType,
                     provider: data.provider,
                 });
-                
+
                 return {
                     accessToken,
                     refreshToken,
@@ -420,5 +532,48 @@ export class AuthService {
         catch (e) {
             throw new BadRequestException("Invalid token");
         }
+    }
+
+    async checkCode(data: _2FADto) {
+        const email = data.email.toLowerCase();
+        const attemptsKey = `login-attempts:${email}`;
+        let attempts = await redis.get(attemptsKey);
+
+        if (attempts && +attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        attempts = await redis.incr(attemptsKey);
+
+        if (Number(attempts) == 1) {
+            await redis.expire(attemptsKey, randomNumber(5, 10) * 60);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email,
+            },
+        });
+
+        if (!user) {
+            throw new NotFoundException("Account not found!");
+        }
+
+        const key = `_2FA-code:${email}`;
+        const redisCode = await redis.get(key);
+
+        if (!redisCode) {
+            throw new NotFoundException("The code has expired!");
+        }
+        else if (String(redisCode) != String(data.code)) {
+            throw new BadRequestException("Invalid code!");
+        }
+
+        await redis.del(key);
+        await redis.del(attemptsKey);
+
+        const { code, ...rest } = data;
+
+        return await this.handleSession(user, { ...rest });
     }
 }
