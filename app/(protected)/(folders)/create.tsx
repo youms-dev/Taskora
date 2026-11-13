@@ -5,18 +5,19 @@ import { Select } from "@/components/select";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { FOLDERS_CHANGED } from "@/constants/emitters";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, FOLDERS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { TaskType } from "@/types/task";
 import { Entypo, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FlatList, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, TextInputProps, useWindowDimensions, Vibration, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -30,7 +31,7 @@ interface Props extends TextInputProps {
     multiline?: boolean;
 }
 
-const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, ref) => {
+const Input = memo(forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, ref) => {
     const { theme, themeShared } = useTheme();
     const inputRef = useRef<TextInput>(null);
     const focus = useSharedValue<boolean>(false);
@@ -141,7 +142,7 @@ const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label
             }
         </Animated.View>
     );
-});
+}));
 
 export default function CreateFolderPager() {
     const { action: paramAction, folder: paramFolder } = useLocalSearchParams<{ action: "edit" | "duplicate"; folder: string }>();
@@ -361,7 +362,7 @@ export default function CreateFolderPager() {
             }
 
             setLoading(false);
-            event.emit(FOLDERS_CHANGED);
+            emitter.emit(FOLDERS_CHANGED);
             if (paramAction && paramAction == "edit") {
                 setToast(t("create_folder_edit_success"), "success");
             }
@@ -376,6 +377,7 @@ export default function CreateFolderPager() {
                 }
             }
             setInputsValues(initialInputValues);
+            router.back();
         }
         catch (e) {
             setLoading(false);
@@ -431,7 +433,6 @@ export default function CreateFolderPager() {
             >
                 <View className="w-full dark:bg-white/10 bg-white rounded-2xl">
                     <Input
-                        // ref={inputRef}
                         ref={(e) => {
                             inputRef.current = e;
                         }}

@@ -11,13 +11,14 @@ import { TextAnimated } from "@/components/text-animated";
 import { Toggle } from "@/components/toggle";
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
+import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
 import { EVENT_REMINDER_CATEGORY, REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";
@@ -32,7 +33,7 @@ import { randomUUID } from "expo-crypto";
 import { LinearGradient } from "expo-linear-gradient";
 import { cancelScheduledNotificationAsync, dismissNotificationAsync, getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BlurEvent, FocusEvent, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TextInputProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, FadeInDown, FadeInRight, FadeOutRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -46,8 +47,8 @@ interface Props extends TextInputProps {
     multiline?: boolean;
 }
 
-const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, inputRef) => {
-    const { theme, themeShared } = useTheme();
+const Input = memo(forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label = "", rounded = 16, multiline = false, ...rest }: Props, inputRef) => {
+    const { themeShared } = useTheme();
     const ref = useRef<TextInput>(null);
     const focus = useSharedValue<boolean>(false);
     const valueShared = useSharedValue<string>("");
@@ -151,7 +152,7 @@ const Input = forwardRef<TextInput, Props>(({ onFocus, onBlur, value = "", label
             }
         </Animated.View>
     );
-});
+}));
 
 type InputsValuesType = {
     title: string | null;
@@ -392,7 +393,7 @@ export default function CreateTaskPage() {
             const dateSelected = inputsValues.date;
             const [startHour, startMin] = inputsValues.startAt.split(":");
             const [endHour, endMin] = inputsValues.startAt.split(":");
-            const startAt = new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(startHour), Number(startMin));
+            const startAt = new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(startHour), Number(startMin), 0, 0);
             const endAt = target == "event" ? new Date(dateSelected.getFullYear(), dateSelected.getMonth(), dateSelected.getDate(), Number(endHour), Number(endMin)) : null;
             let scheduleDate = startAt;
             let notificationId = createId();
@@ -416,8 +417,8 @@ export default function CreateTaskPage() {
                     },
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                        // type: SchedulableTriggerInputTypes.DATE,
-                        // date: scheduleDate,
+                        type: SchedulableTriggerInputTypes.DATE,
+                        date: scheduleDate,
                     },
                 });
             }
@@ -465,14 +466,8 @@ export default function CreateTaskPage() {
                 setToast(t("create_success"), "success");
             }
 
-            if (paramAction == "edit") {
-                event.emit(TASKS_CHANGED);
-                event.emit(EVENTS_CHANGED);
-            }
-            else {
-                if (target == "task") event.emit(TASKS_CHANGED);
-                else event.emit(EVENTS_CHANGED);
-            }
+            if (target == "task") emitter.emit(TASKS_CHANGED);
+            else emitter.emit(EVENTS_CHANGED);
 
             if (router.canGoBack()) {
                 if (paramAction == "edit") {
@@ -494,13 +489,14 @@ export default function CreateTaskPage() {
                     pathname: "/(protected)/(tabs)",
                 });
             }
-            setLoading(false);
             console.log("Schedule for :", notificationId, scheduleDate.toLocaleString());
         }
         catch (e) {
-            setLoading(false);
             setToast(t("sqlite_error"), "error");
             console.log(e);
+        }
+        finally {
+            setLoading(false);
         }
     }, [target, sound, inputsValues, setToast, i18n.language]);
 

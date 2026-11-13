@@ -4,10 +4,11 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { FOLDERS_CHANGED } from "@/constants/emitters";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, FOLDERS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -475,7 +476,7 @@ export default function FolderList() {
 
         try {
             await deleteFolders(entry.map(f => f.idFolder));
-            event.emit(FOLDERS_CHANGED);
+            emitter.emit(FOLDERS_CHANGED);
             setLoading(false);
             deleteLoading.current = false;
             setToast(t("folders_list_folders_deleted", { many: entry.length > 1 ? "s" : "" }), "success");
@@ -524,7 +525,7 @@ export default function FolderList() {
     const handlePress = useCallback((value: "edit" | "duplicate") => {
         if (!folderSelected) return;
         router.navigate({
-            pathname: "/(protected)/(folder)/create",
+            pathname: "/(protected)/(folders)/create",
             params: {
                 folder: JSON.stringify(folderSelected),
                 action: value,
@@ -542,10 +543,10 @@ export default function FolderList() {
             handleGetFoldersCount();
         }
 
-        event.addListener(FOLDERS_CHANGED, onFoldersChanged);
+        emitter.addListener(FOLDERS_CHANGED, onFoldersChanged);
 
         return () => {
-            event.removeListener(FOLDERS_CHANGED);
+            emitter.removeListener(FOLDERS_CHANGED);
         }
     }, []);
 

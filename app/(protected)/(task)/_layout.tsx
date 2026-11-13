@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function UserLayout() {
+export default function TaskLayout() {
     return (
         <Stack
             initialRouteName="archives"

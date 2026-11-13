@@ -4,13 +4,12 @@ import { COLORS } from "@/constants/colors";
 import { EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { useTheme } from "@/hooks/use-theme";
 import { emitter } from "@/lib/event-emitter";
-import Entypo from "@expo/vector-icons/Entypo";
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Fontisto from '@expo/vector-icons/Fontisto';
 import clsx from "clsx";
 import { Tabs, usePathname, useRouter } from "expo-router";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { memo, ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, PressableProps, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -21,11 +20,11 @@ interface IconProps extends PressableProps {
     icon: ReactNode;
 }
 
-const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
+const NavButton = memo(({ name, focused, icon, ...rest }: IconProps) => {
     return (
         <Pressable
             {...rest}
-            className="w-[25%] h-full flex justify-center items-center"
+            className="w-1/3 h-full flex justify-center items-center"
         >
             <View className="flex justify-center items-center py-1">
                 {icon}
@@ -44,16 +43,15 @@ const NavButton = ({ name, focused, icon, ...rest }: IconProps) => {
             </TextAnimated>
         </Pressable>
     )
-}
+});
 
-export default function Layout() {
+export default function TabsLayout() {
     const { theme } = useTheme();
     const pathname = usePathname();
     const { t } = useTranslation();
     const router = useRouter();
     const hide = useSharedValue<boolean>(false);
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const navWidth = useSharedValue<number>(0);
     const shareScreenHeight = useSharedValue<number>(screenHeight);
     const sharedScreenWidth = useSharedValue<typeof screenWidth>(0);
     const minimizeShared = useSharedValue<boolean>(false);
@@ -62,6 +60,7 @@ export default function Layout() {
     const navHeight = useSharedValue<number>(0);
     const tabChangeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const touchable = useSharedValue<boolean>(true);
+    const navWidth = 260;
 
     useEffect(() => {
         const onOpen = () => {
@@ -114,12 +113,12 @@ export default function Layout() {
                 easing: Easing.inOut(Easing.quad),
             })
             :
-            ((sharedScreenWidth.value / 2) - (navWidth.value / 2))
+            ((sharedScreenWidth.value / 2) - (navWidth / 2))
         ,
         width: withTiming(minimizeShared.value ?
             45
             :
-            (sharedScreenWidth.value <= 500 ? (sharedScreenWidth.value * .92) : 380),
+            navWidth,
             {
                 duration: 200,
                 easing: Easing.inOut(Easing.quad),
@@ -190,11 +189,12 @@ export default function Layout() {
             }}
             tabBar={() => (
                 <Animated.View
-                    style={[
-                        navContainerAnimation,
-                    ]}
+                    style={navContainerAnimation}
                     className="absolute bottom-0 z-[9999]"
                 >
+
+                    {/* Minimize */}
+
                     <PressableAnimated
                         onPress={() => setMinimize(false)}
                         style={{
@@ -212,11 +212,10 @@ export default function Layout() {
                         </View>
                     </PressableAnimated>
 
+                    {/* Normal */}
+
                     <Animated.View
-                        onLayout={(e) => {
-                            navWidth.value = e.nativeEvent.layout.width;
-                            navHeight.value = e.nativeEvent.layout.height;
-                        }}
+                        onLayout={(e) => navHeight.value = e.nativeEvent.layout.height}
                         style={[
                             {
                                 zIndex: minimize ? -1 : 1,
@@ -225,7 +224,7 @@ export default function Layout() {
                         ]}
                         className="absolute dark:bg-black bg-white rounded-[50px] shrink-0"
                     >
-                        <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px] border dark:border-white/20 border-black/20">
+                        <View className="w-full flex-row justify-center items-center px-3 py-2 dark:bg-white/10 bg-white rounded-[50px] border dark:border-white/10 border-black/20">
                             <Animated.View
                                 style={[
                                     {
@@ -278,24 +277,6 @@ export default function Layout() {
                             />
 
                             <NavButton
-                                name={t("nav_notifications")}
-                                focused={pathname == "/notifications"}
-                                icon={(
-                                    <Entypo
-                                        name="bell"
-                                        size={25}
-                                        color={pathname == "/notifications" ? "rgb(16, 185, 129)" : (theme === "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)")}
-                                    />
-                                )}
-                                onPress={() => {
-                                    tabChangeTimeout.current && clearTimeout(tabChangeTimeout.current);
-                                    tabChangeTimeout.current = setTimeout(() => {
-                                        pathname != "/notifications" && router.navigate("/notifications");
-                                    }, 250);
-                                }}
-                            />
-
-                            <NavButton
                                 name={t("nav_settings")}
                                 focused={pathname == "/settings"}
                                 icon={(
@@ -325,8 +306,6 @@ export default function Layout() {
                     lazy: false,
                 }}
             />
-
-            <Tabs.Screen name="notifications" />
 
             <Tabs.Screen name="settings" />
         </Tabs>

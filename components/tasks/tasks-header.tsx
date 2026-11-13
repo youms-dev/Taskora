@@ -1,7 +1,8 @@
 import { COLORS } from "@/constants/colors";
+import { HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -104,7 +105,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
         selectPosition.value = x;
         setFolderSelected(folder);
         Vibration.vibrate(100);
-        event.emit(UNTOUCHABLE_NAVBAR);
+        emitter.emit(UNTOUCHABLE_NAVBAR);
     }, [screenWidth, tasksSelected]);
 
     const foldersRenderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
@@ -414,7 +415,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                                         scale={.95}
                                         onPress={() => {
                                             foldersModalActive.value = true;
-                                            event.emit(HIDE_NAVBAR);
+                                            emitter.emit(HIDE_NAVBAR);
                                         }}
                                         className="w-full flex flex-row items-center gap-5"
                                     >
@@ -490,7 +491,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                             onPress={() => {
                                 setTasksSelected([]);
                                 setSearchSectionActive(true);
-                                event.emit(HIDE_NAVBAR);
+                                emitter.emit(HIDE_NAVBAR);
                             }}
                             className="w-full h-14 flex flex-row items-center mb-3 mt-2 px-2 dark:text-white/90 text-black dark:bg-white/10 bg-white/85 rounded-2xl border-b dark:border-white/20 border-black/20 pl-4 pr-12"
                         >

@@ -1,8 +1,9 @@
 import { BACKGROUND_TASK_MANAGEMENT, NOTIFICATION_BACKGROUND_MANAGEMENT } from "@/config/task-manager";
+import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import * as BackgroundTask from "expo-background-task";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
@@ -126,12 +127,12 @@ export default function ProtectedLayout() {
             }
             else if (action == MARK_DONE_CATEGORY && taskType == "task") {
                 await markTasksDone([taskId]);
-                event.emit(TASKS_CHANGED);
+                emitter.emit(TASKS_CHANGED);
             }
             else if (action == DELETE_CATEGORY) {
                 await deleteTasks([taskId]);
-                if (taskType == "task") event.emit(TASKS_CHANGED);
-                else event.emit(EVENTS_CHANGED);
+                if (taskType == "task") emitter.emit(TASKS_CHANGED);
+                else emitter.emit(EVENTS_CHANGED);
             }
             else {
                 router.navigate({

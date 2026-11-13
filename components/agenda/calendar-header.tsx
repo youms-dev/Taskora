@@ -1,7 +1,8 @@
 import { monthsTranslation } from "@/constants/calendar";
+import { HIDE_NAVBAR } from "@/constants/emitters";
 import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { format, startOfMonth } from "date-fns";
@@ -109,7 +110,7 @@ export const CalendarHeader = memo(({ context, currentMonth, mutation, flatListR
                         scale={.95}
                         onPress={() => {
                             openDateList(true);
-                            event.emit(HIDE_NAVBAR);
+                            emitter.emit(HIDE_NAVBAR);
                         }}
                     >
                         <TextAnimated
@@ -128,7 +129,7 @@ export const CalendarHeader = memo(({ context, currentMonth, mutation, flatListR
                     {/* Search button */}
 
                     <PressableAnimated onPress={() => {
-                        event.emit(HIDE_NAVBAR);
+                        emitter.emit(HIDE_NAVBAR);
                         searchSectionActive.value = true;
                     }}>
                         <FontAwesome5

@@ -5,11 +5,12 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { daysTranslation, monthsTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
+import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -454,7 +455,7 @@ export default function TaskPage() {
                 return prev;
             });
             setLoading(false);
-            event.emit(TASKS_CHANGED);
+            emitter.emit(TASKS_CHANGED);
         }
         catch (e) {
             setLoading(false);
@@ -467,12 +468,12 @@ export default function TaskPage() {
             handleGetTask();
         };
 
-        event.addListener(TASKS_CHANGED, onChange);
-        event.addListener(EVENTS_CHANGED, onChange);
+        emitter.addListener(TASKS_CHANGED, onChange);
+        emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            event.removeListener(TASKS_CHANGED);
-            event.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED);
         }
     }, []);
 
@@ -491,7 +492,7 @@ export default function TaskPage() {
                 archived: true,
             }));
             setLoading(false);
-            event.emit(TASKS_CHANGED);
+            emitter.emit(TASKS_CHANGED);
         }
         catch (e) {
             setLoading(false);
@@ -530,8 +531,8 @@ export default function TaskPage() {
                     pathname: "/(protected)/(tabs)",
                 });
             }
-            if (task.type == "task") event.emit(TASKS_CHANGED);
-            else event.emit(EVENTS_CHANGED);
+            if (task.type == "task") emitter.emit(TASKS_CHANGED);
+            else emitter.emit(EVENTS_CHANGED);
             setLoading(false);
         }
         catch (e) {
