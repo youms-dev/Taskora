@@ -9,6 +9,7 @@ import { dataSource } from "./datasource";
 import { PingModule } from "./ping/ping.module";
 import { TaskModule } from "./task/task.module";
 import { UserModule } from "./user/user.module";
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UserModule } from "./user/user.module";
     PingModule,
     ScheduleModule.forRoot(),
     AuthModule,
+    SessionModule,
   ],
   controllers: [AppController],
 })

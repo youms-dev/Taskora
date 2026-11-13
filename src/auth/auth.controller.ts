@@ -1,13 +1,12 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGard } from 'src/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
+import { _2FADto } from './dto/2fa.dto';
 import { LoginDto } from './dto/login.dto';
 import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
-import { _2FADto } from './dto/2fa.dto';
-import { hash } from 'bcryptjs';
 import { ResendCodeDto } from './dto/resend-code.dto';
 
 @Controller('auth')
@@ -46,7 +45,14 @@ export class AuthController {
 
   @UseGuards(JwtAuthGard)
   @Post("test")
-  test(@Body() data: RefreshDto) {
+  test(@Body() data: RefreshDto, @Req() req) {
+    console.log("User :", req.user);
+    // return this.authService.refresh(data);
+    return true;
+  }
+
+  @Post("refresh")
+  refresh(@Body() data: RefreshDto) {
     return this.authService.refresh(data);
   }
 }

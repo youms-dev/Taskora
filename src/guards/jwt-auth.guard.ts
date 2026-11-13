@@ -1,14 +1,46 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
-import { Observable } from 'rxjs';
+import { AuthService } from 'src/auth/auth.service';
+import { SessionService } from 'src/session/session.service';
 
 @Injectable()
 export class JwtAuthGard extends AuthGuard("jwt") {
-    canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-        const req = context.switchToHttp().getRequest();
+    constructor(
+        private readonly authService: AuthService,
+        private readonly jwtService: JwtService,
+        private readonly sessionService: SessionService,
+    ) {
+        super();
+    }
 
-        console.log(req.header["Content-Type"]);
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        try {
+            const req = context.switchToHttp().getRequest();
+            const authorization = req.headers?.authorization;
 
-        return true;
+            if (!authorization) {
+                throw new UnauthorizedException("Missing token");
+            }
+
+            const token = (authorization as string).split(" ").pop();
+
+            if (!token) {
+                throw new UnauthorizedException("Missing token");
+            }
+
+            const payload = await this.jwtService.verifyAsync(token, {
+                secret: process.env.ACCESS_SECRET,
+            });
+
+            const session = await this.sessionService.getSessionByDevice(payload.idDevice ?? "");
+
+            req.user = session.user;
+
+            return true;
+        }
+        catch (e) {
+            throw new UnauthorizedException();
+        }
     }
 }

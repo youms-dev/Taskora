@@ -1,10 +1,12 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
 import { compare, hash } from 'bcryptjs';
+import crypto from "crypto";
 import { render } from 'react-email';
 import CodeMail from 'src/components/code';
+import MessageMail from 'src/components/message';
 import { APP_NAME } from 'src/constants/names';
 import { Session } from 'src/database/entities/session.entity';
 import { Setting } from 'src/database/entities/setting.entity';
@@ -19,8 +21,6 @@ import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
-import MessageMail from 'src/components/message';
-import crypto from "crypto";
 
 @Injectable()
 export class AuthService {
@@ -61,23 +61,23 @@ export class AuthService {
             setting,
         });
 
-        const accessToken = await this.jwtService.signAsync({
-            email,
-        }, {
+        const idDevice = createId();
+        const brand = formatString(data.deviceBrand);
+        const deviceName = formatString(data.deviceName);
+        const payload = {
+            email: newUser.email,
+            idDevice,
+        }
+
+        const accessToken = await this.jwtService.signAsync(payload, {
             expiresIn: "15m",
             secret: process.env.ACCESS_SECRET,
         });
 
-        const refreshToken = await this.jwtService.signAsync({
-            email,
-        }, {
+        const refreshToken = await this.jwtService.signAsync(payload, {
             expiresIn: "30d",
             secret: process.env.REFRESH_SECRET,
         });
-
-        const idDevice = createId();
-        const brand = formatString(data.deviceBrand);
-        const deviceName = formatString(data.deviceName);
 
         await this.sessionRepo.save({
             user: newUser,
@@ -137,23 +137,23 @@ export class AuthService {
             provider: data.provider,
         });
 
-        const accessToken = await this.jwtService.signAsync({
-            email,
-        }, {
+        const idDevice = createId();
+        const brand = formatString(data.deviceBrand);
+        const deviceName = formatString(data.deviceName);
+        const payload = {
+            email: newUser.email,
+            idDevice,
+        }
+
+        const accessToken = await this.jwtService.signAsync(payload, {
             expiresIn: "15m",
             secret: process.env.ACCESS_SECRET,
         });
 
-        const refreshToken = await this.jwtService.signAsync({
-            email,
-        }, {
+        const refreshToken = await this.jwtService.signAsync(payload, {
             expiresIn: "30d",
             secret: process.env.REFRESH_SECRET,
         });
-
-        const idDevice = createId();
-        const brand = formatString(data.deviceBrand);
-        const deviceName = formatString(data.deviceName);
 
         await this.sessionRepo.save({
             user: newUser,
@@ -192,24 +192,6 @@ export class AuthService {
     }
 
     async handleSession(user: User, data: Omit<LoginDto, "password">) {
-        const accessToken = await this.jwtService.signAsync({
-            email: user.email,
-            sub: user.email,
-        }, {
-            expiresIn: "15m",
-            secret: process.env.ACCESS_SECRET,
-        });
-
-        const refreshToken = await this.jwtService.signAsync({
-            email: user.email,
-            sub: user.email,
-        }, {
-            expiresIn: "30d",
-            secret: process.env.REFRESH_SECRET,
-        });
-
-        let finalIdDevice = "";
-
         if (data.idDevice) {
             const session = await this.sessionRepo.findOne({
                 where: {
@@ -221,17 +203,51 @@ export class AuthService {
             });
 
             if (session) {
+                const payload = {
+                    email: user.email,
+                    idDevice: data.idDevice,
+                }
+
+                const accessToken = await this.jwtService.signAsync(payload, {
+                    expiresIn: "15m",
+                    secret: process.env.ACCESS_SECRET,
+                });
+
+                const refreshToken = await this.jwtService.signAsync(payload, {
+                    expiresIn: "30d",
+                    secret: process.env.REFRESH_SECRET,
+                });
+
                 await this.sessionRepo.save({
                     ...session,
                     refreshToken,
                 });
 
-                finalIdDevice = data.idDevice;
+                return {
+                    accessToken,
+                    refreshToken,
+                    idDevice: data.idDevice,
+                    email: user.email,
+                };
             }
             else {
                 const idDevice = createId();
                 const deviceName = formatString(data.deviceName);
                 const brand = formatString(data.deviceBrand);
+                const payload = {
+                    email: user.email,
+                    idDevice,
+                }
+
+                const accessToken = await this.jwtService.signAsync(payload, {
+                    expiresIn: "15m",
+                    secret: process.env.ACCESS_SECRET,
+                });
+
+                const refreshToken = await this.jwtService.signAsync(payload, {
+                    expiresIn: "30d",
+                    secret: process.env.REFRESH_SECRET,
+                });
 
                 await this.sessionRepo.save({
                     user,
@@ -242,13 +258,32 @@ export class AuthService {
                     type: data.deviceType,
                 });
 
-                finalIdDevice = idDevice;
+                return {
+                    accessToken,
+                    refreshToken,
+                    idDevice,
+                    email: user.email,
+                };
             }
         }
         else {
             const idDevice = createId();
             const deviceName = formatString(data.deviceName);
             const brand = formatString(data.deviceBrand);
+            const payload = {
+                email: user.email,
+                idDevice,
+            }
+
+            const accessToken = await this.jwtService.signAsync(payload, {
+                expiresIn: "15m",
+                secret: process.env.ACCESS_SECRET,
+            });
+
+            const refreshToken = await this.jwtService.signAsync(payload, {
+                expiresIn: "30d",
+                secret: process.env.REFRESH_SECRET,
+            });
 
             await this.sessionRepo.save({
                 user,
@@ -259,15 +294,13 @@ export class AuthService {
                 type: data.deviceType,
             });
 
-            finalIdDevice = idDevice;
+            return {
+                accessToken,
+                refreshToken,
+                idDevice,
+                email: user.email,
+            };
         }
-
-        return {
-            accessToken,
-            refreshToken,
-            idDevice: finalIdDevice,
-            email: user.email,
-        };
     }
 
     async login(data: LoginDto) {
@@ -386,75 +419,6 @@ export class AuthService {
         return await this.handleSession(user, { ...rest });
     }
 
-    async validate(email: string) {
-        const emailFormatted = email.toLocaleLowerCase().trim();
-
-        const user = await this.userRepo.findOne({
-            where: {
-                email: emailFormatted,
-            },
-        });
-
-        if (!user) {
-            throw new NotFoundException("User not found!");
-        }
-
-        return true;
-    }
-
-    async refresh(data: RefreshDto) {
-        try {
-
-            const validRefreshToken = await this.jwtService.verifyAsync(data.refreshToken, {
-                secret: process.env.REFRESH_SECRET,
-            });
-
-            let email: string = validRefreshToken.email;
-
-            const session = await this.sessionRepo.findOneBy({
-                user: {
-                    email,
-                },
-                refreshToken: data.refreshToken,
-            });
-
-            if (!session) {
-                throw new NotFoundException("Session not found!");
-            }
-
-            const accessToken = await this.jwtService.signAsync({
-                email,
-            }, {
-                secret: process.env.ACCESS_SECRET,
-                expiresIn: "15m",
-            });
-
-            const refreshToken = await this.jwtService.signAsync({
-                email,
-            }, {
-                secret: process.env.REFRESH_SECRET,
-                expiresIn: "30d",
-            });
-
-            await this.sessionRepo.update(
-                {
-                    idSession: session.idSession,
-                },
-                {
-                    refreshToken,
-                },
-            );
-
-            return {
-                accessToken,
-                refreshToken,
-            };
-        }
-        catch (e) {
-            throw new BadRequestException("Invalid token");
-        }
-    }
-
     async checkCode(data: _2FADto) {
         const email = data.email.toLowerCase();
         const attemptsKey = `login-attempts:${email}`;
@@ -551,5 +515,52 @@ export class AuthService {
                 }
             ],
         });
+    }
+
+    async refresh(data: RefreshDto) {
+        try {
+            const payload = await this.jwtService.verifyAsync(data.refreshToken, {
+                secret: process.env.REFRESH_SECRET,
+            });
+
+            const session = await this.sessionRepo.findOneBy({
+                user: {
+                    email: payload.email ?? "",
+                },
+                idDevice: payload.idDevice ?? "",
+                refreshToken: data.refreshToken,
+            });
+
+            if (!session) {
+                throw new NotFoundException("Session not found!");
+            }
+            const newPayload = {
+                email: payload.email,
+                idDevice: payload.idDevice,
+            }
+
+            const accessToken = await this.jwtService.signAsync(newPayload, {
+                secret: process.env.ACCESS_SECRET,
+                expiresIn: "15m",
+            });
+
+            const refreshToken = await this.jwtService.signAsync(newPayload, {
+                secret: process.env.REFRESH_SECRET,
+                expiresIn: "30d",
+            });
+
+            await this.sessionRepo.save({
+                ...session,
+                refreshToken,
+            });
+
+            return {
+                accessToken,
+                refreshToken,
+            };
+        }
+        catch (e) {
+            throw new UnauthorizedException("Invalid token");
+        }
     }
 }
