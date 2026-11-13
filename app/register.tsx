@@ -345,7 +345,10 @@ export default function Register() {
 
                 {/* Google */}
 
-                <View className={clsx(!checked && "opacity-50 pointer-events-none")}>
+                <View className={clsx(
+                  "my-5",
+                  !checked && "opacity-50 pointer-events-none"
+                )}>
                   <OAuthButton
                     name="Google"
                     icon="google"
@@ -475,7 +478,7 @@ export default function Register() {
                           },
                         ]
                       }}
-                      className="absolute left-0 top-0"
+                      className="absolute left-0 top-0 pointer-events-none"
                     >
                       <FontAwesome6
                         name="envelope-open-text"
@@ -510,7 +513,7 @@ export default function Register() {
                           },
                         ]
                       }}
-                      className="absolute left-0 top-0"
+                      className="absolute left-0 top-0 pointer-events-none"
                     >
                       <Fontisto
                         name="locked"

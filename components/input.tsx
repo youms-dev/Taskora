@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { Entypo } from "@expo/vector-icons";
-import { forwardRef, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, memo, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, TextInput, TextInputProps, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
@@ -35,7 +35,7 @@ interface Props extends TextInputProps {
  * @returns The input component
  */
 
-export const Input = forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, ...rest }: Props, inputRef) => {
+export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, ...rest }: Props, inputRef) => {
   const { theme, themeShared } = useTheme();
   const ref = useRef<TextInput>(null);
   const [focus, setFocus] = useState<boolean>(false);
@@ -159,4 +159,4 @@ export const Input = forwardRef<TextInput, Props>(({ placeholder, label, icon, p
       }
     </View>
   );
-});
+}));

@@ -395,7 +395,7 @@ export default function Login() {
                     }
                     className="w-full flex items-center mt-10"
                   >
-                    <View className="sm:w-[400px] w-full flex items-center gap-5 px-10">
+                    <View className="sm:w-[400px] w-full flex items-center gap-5 px-10 mb-5">
 
                       {/* Google */}
 
@@ -522,7 +522,7 @@ export default function Login() {
                                 },
                               ]
                             }}
-                            className="absolute left-0 top-0"
+                            className="absolute left-0 top-0 pointer-events-none"
                           >
                             <FontAwesome6
                               name="envelope-open-text"
@@ -557,7 +557,7 @@ export default function Login() {
                                 },
                               ]
                             }}
-                            className="absolute left-0 top-0"
+                            className="absolute left-0 top-0 pointer-events-none"
                           >
                             <Fontisto
                               name="locked"
