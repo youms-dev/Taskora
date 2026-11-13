@@ -28,6 +28,7 @@ export class AuthController {
     return this.authService.login(data);
   }
 
+  @UseGuards(JwtAuthGard)
   @Post("oauth-login")
   oAuthLogin(@Body() data: OAuthLoginDto) {
     return this.authService.oAuthLogin(data);
@@ -53,6 +54,7 @@ export class AuthController {
 
   @Post("refresh")
   refresh(@Body() data: RefreshDto) {
+    console.log("Massa")
     return this.authService.refresh(data);
   }
 }

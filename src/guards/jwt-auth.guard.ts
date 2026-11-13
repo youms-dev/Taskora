@@ -1,13 +1,11 @@
 import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthService } from 'src/auth/auth.service';
 import { SessionService } from 'src/session/session.service';
 
 @Injectable()
 export class JwtAuthGard extends AuthGuard("jwt") {
     constructor(
-        private readonly authService: AuthService,
         private readonly jwtService: JwtService,
         private readonly sessionService: SessionService,
     ) {
@@ -32,7 +30,6 @@ export class JwtAuthGard extends AuthGuard("jwt") {
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: process.env.ACCESS_SECRET,
             });
-
             const session = await this.sessionService.getSessionByDevice(payload.idDevice ?? "");
 
             req.user = session.user;
