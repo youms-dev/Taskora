@@ -3,8 +3,9 @@ import { TasksFooter } from "@/components/tasks/tasks-footer";
 import { PositionType, TasksHeader } from "@/components/tasks/tasks-header";
 import { TasksPager } from "@/components/tasks/tasks-pager";
 import { TasksSearch } from "@/components/tasks/tasks-search";
+import { FOLDERS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
-import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { useEffect } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
@@ -25,12 +26,12 @@ export default function Tasks() {
             context.handleGetFoldersCount();
         }
 
-        event.addListener(TASKS_CHANGED, onTasksEdited);
-        event.addListener(FOLDERS_CHANGED, onFolderCreated);
+        emitter.addListener(TASKS_CHANGED, onTasksEdited);
+        emitter.addListener(FOLDERS_CHANGED, onFolderCreated);
 
         return () => {
-            event.removeListener(TASKS_CHANGED);
-            event.removeListener(FOLDERS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED);
+            emitter.removeListener(FOLDERS_CHANGED);
         }
     }, []);
 

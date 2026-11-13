@@ -1,7 +1,8 @@
 import { COLORS } from "@/constants/colors";
+import { EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { event, EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
@@ -57,7 +58,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     const onPress = useCallback((e: GestureResponderEvent, day: Date, data: TaskType[]) => {
         if (data.length > 0) {
             setTargetDate(day);
-            event.emit(UNTOUCHABLE_NAVBAR);
+            emitter.emit(UNTOUCHABLE_NAVBAR);
         }
         else {
             router.navigate({
@@ -180,7 +181,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
         ) {
             return;
         }
-        
+
         timeout.current && clearTimeout(timeout.current);
 
         timeout.current = setTimeout(async () => {
@@ -229,10 +230,10 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     }), [dayWidth]);
 
     useEffect(() => {
-        event.addListener(EVENTS_CHANGED, () => handleGetTasks(true));
+        emitter.addListener(EVENTS_CHANGED, () => handleGetTasks(true));
 
         return () => {
-            event.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED);
         }
     }, [handleGetTasks]);
 

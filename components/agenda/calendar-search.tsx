@@ -1,9 +1,10 @@
 import { COLORS } from "@/constants/colors";
+import { EVENTS_CHANGED, SHOW_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, SHOW_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -424,7 +425,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
         closeTimeout.current && clearTimeout(closeTimeout.current);
         textInputRef.current?.blur();
         active.value = false;
-        event.emit(SHOW_NAVBAR);
+        emitter.emit(SHOW_NAVBAR);
         closeTimeout.current = setTimeout(() => {
             setCount(0);
             setEvents([]);
@@ -455,10 +456,10 @@ export const CalendarSearch = memo(({ active }: Props) => {
             handleSearch(value);
         }
 
-        event.addListener(EVENTS_CHANGED, onChange);
+        emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            event.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED);
         }
     }, [value]);
 
@@ -497,7 +498,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                         <Pressable
                             onPress={() => {
                                 active.value = false;
-                                event.emit(SHOW_NAVBAR);
+                                emitter.emit(SHOW_NAVBAR);
                             }}
                             android_ripple={{
                                 color: theme == "dark" ? "rgba(255, 255, 255, .2))" : "rgba(0, 0, 0, .1)",

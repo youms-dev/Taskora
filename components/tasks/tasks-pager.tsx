@@ -1,6 +1,7 @@
+import { SHOW_NAVBAR, TOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { event, SHOW_NAVBAR, TOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { FolderType } from "@/types/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
@@ -143,7 +144,7 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
 
     const handleClose = useCallback(() => {
         foldersModalActive.value = false;
-        event.emit(SHOW_NAVBAR);
+        emitter.emit(SHOW_NAVBAR);
         setTasksSelected([]);
     }, [setTasksSelected]);
 
@@ -187,7 +188,7 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
     const handlePress = useCallback((value: "edit" | "duplicate") => {
         if (!folderSelected) return;
         router.navigate({
-            pathname: "/(protected)/(folder)/create",
+            pathname: "/(protected)/(folders)/create",
             params: {
                 folder: JSON.stringify(folderSelected),
                 action: value,
@@ -199,7 +200,7 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
     const handleCloseContextMenu = useCallback(() => {
         setFolderSelected(null);
         selectPosition.value = null;
-        event.emit(TOUCHABLE_NAVBAR);
+        emitter.emit(TOUCHABLE_NAVBAR);
 
         const onBackPress = () => {
             if (selectPosition.value) {
@@ -487,7 +488,7 @@ export const TasksPager = memo(({ context, foldersModalActive, position: selectP
                                 scale={.95}
                                 onPress={() => {
                                     router.navigate({
-                                        pathname: "/(protected)/(folder)/create",
+                                        pathname: "/(protected)/(folders)/create",
                                     });
                                     handleClose();
                                 }}

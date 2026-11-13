@@ -1,10 +1,11 @@
 import { COLORS } from "@/constants/colors";
+import { SHOW_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, SHOW_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -387,7 +388,7 @@ export const TasksSearch = memo(({ context }: Props) => {
         searchTimeout.current && clearTimeout(searchTimeout.current);
         closeTimeout.current && clearTimeout(closeTimeout.current);
         textInputRef.current?.blur();
-        event.emit(SHOW_NAVBAR);
+        emitter.emit(SHOW_NAVBAR);
         closeTimeout.current = setTimeout(() => {
             setSearchSectionActive(false);
             setCount(0);
@@ -487,7 +488,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                         <Pressable
                             onPress={() => {
                                 setSearchSectionActive(false);
-                                event.emit(SHOW_NAVBAR);
+                                emitter.emit(SHOW_NAVBAR);
                             }}
                             android_ripple={{
                                 color: theme == "dark" ? "rgba(255, 255, 255, .2))" : "rgba(0, 0, 0, .1)",

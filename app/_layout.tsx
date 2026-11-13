@@ -17,7 +17,7 @@ import { Stack } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -26,6 +26,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
+import { AuthType } from "@/types/auth";
+import * as SecureStore from "expo-secure-store";
+import { AUTH_STORE } from "@/constants/secure-store";
 
 preventAutoHideAsync();
 
@@ -36,20 +39,11 @@ GoogleSignin.configure({
 
 export default function Layout() {
     const [loading, setLoading] = useState<boolean>(false);
-    const [user, setUser] = useState<Session["user"] | undefined>(undefined);
+    const [auth, setAuth] = useState<AuthType | null>(null);
     const { colorScheme } = useColorScheme();
     const [locales] = useLocales();
     const { i18n } = useTranslation();
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
-
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-            setUser(session?.user);
-            setLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
 
     useEffect(() => {
         (async () => {
@@ -74,19 +68,32 @@ export default function Layout() {
         })();
     }, [db]);
 
-    // useEffect(() => {
-    //     const { remove } = AppState.addEventListener("change", async (state) => {
-    //         if (state == "background") {
-    //             console.log("We're in background");
-    //             await BackgroundTask.triggerTaskWorkerForTestingAsync();
-    //         }
-    //         else if (state == "active") {
-    //             console.log("We're active");
-    //         }
-    //     });
+    const handleGetAuth = useCallback(async () => {
+        const authData = await SecureStore.getItemAsync(AUTH_STORE);
+        let auth: AuthType | null = null;
 
-    //     () => remove();
-    // }, []);
+        if (authData) {
+            auth = JSON.parse(authData);
+        }
+
+        console.log("Auth user :", auth);
+        setAuth(auth);
+    }, []);
+
+    useEffect(() => {
+        handleGetAuth();
+    }, []);
+
+    useEffect(() => {
+        const { remove } = AppState.addEventListener("change", async (state) => {
+            if (state == "background") {
+                console.log("We're in background");
+                await BackgroundTask.triggerTaskWorkerForTestingAsync();
+            }
+        });
+
+        () => remove();
+    }, []);
 
     if (!db) return (
         <SplashScreen />
@@ -126,13 +133,13 @@ export default function Layout() {
                                                     }
                                                 }}
                                             >
-                                                {/* <Stack.Protected guard={user ? false : true}> */}
-                                                <Stack.Protected guard={true}>
+                                                <Stack.Protected guard={!auth}>
+                                                    {/* <Stack.Protected guard={true}> */}
                                                     <Stack.Screen name="index" />
                                                 </Stack.Protected>
 
-                                                {/* <Stack.Protected guard={user ? false : true}> */}
-                                                <Stack.Protected guard={true}>
+                                                <Stack.Protected guard={!auth}>
+                                                    {/* <Stack.Protected guard={true}> */}
                                                     <Stack.Screen
                                                         name="register"
                                                         options={{
@@ -141,8 +148,8 @@ export default function Layout() {
                                                     />
                                                 </Stack.Protected>
 
-                                                {/* <Stack.Protected guard={user ? true : false}> */}
-                                                <Stack.Protected guard={false}>
+                                                <Stack.Protected guard={!!auth}>
+                                                    {/* <Stack.Protected guard={false}> */}
                                                     <Stack.Screen
                                                         name="(protected)"
                                                         options={{
@@ -163,6 +170,6 @@ export default function Layout() {
                     </DatabaseProvider>
                 </ThemeProvider>
             </KeyboardProvider>
-        </SafeAreaProvider>
+        </SafeAreaProvider >
     )
 }

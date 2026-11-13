@@ -4,8 +4,9 @@ import { CalendarHeader } from "@/components/agenda/calendar-header";
 import { CalendarSearch } from "@/components/agenda/calendar-search";
 import { CalendarSelectDate } from "@/components/agenda/calendar-select-date";
 import { Container } from "@/components/container";
+import { EXPAND_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR } from "@/constants/emitters";
 import { useCalendar } from "@/hooks/agenda/use-calendar";
-import { event, EXPAND_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { startOfMonth } from "date-fns";
 import { usePathname } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -29,11 +30,11 @@ export default function Agenda() {
 
     useEffect(() => {
         if (pathname == "/agenda") {
-            event.emit(MINIMIZE_NAVBAR);
+            emitter.emit(MINIMIZE_NAVBAR);
         }
 
         return () => {
-            event.emit(EXPAND_NAVBAR);
+            emitter.emit(EXPAND_NAVBAR);
         }
     }, [pathname]);
 
@@ -128,7 +129,7 @@ export default function Agenda() {
                 active={dateListActive}
                 onClose={() => {
                     setDateListActive(false);
-                    event.emit(SHOW_NAVBAR);
+                    emitter.emit(SHOW_NAVBAR);
                 }}
                 mutation={mutation}
                 animationRef={animationRef}

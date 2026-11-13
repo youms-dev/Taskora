@@ -1,6 +1,8 @@
 import { DELETE_CATEGORY, MARK_DONE_CATEGORY, SNOOZE_CATEGORY } from "@/constants/notifications";
+import { AUTH_STORE } from "@/constants/secure-store";
 import { backgroundDeleteTask, backgroundMarkTaskDone, backgroundUpdateTaskNotification } from "@/services/task";
 import { dismissNotificationAsync, NotificationContent, NotificationTaskPayload, NotificationTriggerInput, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 
 export const NOTIFICATION_BACKGROUND_MANAGEMENT = "notification-background-management";
@@ -73,4 +75,8 @@ TaskManager.defineTask(BACKGROUND_TASK_MANAGEMENT, async ({ data, error }) => {
         console.log("Error");
         return;
     }
+
+    const auth = await SecureStore.getItemAsync(AUTH_STORE);
+
+    console.log("Auth :", auth);
 });

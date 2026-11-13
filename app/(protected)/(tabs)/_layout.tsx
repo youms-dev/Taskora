@@ -1,8 +1,9 @@
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { useTheme } from "@/hooks/use-theme";
-import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -86,23 +87,23 @@ export default function Layout() {
             touchable.value = false;
         }
 
-        event.addListener(SHOW_NAVBAR, onClose);
-        event.addListener(HIDE_NAVBAR, onOpen);
+        emitter.addListener(SHOW_NAVBAR, onClose);
+        emitter.addListener(HIDE_NAVBAR, onOpen);
 
-        event.addListener(MINIMIZE_NAVBAR, onMinimize);
-        event.addListener(EXPAND_NAVBAR, onExpand);
+        emitter.addListener(MINIMIZE_NAVBAR, onMinimize);
+        emitter.addListener(EXPAND_NAVBAR, onExpand);
 
-        event.addListener(TOUCHABLE_NAVBAR, onTouchable);
-        event.addListener(UNTOUCHABLE_NAVBAR, onUntouchable);
+        emitter.addListener(TOUCHABLE_NAVBAR, onTouchable);
+        emitter.addListener(UNTOUCHABLE_NAVBAR, onUntouchable);
 
         return () => {
-            event.removeAllListeners(HIDE_NAVBAR);
-            event.removeAllListeners(SHOW_NAVBAR);
-            event.removeAllListeners(MINIMIZE_NAVBAR);
-            event.removeAllListeners(EXPAND_NAVBAR);
-            event.removeAllListeners(TASKS_CHANGED);
-            event.removeAllListeners(TOUCHABLE_NAVBAR);
-            event.removeAllListeners(UNTOUCHABLE_NAVBAR);
+            emitter.removeAllListeners(HIDE_NAVBAR);
+            emitter.removeAllListeners(SHOW_NAVBAR);
+            emitter.removeAllListeners(MINIMIZE_NAVBAR);
+            emitter.removeAllListeners(EXPAND_NAVBAR);
+            emitter.removeAllListeners(TASKS_CHANGED);
+            emitter.removeAllListeners(TOUCHABLE_NAVBAR);
+            emitter.removeAllListeners(UNTOUCHABLE_NAVBAR);
         }
     }, []);
 

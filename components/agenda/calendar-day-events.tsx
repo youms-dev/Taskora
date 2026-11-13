@@ -1,10 +1,11 @@
 import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
+import { EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { TaskType as EventType } from "@/types/task";
 import { Entypo, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -109,7 +110,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             x: pageX > (screenWidth / 2) ? pageX - contextMenuWidth : pageX,
             y: pageY > (screenHeight * .7) ? pageY - (contextMenuHeight.value + (contextMenuHeight.value / 2)) : pageY,
         };
-        eventEmitter.emit(UNTOUCHABLE_NAVBAR);
+        emitter.emit(UNTOUCHABLE_NAVBAR);
     }, [selected, screenHeight, screenHeight]);
 
     const renderItem = useCallback(({ item: event, index }: { item: EventType; index: number }) => {
@@ -305,7 +306,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             if (position.value) {
                 setSelected(null);
                 position.value = null;
-                eventEmitter.emit(TOUCHABLE_NAVBAR);
+                emitter.emit(TOUCHABLE_NAVBAR);
 
                 return true;
             }
@@ -376,7 +377,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             setEvents([]);
             setEventsCount(0);
         }, 500);
-        eventEmitter.emit(TOUCHABLE_NAVBAR);
+        emitter.emit(TOUCHABLE_NAVBAR);
     }, [selected]);
 
     const contextMenuAnimation = useAnimatedStyle(() => ({
@@ -472,10 +473,10 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             handleClose();
         }
 
-        eventEmitter.addListener(EVENTS_CHANGED, onChange);
+        emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            eventEmitter.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED);
         }
     }, []);
 
