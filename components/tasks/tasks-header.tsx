@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { FolderType } from "@/types/folder";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";

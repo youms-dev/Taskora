@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
-import { event, EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TaskType } from "@/types/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";

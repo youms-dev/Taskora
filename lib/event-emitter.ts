@@ -1,21 +1,3 @@
 import EventEmitter from "eventemitter3";
 
-export const event = new EventEmitter();
-
-export const HIDE_NAVBAR =  "hide-navbar";
-
-export const SHOW_NAVBAR =  "show-navbar";
-
-export const MINIMIZE_NAVBAR =  "minimize-navbar";
-
-export const EXPAND_NAVBAR =  "expand-navbar";
-
-export const TASKS_CHANGED =  "tasks-changed";
-
-export const FOLDERS_CHANGED =  "folders-changed";
-
-export const TOUCHABLE_NAVBAR =  "touchable-navbar";
-
-export const UNTOUCHABLE_NAVBAR =  "untouchable-navbar";
-
-export const EVENTS_CHANGED =  "events-changed";
+export const emitter = new EventEmitter();

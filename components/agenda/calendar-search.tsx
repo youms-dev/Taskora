@@ -3,7 +3,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, SHOW_NAVBAR } from "@/constants/emitters";
 import { TaskType } from "@/types/task";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";

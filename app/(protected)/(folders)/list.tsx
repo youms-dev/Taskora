@@ -7,7 +7,7 @@ import { COLORS } from "@/constants/colors";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, FOLDERS_CHANGED } from "@/lib/event-emitter";
+import { event, FOLDERS_CHANGED } from "@/constants/emitters";
 import { FolderType } from "@/types/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";

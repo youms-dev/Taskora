@@ -1,6 +1,6 @@
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { event, SHOW_NAVBAR, TOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, SHOW_NAVBAR, TOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { FolderType } from "@/types/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";

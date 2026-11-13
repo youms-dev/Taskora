@@ -9,7 +9,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { TaskType } from "@/types/task";
 import { Entypo, FontAwesome, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import clsx from "clsx";

@@ -2,7 +2,7 @@ import { BACKGROUND_TASK_MANAGEMENT, NOTIFICATION_BACKGROUND_MANAGEMENT } from "
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import * as BackgroundTask from "expo-background-task";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, useRouter } from "expo-router";

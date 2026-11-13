@@ -1,7 +1,7 @@
 import { monthsTranslation } from "@/constants/calendar";
 import { CalendarType } from "@/hooks/agenda/use-calendar";
 import { useTheme } from "@/hooks/use-theme";
-import { event, HIDE_NAVBAR } from "@/lib/event-emitter";
+import { event, HIDE_NAVBAR } from "@/constants/emitters";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { format, startOfMonth } from "date-fns";

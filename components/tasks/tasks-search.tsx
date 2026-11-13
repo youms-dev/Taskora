@@ -4,7 +4,7 @@ import { useTasks } from "@/hooks/database/use-tasks";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, SHOW_NAVBAR } from "@/lib/event-emitter";
+import { event, SHOW_NAVBAR } from "@/constants/emitters";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";

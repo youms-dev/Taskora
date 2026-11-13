@@ -4,7 +4,7 @@ import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event as eventEmitter, EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TaskType as EventType } from "@/types/task";
 import { Entypo, FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

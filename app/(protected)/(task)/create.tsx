@@ -17,7 +17,7 @@ import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { FolderType } from "@/types/folder";
 import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";

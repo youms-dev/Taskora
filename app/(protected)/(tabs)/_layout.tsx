@@ -2,7 +2,7 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
-import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/lib/event-emitter";
+import { event, EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

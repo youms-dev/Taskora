@@ -4,7 +4,7 @@ import { PositionType, TasksHeader } from "@/components/tasks/tasks-header";
 import { TasksPager } from "@/components/tasks/tasks-pager";
 import { TasksSearch } from "@/components/tasks/tasks-search";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
-import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/lib/event-emitter";
+import { event, FOLDERS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { useEffect } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
