@@ -10,7 +10,7 @@ import { NotificationSoundType } from "@/types/setting";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import { useRouter } from "expo-router";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
@@ -154,12 +154,17 @@ export default function SoundsList() {
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const [selected, setSelected] = useState<SoundType | null>(null);
     const { setting, setSetting } = useSettingsData();
+    const [selected, setSelected] = useState<SoundType | null>(null);
     const { setToast } = useToast();
 
+    const settingSound = useMemo(() => {
+        if (!setting?.notificationSound) return null;
+        return JSON.parse(setting.notificationSound) as NotificationSoundType;
+    }, [setting]);
+
     const handleSubmit = useCallback(() => {
-        if (!selected) return;
+        if (!selected || settingSound?.name == selected.name) return;
         const data = JSON.stringify({
             name: selected.name,
             fileName: selected.id,
@@ -171,7 +176,8 @@ export default function SoundsList() {
         });
         setSelected(null);
         setToast(t("sounds_list_success"), "success");
-    }, [setting, selected, setToast, i18n.language]);
+        router.back();
+    }, [setting, selected, setToast, i18n.language, settingSound]);
 
     return (
         <Container centerX>
@@ -228,7 +234,7 @@ export default function SoundsList() {
                         >
                             <Sound
                                 sound={sound}
-                                selected={selected?.id == sound.id}
+                                selected={!selected ? sound.name == settingSound?.name : (selected?.id == sound.id)}
                                 onSelect={() => {
                                     if (selected && selected.id == sound.id) {
                                         setSelected(null);
@@ -244,7 +250,7 @@ export default function SoundsList() {
             </ScrollView>
 
             {
-                selected && (
+                selected && selected.name != settingSound?.name && (
                     <View
                         style={{
                             transform: [
