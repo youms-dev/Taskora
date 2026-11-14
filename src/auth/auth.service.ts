@@ -84,8 +84,8 @@ export class AuthService {
             idDevice,
             deviceName,
             refreshToken,
-            brand,
-            type: data.deviceType,
+            deviceBrand: brand,
+            deviceType: data.deviceType,
         });
 
         const mail = await render(MessageMail({
@@ -160,8 +160,8 @@ export class AuthService {
             idDevice,
             deviceName,
             refreshToken,
-            brand,
-            type: data.deviceType,
+            deviceBrand: brand,
+            deviceType: data.deviceType,
         });
 
         const mail = await render(MessageMail({
@@ -254,8 +254,8 @@ export class AuthService {
                     idDevice,
                     deviceName,
                     refreshToken,
-                    brand,
-                    type: data.deviceType,
+                    deviceBrand: brand,
+                    deviceType: data.deviceType,
                 });
 
                 return {
@@ -290,8 +290,8 @@ export class AuthService {
                 idDevice,
                 deviceName,
                 refreshToken,
-                brand,
-                type: data.deviceType,
+                deviceBrand: brand,
+                deviceType: data.deviceType,
             });
 
             return {

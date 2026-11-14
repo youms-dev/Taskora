@@ -25,19 +25,22 @@ export class Session {
     })
     deviceName: string;
 
-    @Column()
-    brand?: string;
+    @Column({
+        name: "device_brand",
+    })
+    deviceBrand: string;
+
+    @Column({
+        name: "device_type",
+        type: "enum",
+        enum: DEVICE_TYPE,
+    })
+    deviceType: DEVICE_TYPE;
 
     @Column({
         name: "refresh_token",
     })
     refreshToken: string;
-
-    @Column({
-        type: "enum",
-        enum: DEVICE_TYPE,
-    })
-    type: DEVICE_TYPE;
 
     @CreateDateColumn({
         name: "created_at",
