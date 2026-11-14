@@ -1,5 +1,5 @@
-import { FolderType } from "@/types/folder";
-import { TaskType } from "@/types/task";
+import { FolderType } from "@/types/database/folder";
+import { TaskType } from "@/types/database/task";
 import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo-notifications";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

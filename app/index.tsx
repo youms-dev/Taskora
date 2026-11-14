@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { AuthType } from '@/types/auth';
-import { AUTH_PROVIDER } from '@/types/enums';
+import { AUTH_PROVIDER } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';

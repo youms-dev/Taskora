@@ -1,5 +1,5 @@
-import { SQLiteFolderType } from "@/types/folder";
-import { SQLiteTaskType } from "@/types/task";
+import { SQLiteFolderType } from "@/types/database/folder";
+import { SQLiteTaskType } from "@/types/database/task";
 import { faker } from "@faker-js/faker";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -9,11 +9,13 @@ function escapeSql(value: string): string {
     return value.replace(/"/g, '""');
 }
 
+const idUser = createId();
+
 function genData(): {
-    folders: Pick<SQLiteFolderType, "id_folder" | "title">[],
+    folders: Pick<SQLiteFolderType, "id_folder" | "title" | "id_user">[],
     tasks: Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">[],
 } {
-    const folders: Pick<SQLiteFolderType, "id_folder" | "title">[] = [];
+    const folders: Pick<SQLiteFolderType, "id_folder" | "title" | "id_user">[] = [];
     let tasks: Omit<SQLiteTaskType, "archived" | "created_at" | "updated_at">[] = [];
     const tasksCount = 50;
     const foldersCount = 5;
@@ -22,6 +24,7 @@ function genData(): {
     for (let i = 0; i < foldersCount; i++) {
         folders.push({
             id_folder: createId(),
+            id_user: idUser,
             title: faker.lorem.word(),
         });
     }
@@ -36,6 +39,7 @@ function genData(): {
 
             entry = {
                 id_task: createId(),
+                id_user: idUser,
                 title: faker.lorem.sentence({ min: 5, max: 20 }),
                 content: onb > .5 ? faker.lorem.text() : undefined,
                 icon: onb > .2 ? JSON.stringify({
@@ -55,6 +59,7 @@ function genData(): {
 
             entry = {
                 id_task: createId(),
+                id_user: idUser,
                 title: onb > 0.6 ? faker.lorem.sentence({ min: 5, max: 20 }) : undefined,
                 content: faker.lorem.text(),
                 icon: onb > .6 ? JSON.stringify({
@@ -91,22 +96,26 @@ function genData(): {
 
 const { folders, tasks } = genData();
 
-const init = `
-    INSERT INTO folder(id_folder, title) VALUES
+const initFolders = `
+    INSERT INTO folder(id_folder, id_user, title) VALUES
     ${folders.map((folder, i) =>
     `(
         "${folder.id_folder}", 
+        "${folder.id_user}", 
         "${escapeSql(folder.title)}")
         ${i < folders.length - 1 ? "," : ""}
     `
 ).join("")}
     ;
+`;
 
-    INSERT INTO task(id_task, id_folder, title, content, icon, done, start_at, end_at, type, remind_before, pinned, notification_id) VALUES
+const initTasks = `
+    INSERT INTO task(id_task, id_folder, id_user, title, content, icon, done, start_at, end_at, type, remind_before, pinned, notification_id) VALUES
     ${tasks.map((task, i) =>
     `(
         "${task.id_task}", 
         ${task.id_folder ? `"${task.id_folder}"` : null},
+        "${task.id_user}", 
         ${task.title ? `"${escapeSql(task.title)}"` : null}, 
         ${task.content ? `"${escapeSql(task.content)}"` : null}, 
         ${task.icon ? `"${escapeSql(task.icon)}"` : null}, 
@@ -121,32 +130,69 @@ const init = `
 ).join("")}
     ON CONFLICT (id_task)
     DO NOTHING;
+`;
 
-    INSERT INTO setting (id_setting, id_user) VALUES (
-        "${createId()}",
+const initSettings = `
+    INSERT INTO setting (id_setting) 
+    VALUES (
         "${createId()}"
     );
 `;
 
 const drop = `
+    DROP TABLE IF EXISTS session;
     DROP TABLE IF EXISTS task;
     DROP TABLE IF EXISTS folder;
+    DROP TABLE IF EXISTS user;
     DROP TABLE IF EXISTS setting;
 `;
 
 export const INIT_DATABASE = `
 ${drop}
+        
+    CREATE TABLE IF NOT EXISTS setting (
+        id_setting TEXT PRIMARY KEY NOT NULL,
+        language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),
+        confirm_before_delete BOOLEAN DEFAULT 1,
+        notification_sound TEXT DEFAULT '{
+            "name": "Sound 2",
+            "fileName": "sound02.wav"
+        }',
+        _2FA BOOLEAN DEFAULT 1,
+        auto_sync BOOLEAN DEFAULT 1,
+        created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+        updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS user (
+        id_user TEXT NOT NULL PRIMARY KEY,
+        id_setting TEXT NOT NULL,
+        name TEXT DEFAULT NULL,
+        email TEXT UNIQUE NOT NULL,
+        photo TEXT DEFAULT NULL,
+        provider TEXT DEFAULT NULL CHECK (provider IN ('GOOGLE')),
+        created_at TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
+        updated_at TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
+
+        FOREIGN KEY (id_setting) REFERENCES setting(id_setting) ON DELETE CASCADE
+    );
     
     CREATE TABLE if NOT EXISTS folder (
         id_folder TEXT PRIMARY KEY NOT NULL,
+        id_user TEXT NOT NULL,
         title TEXT,
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-        updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
+        updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+
+        FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE
     ); 
+    
+    CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
     
     CREATE TABLE if NOT EXISTS task (
         id_task TEXT PRIMARY KEY NOT NULL,
         id_folder TEXT DEFAULT NULL,
+        id_user TEXT DEFAULT NULL,
         title TEXT DEFAULT NULL,
         content TEXT DEFAULT NULL,
         icon TEXT NULL,
@@ -161,29 +207,26 @@ ${drop}
         created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
         
-        FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL
+        FOREIGN KEY (id_folder) REFERENCES folder(id_folder) ON DELETE SET NULL,
+        FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE
     );
         
-    CREATE TABLE IF NOT EXISTS setting(
-        id_setting TEXT PRIMARY KEY NOT NULL,
-        id_user TEXT NOT NULL,
-        language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),
-        confirm_before_delete BOOLEAN DEFAULT 1,
-        notification_sound TEXT DEFAULT '{
-            "name": "Sound 2",
-            "fileName": "sound02.wav"
-        }',
-        _2FA BOOLEAN DEFAULT 1,
-        auto_sync BOOLEAN DEFAULT 1,
-        created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-        updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
-    );
-    
     CREATE INDEX IF NOT EXISTS task_id_folder_id_index ON task(id_task, id_folder);
     CREATE INDEX IF NOT EXISTS task_title_index ON task(title);
     CREATE INDEX IF NOT EXISTS task_start_at_index ON task(start_at);
     
-    CREATE INDEX IF NOT EXISTS folder_title_index ON folder(title);
+    CREATE TABLE IF NOT EXISTS session (
+        id_setting TEXT NOT NULL PRIMARY KEY,
+        id_user TEXT NOT NULL,
+        id_device TEXT NOT NULL,
+        device_name TEXT NOT NULL,
+        device_type TEXT NOT NULL CHECK (device_type IN ('ANDROID', 'IOS')),
+        device_brand TEXT NOT NULL,
+        last_connection TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
+        created_at TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
 
-    ${init}
+        FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE
+    );
+
+    ${initSettings}
     `;

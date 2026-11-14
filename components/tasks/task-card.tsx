@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
-import { TaskType } from "@/types/task";
+import { TaskType } from "@/types/database/task";
 import { AntDesign } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";

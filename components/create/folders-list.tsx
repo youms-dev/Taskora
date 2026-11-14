@@ -1,6 +1,6 @@
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
-import { FolderType } from "@/types/folder";
+import { FolderType } from "@/types/database/folder";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

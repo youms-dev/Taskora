@@ -14,7 +14,7 @@ import { APP_NAME } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
-import { NotificationSoundType } from "@/types/setting";
+import { NotificationSoundType } from "@/types/database/setting";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";

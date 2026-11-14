@@ -9,7 +9,7 @@ import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { emitter } from "@/lib/event-emitter";
-import { FolderType } from "@/types/folder";
+import { FolderType } from "@/types/database/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";

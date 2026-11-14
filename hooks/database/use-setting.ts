@@ -1,4 +1,4 @@
-import { SettingType, SQLiteSettingType } from "@/types/setting";
+import { SettingType, SQLiteSettingType } from "@/types/database/setting";
 import { useDatabase } from "./use-database";
 
 export const useSettings = () => {
@@ -9,12 +9,11 @@ export const useSettings = () => {
 
         try {
             const data = await db.getFirstAsync("SELECT * FROM setting") as SQLiteSettingType;
-            const { id_setting, id_user, notification_sound, confirm_before_delete, _2FA, auto_sync, created_at, updated_at, ...rest } = data;
+            const { id_setting, notification_sound, confirm_before_delete, _2FA, auto_sync, created_at, updated_at, ...rest } = data;
 
             return {
                 ...rest,
                 idSetting: id_setting,
-                idUser: id_user,
                 notificationSound: notification_sound,
                 confirmBeforeDelete: Boolean(confirm_before_delete),
                 _2FA: Boolean(_2FA),

@@ -3,7 +3,7 @@ import { HIDE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { emitter } from "@/lib/event-emitter";
-import { FolderType } from "@/types/folder";
+import { FolderType } from "@/types/database/folder";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

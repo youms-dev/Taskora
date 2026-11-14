@@ -1,7 +1,7 @@
 import { useDatabase } from "@/hooks/database/use-database";
 import { api } from "@/lib/axios";
-import { FolderType } from "@/types/folder";
-import { SQLiteTaskType, TaskType } from "@/types/task";
+import { FolderType } from "@/types/database/folder";
+import { SQLiteTaskType, TaskType } from "@/types/database/task";
 import { endOfDay, startOfDay } from "date-fns";
 
 export const useTasks = () => {
@@ -43,12 +43,13 @@ export const useTasks = () => {
 
             const dataParsed: TaskType[] = result.length > 0 ?
                 result.map((item) => {
-                    const { id_task, id_folder, done, start_at, end_at, archived, notification_id, created_at, updated_at, ...rest } = item;
+                    const { id_task, id_folder, id_user, done, start_at, end_at, archived, notification_id, created_at, updated_at, ...rest } = item;
 
                     return ({
                         ...rest,
                         idTask: id_task,
                         idFolder: id_folder,
+                        idUser: id_user,
                         startAt: start_at,
                         endAt: end_at ? new Date(end_at) : null,
                         archived: Boolean(archived),
@@ -77,12 +78,13 @@ export const useTasks = () => {
         try {
             const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
-                const { id_task, id_folder, start_at, end_at, archived, done, notification_id, remind_before, created_at, updated_at, ...rest } = item;
+                const { id_task, id_folder, id_user, start_at, end_at, archived, done, notification_id, remind_before, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
                     idFolder: id_folder,
+                    idUser: id_user,
                     startAt: start_at,
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
@@ -167,11 +169,12 @@ export const useTasks = () => {
             }
 
             const dataParsed = data.length > 0 ? data.map(item => {
-                const { id_task, start_at, end_at, archived, done, notification_id, created_at, updated_at, ...rest } = item;
+                const { id_task, id_user, start_at, end_at, archived, done, notification_id, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idTask: id_task,
+                    idUser: id_user,
                     startAt: start_at,
                     endAt: end_at ? new Date(end_at) : null,
                     archived: Boolean(archived),
@@ -238,11 +241,12 @@ export const useTasks = () => {
                 };
             }
 
-            const { id_task, id_folder, folder_title, start_at, archived, end_at, done, remind_before, notification_id, created_at, updated_at, ...rest } = task;
+            const { id_task, id_folder, id_user, folder_title, start_at, archived, end_at, done, remind_before, notification_id, created_at, updated_at, ...rest } = task;
 
             return {
                 ...rest,
                 idTask: id_task,
+                idUser: id_user,
                 idFolder: id_folder,
                 folderTitle: folder_title,
                 startAt: start_at,

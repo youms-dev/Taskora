@@ -5,7 +5,7 @@ import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { emitter } from "@/lib/event-emitter";
-import { TaskType } from "@/types/task";
+import { TaskType } from "@/types/database/task";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";

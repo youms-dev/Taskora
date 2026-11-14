@@ -1,5 +1,5 @@
 import { DATABASE_NAME } from "@/config/sql";
-import { TaskType } from "@/types/task";
+import { TaskType } from "@/types/database/task";
 import { openDatabaseAsync } from "expo-sqlite";
 
 export const STORAGE_TEST = "test-background";

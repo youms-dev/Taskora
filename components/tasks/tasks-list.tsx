@@ -1,7 +1,7 @@
 import { LIMIT, TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
-import { FolderType } from "@/types/folder";
-import { TaskType } from "@/types/task";
+import { FolderType } from "@/types/database/folder";
+import { TaskType } from "@/types/database/task";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -2,7 +2,7 @@ import { COLORS } from "@/constants/colors";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
-import { TaskType } from "@/types/task";
+import { TaskType } from "@/types/database/task";
 import { dateGraduation } from "@/utils/tools";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

@@ -3,7 +3,7 @@ import { EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { emitter } from "@/lib/event-emitter";
-import { TaskType } from "@/types/task";
+import { TaskType } from "@/types/database/task";
 import clsx from "clsx";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isToday, startOfMonth, startOfWeek } from "date-fns";
 import { useRouter } from "expo-router";

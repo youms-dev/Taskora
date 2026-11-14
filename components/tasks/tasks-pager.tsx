@@ -2,7 +2,7 @@ import { SHOW_NAVBAR, TOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { emitter } from "@/lib/event-emitter";
-import { FolderType } from "@/types/folder";
+import { FolderType } from "@/types/database/folder";
 import { Entypo, FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";

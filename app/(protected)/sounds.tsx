@@ -6,7 +6,7 @@ import { COLORS } from "@/constants/colors";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { NotificationSoundType } from "@/types/setting";
+import { NotificationSoundType } from "@/types/database/setting";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import { useRouter } from "expo-router";

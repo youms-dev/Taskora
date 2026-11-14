@@ -1,5 +1,5 @@
 import { SplashScreen } from "@/components/spash-screen";
-import { SettingType } from "@/types/setting";
+import { SettingType } from "@/types/database/setting";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useSettings } from "../database/use-setting";
 

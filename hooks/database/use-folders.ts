@@ -1,6 +1,6 @@
 import { useDatabase } from "@/hooks/database/use-database";
-import { FolderType, SQLiteFolderType } from "@/types/folder";
-import { TaskType } from "@/types/task";
+import { FolderType, SQLiteFolderType } from "@/types/database/folder";
+import { TaskType } from "@/types/database/task";
 import { createId } from "@paralleldrive/cuid2";
 
 export const useFolders = () => {
@@ -20,11 +20,12 @@ export const useFolders = () => {
             }
 
             const dataParsed: FolderType[] = result.length > 0 ? result.map(item => {
-                const { id_folder, created_at, updated_at, ...rest } = item;
+                const { id_folder, id_user, created_at, updated_at, ...rest } = item;
 
                 return ({
                     ...rest,
                     idFolder: id_folder,
+                    idUser: id_user,
                     createdAt: created_at,
                     updatedAt: updated_at,
                 });

@@ -1,6 +1,5 @@
 export type SettingType = {
     idSetting: string;
-    idUser: string;
     language?: "en" | "fr" | null;
     confirmBeforeDelete?: boolean | null;
     notificationSound?: string | null;
@@ -12,7 +11,6 @@ export type SettingType = {
 
 export type SQLiteSettingType = {
     id_setting: string;
-    id_user: string;
     language?: "en" | "fr" | null;
     confirm_before_delete?: boolean | null;
     notification_sound?: string | null;
