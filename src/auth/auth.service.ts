@@ -447,7 +447,7 @@ export class AuthService {
         if (!redisCode) {
             throw new NotFoundException("The code has expired!");
         }
-        else if (String(redisCode) != String(data.code)) {
+        else if (redisCode != data.code) {
             throw new BadRequestException("Invalid code!");
         }
 

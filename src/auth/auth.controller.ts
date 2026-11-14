@@ -28,7 +28,6 @@ export class AuthController {
     return this.authService.login(data);
   }
 
-  @UseGuards(JwtAuthGard)
   @Post("oauth-login")
   oAuthLogin(@Body() data: OAuthLoginDto) {
     return this.authService.oAuthLogin(data);
