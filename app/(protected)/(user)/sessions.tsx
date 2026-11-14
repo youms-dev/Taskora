@@ -431,7 +431,7 @@ export default function SessionsPage() {
 
             <Animated.View
                 style={overviewAnimation}
-                className="absolute w-full flex justify-center items-center z-[2] px-5 rounded-[20px]"
+                className="absolute w-full flex justify-center items-center z-[2] px-5 rounded-[20px] pointer-events-none"
             >
                 <View className="w-full dark:bg-black bg-white rounded-[20px]">
                     <View className="w-full flex justify-center items-center dark:bg-white/10 bg-white pt-5 rounded-[20px] pb-3">

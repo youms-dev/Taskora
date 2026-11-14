@@ -61,7 +61,6 @@ export const useTasksData = () => {
         catch (e) {
             syncLoading.current = false;
             synced.current = false;
-            console.log(e);
         }
     };
 
@@ -82,13 +81,13 @@ export const useTasksData = () => {
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
             if (!synced.current) syncData(data.length);
-            setLoading(false);
         }
 
         catch (e) {
-            setLoading(false);
             setToast(t("sqlite_error"), "error");
-            console.log(e);
+        }
+        finally {
+            setLoading(false);
         }
     }, [tasks, i18n.language, setToast]);
 
@@ -99,8 +98,6 @@ export const useTasksData = () => {
             setTasksCount(count);
         }
         catch (e) {
-            console.log(e);
-            setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
     }, [i18n.language, setToast]);
@@ -115,9 +112,7 @@ export const useTasksData = () => {
 
             setFolders(data);
         }
-        catch (e) {
-            console.log(e);
-        }
+        catch { }
     }, []);
 
     const handleGetFoldersCount = useCallback(async () => {
@@ -126,11 +121,8 @@ export const useTasksData = () => {
 
             setFoldersCount(count);
         }
-        catch (e) {
-            console.log(e);
-        }
+        catch { }
     }, []);
-
 
     const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
         if (loadingRef.current) return;
@@ -153,6 +145,7 @@ export const useTasksData = () => {
                 await cancelScheduledNotificationAsync(task.notificationId);
                 await dismissNotificationAsync(task.notificationId);
             }));
+
             setToast(t("tasks_archived", { many: selected.length > 1 ? "s" : "" }));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
@@ -165,7 +158,6 @@ export const useTasksData = () => {
             }
         }
         catch (e) {
-            console.log(e);
             setLoading(false);
             setTasksCount(prev => prev + selected.length);
             tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
@@ -185,6 +177,7 @@ export const useTasksData = () => {
             await toggleArchiveTasks([task.idTask], true);
             await cancelScheduledNotificationAsync(task.notificationId);
             await dismissNotificationAsync(task.notificationId);
+
             setToast(t("tasks_archived"));
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
@@ -197,7 +190,6 @@ export const useTasksData = () => {
             }
         }
         catch (e) {
-            console.log(e);
             tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
             tasksTmp.current = [];
             setTasksCount(prev => prev + 1);
@@ -266,7 +258,7 @@ export const useTasksData = () => {
             }
         }
         catch (e) {
-            console.log(e);
+
             deleting.current = false;
             setLoading(false);
             setTasksCount(prev => prev + data.length);
@@ -289,7 +281,6 @@ export const useTasksData = () => {
             setDismiss(
                 () => handleDeleteTask(task, false, task),
                 () => {
-                    console.log("Cancelled solo");
                     setTasksCount(prev => prev + 1);
                     tasksTmp.current.length > 0 && setTasks(tasksTmp.current);
                     tasksTmp.current = [];
@@ -322,7 +313,7 @@ export const useTasksData = () => {
             }
         }
         catch (e) {
-            console.log(e);
+
             deleting.current = false;
             tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
             setTasksCount(prev => prev + 1);
@@ -345,9 +336,10 @@ export const useTasksData = () => {
             handleGetTasks(true);
         }
         catch (e) {
+            loadingRef.current = false;
             setLoading(false);
             setToast(t("sqlite_error"), "error");
-            console.log(e);
+
         }
     }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
 
@@ -382,14 +374,15 @@ export const useTasksData = () => {
                     ...prev.filter(t => !tasksFormatted.some(task => task.idTask == t.idTask) && !t.pinned),
                 ]);
             }
-            setLoading(false);
         }
         catch (e) {
-            setLoading(false);
             setToast(t("sqlite_error"), "error");
-            console.log(e);
+
         }
-    }, [tasksSelected, i18n.language, setToast, loading]);
+        finally {
+            setLoading(false);
+        }
+    }, [tasksSelected, i18n.language, setToast]);
 
     const handleMarkDone = useCallback(async () => {
         if (loadingRef.current || !selectMap.current || selectMap.current.size == 0) return;
@@ -413,7 +406,7 @@ export const useTasksData = () => {
         catch (e) {
             setLoading(false);
             setToast(t("sqlite_error"), "error");
-            console.log(e);
+
         }
     }, [tasksSelected, i18n.language, setToast, handleGetTasks]);
 
@@ -459,6 +452,7 @@ export const useTasksData = () => {
 
         try {
             await deleteFolder(entry.idFolder);
+            loadingRef.current = false;
             setLoading(false);
         }
         catch (e) {
@@ -467,7 +461,7 @@ export const useTasksData = () => {
             setFoldersCount(prev => prev + 1);
             setToast(t("sqlite_error"), "error");
             foldersTmp.current = [];
-            console.log(e);
+
         }
     }, [folders, i18n.language, setDismiss, setToast, selectMap]);
 

@@ -36,7 +36,7 @@ export default function FolderList() {
     const { t, i18n } = useTranslation();
     const router = useRouter();
     const folderHeight = 60;
-    const foldersGap = 20;
+    const foldersGap = 10;
     const [folders, setFolders] = useState<FolderType[]>([]);
     const [foldersCount, setFoldersCount] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
@@ -103,12 +103,18 @@ export default function FolderList() {
 
     const renderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
         return (
-            <Animated.View style={{
-                opacity: !folderSelected ?
-                    1
-                    :
-                    (folderSelected.idFolder == folder.idFolder ? 1 : .5),
-            }}>
+            <Animated.View
+                style={{
+                    opacity: (
+                        !folderSelected ?
+                            1
+                            :
+                            (folderSelected.idFolder == folder.idFolder ? 1 : theme == "dark" ? .5 : .3)
+                    ),
+                    height: folderHeight,
+                }}
+                className="w-full dark:bg-black bg-white rounded-xl"
+            >
                 <Animated.View
                     entering={FadeInUp
                         .delay(index * 100)
@@ -120,21 +126,24 @@ export default function FolderList() {
                         .duration(300)
                         .easing(Easing.inOut(Easing.quad))
                     }
-                    className="w-full rounded-xl"
+                    style={{
+                        backgroundColor: theme == "dark" ? "rgba(255, 255, 255, .08)" : "white"
+                    }}
+                    className="size-full rounded-xl"
                 >
                     <Pressable
                         delayLongPress={150}
                         onLongPress={(e) => onFolderLongPress(e, folder)}
                         onPress={() => onFolderPress(folder)}
-                        className="w-full flex flex-row items-center gap-4"
+                        className="size-full flex flex-row items-center gap-4 px-5"
                     >
                         {
                             selectMap.size > 0 && (
-                                <View className="h-full pointer-events-none">
+                                <View className="pointer-events-none">
                                     <Checkbox
                                         size={30}
                                         borderWidth={1}
-                                        borderRadius={10}
+                                        borderRadius={8}
                                         checked={selectMap.has(folder.idFolder)}
                                     />
                                 </View>
@@ -142,7 +151,10 @@ export default function FolderList() {
                         }
 
                         <View className={clsx(selectMap.size > 0 ? "max-w-[85%]" : "w-full")}>
-                            <TextAnimated className="text-lg">
+                            <TextAnimated
+                                numberOfLines={1}
+                                className="text-lg"
+                            >
                                 {folder.title}
                             </TextAnimated>
                         </View>
@@ -171,9 +183,9 @@ export default function FolderList() {
                                     .easing(Easing.inOut(Easing.quad))
                                 }
                                 style={{
-                                    height: folderHeight
+                                    height: folderHeight,
                                 }}
-                                className="w-full rounded-2xl overflow-hidden"
+                                className="w-full rounded-xl overflow-hidden"
                             >
                                 <Skeleton delay={i * 200} />
                             </Animated.View>

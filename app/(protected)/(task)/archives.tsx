@@ -5,13 +5,14 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
-import { event, TASKS_CHANGED } from "@/constants/emitters";
+import { emitter } from "@/lib/event-emitter";
 import { NotificationSoundType } from "@/types/setting";
 import { TaskType } from "@/types/task";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -137,7 +138,7 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
             setLoading(false);
             setToast(t("archives_unarchive_tasks"), "default", 2000);
             onRefresh();
-            event.emit(TASKS_CHANGED);
+            emitter.emit(TASKS_CHANGED);
         }
         catch (e) {
             onRefresh(true);
@@ -662,7 +663,7 @@ export default function Archives() {
 
             setProcessing(false);
             handleGetTasks(true);
-            event.emit(TASKS_CHANGED);
+            emitter.emit(TASKS_CHANGED);
             setToast(t("archives_unarchive_tasks", { many: tab.length > 1 ? "s" : "" }));
         }
         catch (e) {
@@ -794,10 +795,10 @@ export default function Archives() {
             handleGetTasks(true);
         }
 
-        event.addListener(TASKS_CHANGED, onChange);
+        emitter.addListener(TASKS_CHANGED, onChange);
 
         return () => {
-            event.removeListener(TASKS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED);
         }
     }, []);
 

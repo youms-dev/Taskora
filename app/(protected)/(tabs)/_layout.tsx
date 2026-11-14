@@ -237,7 +237,7 @@ export default function TabsLayout() {
                                     },
                                     navShadowAnimation,
                                 ]}
-                                className="absolute bottom-0 w-[105%] h-full bg-black/30 -z-[1] rounded-[50px]"
+                                className="absolute bottom-0 w-[105%] h-full dark:bg-black/50 bg-black/20 -z-[1] rounded-[50px]"
                             />
 
                             <NavButton
