@@ -111,6 +111,7 @@ export default function Login() {
     catch (e) {
       const { status } = e as ApiError;
 
+      console.log(e);
       if (status == 429) {
         setToast(t("login_429"), "error", 5000);
       }
@@ -260,7 +261,7 @@ export default function Login() {
 
       const { data } = await api.post("/auth/login/2fa/check-code", {
         email: inputsValues.email,
-        code: Number(inputsValues.code),
+        code: inputsValues.code,
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
@@ -277,6 +278,11 @@ export default function Login() {
 
       console.log(e);
       if (status == 429) {
+        set_2fa(false);
+        setInputsValues(prev => ({
+          ...prev,
+          code: "",
+        }));
         setToast(t("login_429"), "error", 5000);
       }
       else if (status == 404) {

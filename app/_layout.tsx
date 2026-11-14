@@ -1,34 +1,30 @@
-import { Container } from "@/components/container";
-import { Loader } from "@/components/loader";
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
+import { AUTH_STORE } from "@/constants/secure-store";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { AuthType } from "@/types/auth";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { Session } from "@supabase/supabase-js";
 import * as BackgroundTask from "expo-background-task";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, View } from "react-native";
+import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
-import { AuthType } from "@/types/auth";
-import * as SecureStore from "expo-secure-store";
-import { AUTH_STORE } from "@/constants/secure-store";
 
 preventAutoHideAsync();
 
@@ -69,19 +65,26 @@ export default function Layout() {
     }, [db]);
 
     const handleGetAuth = useCallback(async () => {
-        const authData = await SecureStore.getItemAsync(AUTH_STORE);
-        let auth: AuthType | null = null;
+        try {
+            !auth && setLoading(true);
+            const authData = await SecureStore.getItemAsync(AUTH_STORE);
+            let authFormatted: AuthType | null = null;
 
-        if (authData) {
-            auth = JSON.parse(authData);
+            if (authData) {
+                authFormatted = JSON.parse(authData);
+            }
+
+            console.log("Auth user :", authFormatted);
+            setAuth(authFormatted);
         }
-
-        console.log("Auth user :", auth);
-        setAuth(auth);
-    }, []);
+        catch { }
+        finally {
+            setLoading(false);
+        }
+    }, [auth]);
 
     useEffect(() => {
-        handleGetAuth();
+        // handleGetAuth();
     }, []);
 
     useEffect(() => {
@@ -95,7 +98,7 @@ export default function Layout() {
         () => remove();
     }, []);
 
-    if (!db) return (
+    if (!db || loading) return (
         <SplashScreen />
     )
 
@@ -111,18 +114,6 @@ export default function Layout() {
                             <ToastProvider>
                                 <AuthProvider>
                                     {
-                                        loading && (
-                                            <Container centerX>
-                                                <View className="w-full h-full flex justify-center items-center">
-                                                    <View className="size-[100px]">
-                                                        <Loader />
-                                                    </View>
-                                                </View>
-                                            </Container>
-                                        )
-                                    }
-
-                                    {
                                         !loading && (
                                             <Stack
                                                 screenOptions={{
@@ -134,12 +125,10 @@ export default function Layout() {
                                                 }}
                                             >
                                                 <Stack.Protected guard={!auth}>
-                                                    {/* <Stack.Protected guard={true}> */}
                                                     <Stack.Screen name="index" />
                                                 </Stack.Protected>
 
                                                 <Stack.Protected guard={!auth}>
-                                                    {/* <Stack.Protected guard={true}> */}
                                                     <Stack.Screen
                                                         name="register"
                                                         options={{
@@ -149,7 +138,6 @@ export default function Layout() {
                                                 </Stack.Protected>
 
                                                 <Stack.Protected guard={!!auth}>
-                                                    {/* <Stack.Protected guard={false}> */}
                                                     <Stack.Screen
                                                         name="(protected)"
                                                         options={{
