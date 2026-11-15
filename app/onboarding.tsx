@@ -1,4 +1,4 @@
-import { Button } from "@/components/Button";
+import { Button } from "@/components/button";
 import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { PressableAnimated } from "@/components/pressable-animated";

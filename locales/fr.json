@@ -191,5 +191,18 @@
     "register_conflict": "Compte déjà existant!\nConnectez vous à la place.",
     "register_error_email_length": "L'email doit contenir entre 10 et 100 caractères !",
     "register_error_password_length": "Le mot de passe doit contenir entre 8 et 100 caractères !",
-    "register_error_email_format": "Format de l'email invalide !"
+    "register_error_email_format": "Format de l'email invalide !",
+    "reset_password_prev": "Retour",
+    "reset_password_step_1_item_1": "Modifiez votre mot de passe",
+    "reset_password_step_1_item_2": "Suivez les étapes ci-après pour modifier votre mot de passe rapidement et de manière sécurisée.",
+    "reset_password_step_1_item_3": "Soumettre",
+    "reset_password_step_2_item_1": "Code de vérification",
+    "reset_password_step_2_item_2": "Entrez le code envoyé à l'adresse",
+    "reset_password_step_2_item_3": "Soumettre",
+    "reset_password_step_2_item_4": "Renvoyer le code",
+    "reset_password_step_3_item_1": "Nouveau mot de passe",
+    "reset_password_step_3_item_2": "Mot de passe",
+    "reset_password_step_3_item_3": "Confirmez le mot de passe",
+    "reset_password_step_3_item_4": "Modifier",
+    "reset_password_step_3_item_5": "Compteur"
 }

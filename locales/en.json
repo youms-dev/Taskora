@@ -191,5 +191,18 @@
     "register_conflict": "This account already exists!\nSign in instead.",
     "register_error_email_length": "Email must be between 8 and 100 characters long!",
     "register_error_password_length": "Password must be between 8 and 100 characters long!",
-    "register_error_email_format": "Invalid email format!"
+    "register_error_email_format": "Invalid email format!",
+    "reset_password_prev": "Back",
+    "reset_password_step_1_item_1": "Reset your password",
+    "reset_password_step_1_item_2": "Follow the steps below to reset your password quickly and securely.",
+    "reset_password_step_1_item_3": "Submit",
+    "reset_password_step_2_item_1": "Verification code",
+    "reset_password_step_2_item_2": "Enter the code sent to",
+    "reset_password_step_2_item_3": "Submit",
+    "reset_password_step_2_item_4": "Resend the code",
+    "reset_password_step_3_item_1": "New password",
+    "reset_password_step_3_item_2": "Password",
+    "reset_password_step_3_item_3": "Confirm the password",
+    "reset_password_step_3_item_4": "Update",
+    "reset_password_step_3_item_5": "Counter"
 }

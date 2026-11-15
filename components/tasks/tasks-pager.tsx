@@ -20,6 +20,7 @@ import { TaskList } from "./tasks-list";
 
 export const DEFAULT_FOLDER: FolderType = {
     idFolder: "all_folder",
+    idUser: "id_user",
     title: "all",
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -1,4 +1,4 @@
-import { Button } from "@/components/Button";
+import { Button } from "@/components/button";
 import { Container } from "@/components/container";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME, AUTH_STORAGE } from "@/constants/names";

@@ -15,6 +15,7 @@ interface Props extends TextInputProps {
   paddingRight?: number;
   value: TextInputProps["value"];
   eye?: boolean;
+  visible?: boolean;
 }
 
 /**
@@ -32,15 +33,17 @@ interface Props extends TextInputProps {
  * 
  * @param eye
  * 
+ * @param visible
+ * 
  * @returns The input component
  */
 
-export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, ...rest }: Props, inputRef) => {
+export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, visible: textVisible, ...rest }: Props, inputRef) => {
   const { theme, themeShared } = useTheme();
   const ref = useRef<TextInput>(null);
   const [focus, setFocus] = useState<boolean>(false);
   const focusShared = useSharedValue<boolean>(false);
-  const [visible, setVisible] = useState<boolean>(false);
+  const [visible, setVisible] = useState<boolean>(!!textVisible);
 
   useEffect(() => {
     const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -92,7 +95,7 @@ export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, ic
           selectionColor={COLORS.emerald[500]}
           placeholder={placeholder}
           placeholderTextColor={theme == "dark" ? "rgba(255, 255, 255, .4)" : "rgba(0, 0, 0, .4)"}
-          secureTextEntry={eye ? !visible : false}
+          secureTextEntry={!visible}
           value={value}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}

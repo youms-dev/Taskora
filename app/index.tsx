@@ -1,7 +1,9 @@
 import { OAuthButton } from '@/components/0auth-button';
+import { CodeInput } from '@/components/code-input';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
 import { PressableAnimated } from '@/components/pressable-animated';
+import { Rotate } from '@/components/rotate';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
@@ -22,11 +24,11 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import * as SecureStore from "expo-secure-store";
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Keyboard, Platform, Text, TextInput, useWindowDimensions, Vibration, View } from 'react-native';
+import { ActivityIndicator, Platform, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, FadeOutUp, SlideInRight, SlideOutLeft, SlideOutRight, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, SlideInRight, SlideOutLeft, SlideOutRight } from 'react-native-reanimated';
 import "../config/task-manager";
 
 export default function Login() {
@@ -47,8 +49,6 @@ export default function Login() {
   const passwordRef = useRef<TextInput>(null);
   const [_2fa, set_2fa] = useState<boolean>(false);
   const codeRef = useRef<TextInput>(null);
-  const [codeFocus, setCodeFocus] = useState<boolean>(false);
-  const rotation = useSharedValue<number>(0);
 
   const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current) return;
@@ -301,40 +301,11 @@ export default function Login() {
     }
   }, [i18n.language, inputsValues, setToast]);
 
-  useEffect(() => {
-    const { remove } = Keyboard.addListener("keyboardDidHide", () => {
-      codeRef.current?.blur();
-    });
-
-    return () => remove();
-  }, []);
-
-  const rotateAnimation = useAnimatedStyle(() => ({
-    transform: [
-      {
-        rotate: `${rotation.value}deg`,
-      }
-    ]
-  }));
-
-  useEffect(() => {
-    if (loading) {
-      rotation.value = withRepeat(
-        withTiming(360, {
-          duration: 1000,
-          easing: Easing.linear,
-        }),
-        -1,
-        false,
-      );
-    }
-    else {
-      rotation.value = 0;
-    }
-  }, [loading]);
-
   return (
-    <Container centerX safeArea={false}>
+    <Container
+      centerX
+      safeArea={false}
+    >
 
       {/* Banner */}
 
@@ -405,90 +376,92 @@ export default function Login() {
                     }
                     className="w-full flex items-center mt-10"
                   >
-                    <View className="sm:w-[400px] w-full flex items-center gap-5 px-10 mb-5">
+                    <View className="sm:w-[500px] w-full flex items-center">
+                      <View className="w-full flex items-center gap-5 px-10 mb-5">
 
-                      {/* Google */}
+                        {/* Google */}
 
-                      <OAuthButton
-                        name="Google"
-                        icon="google"
-                        loading={loading}
-                        onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
-                      />
-                    </View>
+                        <OAuthButton
+                          name="Google"
+                          icon="google"
+                          loading={loading}
+                          onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
+                        />
+                      </View>
 
-                    <View className="w-full flex flex-row justify-between items-center mt-8 px-3">
-                      <LinearGradient
-                        colors={theme == "dark" ?
-                          ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
-                          :
-                          ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
-                        }
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        locations={[.3, .8]}
-                        className="w-[40%] h-[2px]"
-                      >
+                      <View className="w-full flex flex-row justify-between items-center mt-8 px-3">
                         <LinearGradient
                           colors={theme == "dark" ?
-                            ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                            ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
                             :
-                            ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                            ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
                           }
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
                           locations={[.3, .8]}
-                          className="size-full"
-                        />
-                      </LinearGradient>
-
-                      <View className="w-[20%] px-2">
-                        <TextAnimated
-                          numberOfLines={1}
-                          ellipsizeMode="clip"
-                          className="text-lg text-center"
+                          className="w-[40%] h-[2px]"
                         >
-                          {t("auth_item_2")}
-                        </TextAnimated>
-                      </View>
+                          <LinearGradient
+                            colors={theme == "dark" ?
+                              ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                              :
+                              ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            locations={[.3, .8]}
+                            className="size-full"
+                          />
+                        </LinearGradient>
 
-                      <LinearGradient
-                        colors={theme == "dark" ?
-                          ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
-                          :
-                          ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
-                        }
-                        start={{ x: 1, y: 0 }}
-                        end={{ x: 0, y: 0 }}
-                        locations={[.3, .8]}
-                        className="w-[40%] h-[2px]"
-                      >
+                        <View className="w-[20%] px-2">
+                          <TextAnimated
+                            numberOfLines={1}
+                            ellipsizeMode="clip"
+                            className="text-lg text-center"
+                          >
+                            {t("auth_item_2")}
+                          </TextAnimated>
+                        </View>
+
                         <LinearGradient
                           colors={theme == "dark" ?
-                            ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                            ["rgba(0, 0, 0, 1)", COLORS.emerald[700]]
                             :
-                            ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                            ["rgba(255, 255, 255, 1)", COLORS.emerald[500]]
                           }
                           start={{ x: 1, y: 0 }}
                           end={{ x: 0, y: 0 }}
                           locations={[.3, .8]}
-                          className="size-full"
-                        />
-                      </LinearGradient>
-                    </View>
-
-                    <View className="w-full flex flex-row justify-center px-3 mt-8">
-                      <PressableAnimated
-                        scale={.95}
-                        onPress={() => setWith0Auth(false)}
-                      >
-                        <TextGradient
-                          colors={[theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)", COLORS.emerald[500]]}
-                          className="text-xl font-bold tracking-widest"
+                          className="w-[40%] h-[2px]"
                         >
-                          {t("auth_item_3")}
-                        </TextGradient>
-                      </PressableAnimated>
+                          <LinearGradient
+                            colors={theme == "dark" ?
+                              ["rgba(255, 255, 255, .1)", COLORS.emerald[700]]
+                              :
+                              ["rgba(0, 0, 0, .2)", COLORS.emerald[500]]
+                            }
+                            start={{ x: 1, y: 0 }}
+                            end={{ x: 0, y: 0 }}
+                            locations={[.3, .8]}
+                            className="size-full"
+                          />
+                        </LinearGradient>
+                      </View>
+
+                      <View className="w-full flex flex-row justify-center px-3 mt-8">
+                        <PressableAnimated
+                          scale={.95}
+                          onPress={() => setWith0Auth(false)}
+                        >
+                          <TextGradient
+                            colors={[theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)", COLORS.emerald[500]]}
+                            className="text-xl font-bold tracking-widest"
+                          >
+                            {t("auth_item_3")}
+                          </TextGradient>
+                        </PressableAnimated>
+                      </View>
                     </View>
                   </Animated.View>
                 )
@@ -509,88 +482,88 @@ export default function Login() {
                     }
                     className="w-full flex items-center"
                   >
-                    <View className="w-full">
-                      <Input
-                        ref={emailRef}
-                        label={(t("login_email"))}
-                        placeholder="email@example.com"
-                        autoCapitalize="none"
-                        value={inputsValues.email}
-                        onChangeText={(e) => setInputsValues(prev => ({
-                          ...prev,
-                          email: e,
-                        }))}
-                        icon={(
-                          <View
-                            style={{
-                              transform: [
-                                {
-                                  translateX: 15,
-                                },
-                                {
-                                  translateY: 47,
-                                },
-                              ]
-                            }}
-                            className="absolute left-0 top-0 pointer-events-none"
-                          >
-                            <FontAwesome6
-                              name="envelope-open-text"
-                              size={20}
-                              color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
-                            />
-                          </View>
-                        )}
-                      />
-                    </View>
+                    <View className="sm:w-[500px] w-full flex items-center">
+                      <View className="w-full">
+                        <Input
+                          ref={emailRef}
+                          label={(t("login_email"))}
+                          placeholder="email@example.com"
+                          autoCapitalize="none"
+                          value={inputsValues.email}
+                          onChangeText={(e) => setInputsValues(prev => ({
+                            ...prev,
+                            email: e,
+                          }))}
+                          icon={(
+                            <View
+                              style={{
+                                transform: [
+                                  {
+                                    translateX: 15,
+                                  },
+                                  {
+                                    translateY: 45,
+                                  },
+                                ]
+                              }}
+                              className="absolute left-0 top-0 pointer-events-none"
+                            >
+                              <FontAwesome6
+                                name="envelope-open-text"
+                                size={22}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
 
-                    <View className="w-full mt-5">
-                      <Input
-                        ref={passwordRef}
-                        label={(t("login_password"))}
-                        placeholder="• • • • • • • •"
-                        value={inputsValues.password}
-                        onChangeText={(e) => setInputsValues(prev => ({
-                          ...prev,
-                          password: e,
-                        }))}
-                        eye
-                        icon={(
-                          <View
-                            style={{
-                              transform: [
-                                {
-                                  translateX: 15,
-                                },
-                                {
-                                  translateY: 47,
-                                },
-                              ]
-                            }}
-                            className="absolute left-0 top-0 pointer-events-none"
-                          >
-                            <Fontisto
-                              name="locked"
-                              size={20}
-                              color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
-                            />
-                          </View>
-                        )}
-                      />
-                    </View>
+                      <View className="w-full mt-5">
+                        <Input
+                          ref={passwordRef}
+                          label={(t("login_password"))}
+                          placeholder="• • • • • • • •"
+                          value={inputsValues.password}
+                          onChangeText={(e) => setInputsValues(prev => ({
+                            ...prev,
+                            password: e,
+                          }))}
+                          eye
+                          icon={(
+                            <View
+                              style={{
+                                transform: [
+                                  {
+                                    translateX: 15,
+                                  },
+                                  {
+                                    translateY: 45,
+                                  },
+                                ]
+                              }}
+                              className="absolute left-0 top-0 pointer-events-none"
+                            >
+                              <Fontisto
+                                name="locked"
+                                size={22}
+                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
 
-                    <View className="w-full flex flex-row justify-end px-3 mt-6">
-                      <Link href={{
-                        pathname: "/register",
-                      }}>
-                        <TextAnimated className="text-lg">
-                          {t("login_item_5")}
-                        </TextAnimated>
-                      </Link>
-                    </View>
+                      <View className="w-full flex flex-row justify-end px-3 mt-6">
+                        <Link href={{
+                          pathname: "/reset-password",
+                        }}>
+                          <TextAnimated className="text-lg">
+                            {t("login_item_5")}
+                          </TextAnimated>
+                        </Link>
+                      </View>
 
-                    <View className="w-full flex flex-row justify-center mt-10 mb-3">
-                      <View className="sm:w-[500px] w-full flex flex-row justify-center gap-3 px-3">
+                      <View className="w-full flex flex-row justify-center mt-10 mb-3 gap-3 px-3">
                         <PressableAnimated
                           scale={.95}
                           disabled={loading}
@@ -614,7 +587,8 @@ export default function Login() {
                                   <Text
                                     numberOfLines={1}
                                     ellipsizeMode="clip"
-                                    className="text-2xl text-white/80 font-medium">
+                                    className="text-2xl text-white/80 font-medium"
+                                  >
                                     {t("auth_item_4")}
                                   </Text>
                                 )
@@ -644,7 +618,8 @@ export default function Login() {
                                 <Text
                                   numberOfLines={1}
                                   ellipsizeMode="clip"
-                                  className="text-2xl text-black/80 font-medium">
+                                  className="text-2xl text-black/80 font-extrabold"
+                                >
                                   {t("login_submit")}
                                 </Text>
                               )
@@ -670,7 +645,7 @@ export default function Login() {
                 </TextAnimated>
               </View>
             </KeyboardAwareScrollView>
-          </Animated.View>
+          </Animated.View >
         )
       }
 
@@ -687,12 +662,13 @@ export default function Login() {
               .duration(200)
               .easing(Easing.inOut(Easing.quad))
             }
-            className="w-full"
+            className="w-full flex items-center"
           >
             <KeyboardAwareScrollView
+              horizontal={false}
               showsVerticalScrollIndicator={false}
               bottomOffset={15}
-              className="w-full"
+              className="sm:w-[500px] w-full"
               contentContainerClassName="px-3 pb-[60px]"
             >
 
@@ -719,93 +695,16 @@ export default function Login() {
 
               {/* Section 2 */}
 
-              <View className="w-full flex items-center mt-5">
-                <View className="w-full flex flex-row flex-wrap justify-center gap-5 px-3">
-                  {
-                    Array(5).fill(0).map((_, i) => {
-                      const isFocus = (codeFocus && (inputsValues.code.trim().length == i || (inputsValues.code.trim().length == 5 && i == 4)));
+              <CodeInput
+                ref={codeRef}
+                value={inputsValues.code}
+                setValue={(e) => setInputsValues(prev => ({
+                  ...prev,
+                  code: e,
+                }))}
+              />
 
-                      return (
-                        <PressableAnimated
-                          key={i}
-                          scale={.95}
-                          onPress={() => codeRef.current?.focus()}
-                          className="w-[45px] h-[60px] flex justify-center items-center dark:bg-black bg-white rounded-2xl"
-                        >
-                          {
-                            isFocus && (
-                              <View
-                                style={{
-                                  transform: [
-                                    {
-                                      translateY: 6,
-                                    },
-                                  ],
-                                  filter: "blur(5px)",
-                                }}
-                                className="absolute size-full bg-black/10 rounded-2xl"
-                              />
-                            )
-                          }
-
-                          <View className={clsx(
-                            "size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-2xl border",
-                            isFocus ? "border-emerald-500/50" : "dark:border-white/5 border-black/5",
-                          )}>
-                            {
-                              inputsValues.code[i]?.trim().length > 0 && (
-                                <Animated.Text
-                                  entering={FadeInDown
-                                    // .duration(300)
-                                    // .easing(Easing.inOut(Easing.quad))
-                                    .springify()
-                                    .stiffness(60)
-                                    .mass(1)
-                                    .damping(5)
-                                  }
-                                  exiting={FadeOutUp
-                                    .duration(300)
-                                    .easing(Easing.inOut(Easing.quad))
-                                  }
-                                  className="text-3xl font-bold text-emerald-500"
-                                >
-                                  {inputsValues.code[i]}
-                                </Animated.Text>
-                              )
-                            }
-                          </View>
-                        </PressableAnimated>
-                      )
-                    })
-                  }
-                </View>
-
-                <TextInput
-                  ref={codeRef}
-                  keyboardType="number-pad"
-                  onFocus={() => setCodeFocus(true)}
-                  onBlur={() => setCodeFocus(false)}
-                  value={inputsValues.code}
-                  onChangeText={(e) => {
-                    if (isNaN(Number(e))) {
-                      Vibration.vibrate(100);
-                      return;
-                    }
-                    setInputsValues({
-                      ...inputsValues,
-                      code: e.slice(0, 5),
-                    });
-                  }}
-                  style={{
-                    transform: [
-                      {
-                        translateY: 70
-                      }
-                    ],
-                  }}
-                  className="absolute size-0 pointer-events-none -z-[100]"
-                />
-              </View>
+              {/* Section 3 */}
 
               <View className="w-full mt-5">
                 <PressableAnimated
@@ -821,26 +720,11 @@ export default function Login() {
                     {t("login_item_8")}
                   </TextAnimated>
 
-                  <Animated.View
-                    style={rotateAnimation}
-                    className={clsx(
-                      loading && "opacity-50",
-                    )}
-                  >
-                    <FontAwesome6
-                      name="rotate-right"
-                      size={22}
-                      color={loading ?
-                        COLORS.emerald[500]
-                        :
-                        theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"
-                      }
-                    />
-                  </Animated.View>
+                  <Rotate rotate={loading} />
                 </PressableAnimated>
               </View>
 
-              {/* Section 3 */}
+              {/* Section 4 */}
 
               <View className="w-full flex flex-row justify-center mt-[60px] mb-3">
                 <View className="sm:w-[500px] w-full flex flex-row justify-center gap-3 px-3">

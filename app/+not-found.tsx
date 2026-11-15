@@ -1,4 +1,4 @@
-import { Button } from "@/components/Button";
+import { Button } from "@/components/button";
 import { Container } from "@/components/container";
 import { TextAnimated } from "@/components/text-animated";
 import { TextGradient } from "@/components/text-gradient";
