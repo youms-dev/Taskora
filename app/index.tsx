@@ -105,8 +105,9 @@ export default function Login() {
         }));
         setWith0Auth(false);
       }
-
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      else {
+        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      }
     }
     catch (e) {
       const { status } = e as ApiError;
@@ -168,8 +169,9 @@ export default function Login() {
         setWith0Auth(true);
         setInputsValues(initialInputsValues);
       }
-
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      else {
+        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      }
     }
     catch (e) {
       const { status, data } = e as ApiError;

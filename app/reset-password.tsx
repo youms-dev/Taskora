@@ -366,7 +366,7 @@ export default function ResetPassword() {
 
                                 {/* Section 4 */}
 
-                                <View className="w-full flex flex-row items-center gap-3 mt-10">
+                                <View className="w-full flex flex-row justify-center items-center gap-3 mt-10">
                                     <PressableAnimated
                                         scale={.95}
                                         disabled={loading}
@@ -560,7 +560,7 @@ export default function ResetPassword() {
                                         />
                                     </View>
 
-                                    <View className="w-full flex flex-row items-center gap-3 mt-10">
+                                    <View className="w-full flex flex-row justify-center items-center gap-3 mt-10">
                                         <PressableAnimated
                                             scale={.95}
                                             disabled={loading}
