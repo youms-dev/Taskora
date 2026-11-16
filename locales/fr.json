@@ -204,5 +204,7 @@
     "reset_password_step_3_item_2": "Mot de passe",
     "reset_password_step_3_item_3": "Confirmez le mot de passe",
     "reset_password_step_3_item_4": "Modifier",
-    "reset_password_step_3_item_5": "Compteur"
+    "reset_password_step_3_item_5": "Compteur",
+    "confirm_box_cancel": "Annuler",
+    "confirm_box_submit": "Valider"
 }

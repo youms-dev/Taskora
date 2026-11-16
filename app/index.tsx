@@ -1,4 +1,4 @@
-import { OAuthButton } from '@/components/0auth-button';
+import { OAuthButton } from '@/components/oauth-button';
 import { CodeInput } from '@/components/code-input';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';

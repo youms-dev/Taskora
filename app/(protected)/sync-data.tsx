@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import { PressableAnimated } from "@/components/pressable-animated";
-import { SyncAnimation } from "@/components/sync-animation";
+import { SyncAnimation } from "@/components/auto-sync/sync-animation";
 import { TextAnimated } from "@/components/text-animated";
 import { Toggle } from "@/components/toggle";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";

@@ -11,7 +11,6 @@ import { Toggle } from "@/components/toggle";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME } from "@/constants/names";
-import { useAuth } from "@/hooks/auth-provider";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { NotificationSoundType } from "@/types/database/setting";
@@ -34,7 +33,6 @@ import { scheduleOnRN } from "react-native-worklets";
 export default function Settings() {
     const { t, i18n } = useTranslation();
     const { theme, target, setTheme } = useTheme();
-    const { user, loading } = useAuth();
     const scrollY = useSharedValue(0);
     const headerHeight = 250;
     const minHeaderHeight = 100;
@@ -52,6 +50,20 @@ export default function Settings() {
 
         if (data.name && data.fileName) return data;
         return null;
+    }, [setting]);
+
+    const displayedName = useMemo(() => {
+        const tab = ("Youmbi Le-duc"
+            .toLowerCase()
+            .split(" ")
+        );
+
+        return (tab
+            .map(l => l.charAt(0).toUpperCase() + l.slice(1))
+            .filter((_, i, tab) => tab.length > 1 ? (i == 0 || i == tab.length - 1) : i == 0)
+            .join(" ")
+            .trim()
+        )
     }, [setting]);
 
     const scrollHandler = useAnimatedScrollHandler({
@@ -242,35 +254,54 @@ export default function Settings() {
 
                             <Animated.View className="w-full h-full flex justify-center items-center gap-12 overflow-hidden z-[1]">
                                 <Animated.View style={avatarAnimation}>
-                                    <View
-                                        style={{
-                                            transform: [
-                                                {
-                                                    translateY: 8,
-                                                }
-                                            ],
-                                            filter: "blur(5px)",
-                                        }}
-                                        className="absolute size-[130px] dark:bg-black/60 bg-black/40 rounded-full"
-                                    />
-                                    <View className="z-[1]">
-                                        <Avatar
-                                            size={130}
-                                            name="Youmbi Le-duc"
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => router.navigate({
+                                            pathname: "/(protected)/(user)/profile",
+                                        })}
+                                    >
+                                        <View
+                                            style={{
+                                                transform: [
+                                                    {
+                                                        translateY: 8,
+                                                    }
+                                                ],
+                                                filter: "blur(5px)",
+                                            }}
+                                            className="absolute size-[130px] dark:bg-black/60 bg-black/40 rounded-full"
                                         />
-                                    </View>
+                                        <View className="z-[1]">
+                                            <Avatar
+                                                size={130}
+                                                name="Youmbi Le-duc"
+                                            />
+                                        </View>
+                                    </PressableAnimated>
                                 </Animated.View>
 
                                 <Animated.View style={usernameAnimation}>
-                                    <View className="w-full flex items-center">
-                                        <TextAnimated
-                                            dark="rgba(255, 255, 255, .8)"
-                                            light="rgba(255, 255, 255, .8)"
-                                            className="text-lg font-bold tracking-widest"
-                                        >
-                                            Youmbi Le-duc
-                                        </TextAnimated>
-                                    </View>
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={() => router.navigate({
+                                            pathname: "/(protected)/(user)/profile",
+                                        })}
+                                        className="flex flex-row items-center gap-5"
+                                    >
+                                        <View className="max-w-[80%] flex items-center">
+                                            <Text className="text-lg font-bold tracking-widest text-white/80"                                         >
+                                                {displayedName}
+                                            </Text>
+                                        </View>
+
+                                        <View>
+                                            <FontAwesome6
+                                                name="pencil"
+                                                size={20}
+                                                color="rgba(255, 255, 255, .8)"
+                                            />
+                                        </View>
+                                    </PressableAnimated>
                                 </Animated.View>
 
                                 <Animated.View

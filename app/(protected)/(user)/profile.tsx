@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/avatar";
+import { ConfirmBox } from "@/components/confirm-box";
 import { Container } from "@/components/container";
 import { Eye } from "@/components/eye";
 import { Modal } from "@/components/modal";
@@ -24,8 +25,8 @@ import { ScrollView, Text, View } from "react-native";
 export default function Profile() {
     const { t } = useTranslation();
     const { theme } = useTheme();
+    const [confirmBoxActive, setConfirmBoxActive] = useState<boolean>(false);
     const [modalActive, setModalActive] = useState<boolean>(false);
-    const [cameraModalActive, setCameraModalActive] = useState<boolean>(false);
     const router = useRouter();
 
     const handleSignOut = async () => {
@@ -42,6 +43,9 @@ export default function Profile() {
 
     return (
         <Container centerX>
+
+            {/* Header */}
+
             <View className="w-full h-[50px] flex flex-row items-center mb-5 px-3">
                 <View className="w-[190px] dark:bg-white bg-black rounded-[50px]">
                     <View className="flex flex-row items-center gap-6 dark:bg-black/85 bg-white/90 rounded-[50px]">
@@ -49,7 +53,7 @@ export default function Profile() {
                             onPress={() => router.back()}
                             className="size-[50px] dark:bg-black bg-black rounded-full"
                         >
-                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border dark:border-white/20 border-white">
+                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border dark:border-white/10 border-white">
                                 <Entypo
                                     name="chevron-left"
                                     size={25}
@@ -77,13 +81,20 @@ export default function Profile() {
                 </View>
             </View>
 
+            {/* Content */}
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="w-full h-full"
                 contentContainerClassName="w-full flex items-center pb-[100px]"
             >
-                <View>
-                    <View>
+                {/* Section 1 */}
+
+                <View className="flex items-center">
+
+                    {/* Avatar */}
+
+                    <View className="flex items-center">
                         <View
                             style={{
                                 transform: [
@@ -93,18 +104,19 @@ export default function Profile() {
                                 ],
                                 filter: "blur(5px)"
                             }}
-                            className="absolute bottom-0 w-full h-full bg-black/10 -z-[1] rounded-full"
+                            className="absolute bottom-0 size-[200px] bg-black/10 -z-[1] rounded-full"
                         />
 
                         <Avatar
                             size={200}
                             name="Youmbi Le-duc"
+                            background={theme == "light" ? "white" : undefined}
                         />
                     </View>
 
                     <PressableAnimated
                         scale={.8}
-                        onPress={() => setCameraModalActive(true)}
+                        onPress={() => setModalActive(true)}
                         className="absolute bottom-0 right-0 size-[50px] flex justify-center items-center bg-emerald-500 rounded-full shadow-lg shadow-black"
                     >
                         <FontAwesome
@@ -114,6 +126,8 @@ export default function Profile() {
                         />
                     </PressableAnimated>
                 </View>
+
+                {/* Section 2 */}
 
                 <View className="w-full flex items-center gap-10 mt-16">
                     <View className="w-full flex flex-row items-center px-3">
@@ -205,7 +219,7 @@ export default function Profile() {
 
                     <View className="w-full px-3 rounded-2xl">
                         <PressableAnimated
-                            onPress={() => setModalActive(true)}
+                            onPress={() => setConfirmBoxActive(true)}
                             className="flex flex-row items-center self-start shrink gap-8"
                         >
                             <FontAwesome5
@@ -221,47 +235,24 @@ export default function Profile() {
                 </View>
             </ScrollView>
 
-            <Modal
-                height={"25%"}
-                active={modalActive}
-                onClose={() => setModalActive(false)}
-                dragHandler={false}
-                className="border dark:border-t-white/20 border-t-black/20 border-transparent"
-            >
-                <View className="w-full flex items-center px-3 mt-5">
-                    <TextAnimated className="text-xl">
-                        {t("profile_logout_question")}
-                    </TextAnimated>
-                </View>
-
-                <View className="w-full flex flex-row flex-wrap justify-center items-center gap-3 mt-5">
-                    <PressableAnimated
-                        scale={.8}
-                        onPress={() => setModalActive(false)}
-                        className="w-[150px] h-[45px] flex justify-center items-center p-3 border dark:border-white/20 border-black/20 bg-emerald-500 rounded-2xl"
-                    >
-                        <Text className="text-lg text-black font-bold">
-                            {t("profile_discard")}
-                        </Text>
-                    </PressableAnimated>
-
-                    <PressableAnimated
-                        scale={.8}
-                        onPress={() => handleSignOut()}
-                        className="w-[150px] h-[45px] flex justify-center items-center p-3 border dark:border-white/20 border-black/20 bg-red-500 rounded-2xl"
-                    >
-                        <Text className="text-lg text-white font-bold">
-                            {t("profile_logout_confirmed")}
-                        </Text>
-                    </PressableAnimated>
-                </View>
-            </Modal>
+            <ConfirmBox
+                message={t("profile_logout_question")}
+                active={confirmBoxActive}
+                submitLabel={t("profile_logout_confirmed")}
+                onCancel={() => setConfirmBoxActive(false)}
+                onSubmit={() => setConfirmBoxActive(false)}
+            />
 
             <Modal
                 height={"35%"}
-                active={cameraModalActive}
-                onClose={() => setCameraModalActive(false)}
-                className="dark:bg-white/90 bg-white/90"
+                active={modalActive}
+                onClose={() => setModalActive(false)}
+                dragHandlerContainerBackground={theme == "dark" ? "rgba(255, 255, 255, .1)" : "white"}
+                animationDuration={500}
+                closeAnimationDuration={500}
+                backdropBackground="rgba(0, 0, 0, .2)"
+                className="dark:bg-black bg-white"
+                contentContainerClassName="w-full min-h-full dark:bg-white/10 bg-white pt-5 px-3"
             >
                 <View className="w-full flex items-center gap-6 px-3 mt-5">
                     <PressableAnimated

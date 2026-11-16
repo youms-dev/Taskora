@@ -84,7 +84,7 @@ export default function Layout() {
     }, [auth]);
 
     useEffect(() => {
-        // handleGetAuth();
+        handleGetAuth();
     }, []);
 
     useEffect(() => {
@@ -149,6 +149,8 @@ export default function Layout() {
                                                 <Stack.Protected guard={false}>
                                                     <Stack.Screen name="onboarding" />
                                                 </Stack.Protected>
+
+                                                <Stack.Screen name="reset-password" />
                                             </Stack>
                                         )
                                     }

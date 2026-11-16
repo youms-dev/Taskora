@@ -204,5 +204,7 @@
     "reset_password_step_3_item_2": "Password",
     "reset_password_step_3_item_3": "Confirm the password",
     "reset_password_step_3_item_4": "Update",
-    "reset_password_step_3_item_5": "Counter"
+    "reset_password_step_3_item_5": "Counter",
+    "confirm_box_cancel": "Cancel",
+    "confirm_box_submit": "Submit"
 }

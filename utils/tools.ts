@@ -1,29 +1,4 @@
-export const dateGraduation = (date: Date) => {
-    const currentDate = new Date();
-    const value = new Date(date);
-
-    if (
-        value.getFullYear() === currentDate.getFullYear()
-        &&
-        value.getMonth() === currentDate.getMonth()
-    ) {
-        const diff = currentDate.getDate() - value.getDate();
-        return `il y a ${diff} jour${diff > 0 ? "s" : ""}`;
-    }
-    else if (
-        value.getFullYear() === currentDate.getFullYear()
-        &&
-        value.getMonth() !== currentDate.getMonth()
-    ) {
-        const diff = currentDate.getMonth() - value.getMonth();
-
-        return `il y a ${diff + 1} mois`;
-    }
-
-    return `le ${value.toLocaleDateString()}`;
-}
-
-export const fileDatas = (file: string) => {
+export function fileDatas(file: string) {
     if (file.trim().length == 0) {
         throw new Error("File name can't be empty");
     }
@@ -46,7 +21,7 @@ export const fileDatas = (file: string) => {
     return { name: name(), ext };
 }
 
-export const checkLength = (entry: string, [min, max]: [number, number | null]) => {
+export function checkLength(entry: string, [min, max]: [number, number | null]) {
     if (max && min >= max) {
         throw new Error("Invalid max value");
     }
@@ -58,6 +33,18 @@ export const checkLength = (entry: string, [min, max]: [number, number | null]) 
     }
 }
 
-export const checkPattern = (entry: string, regex: RegExp) => {
+export function checkPattern(entry: string, regex: RegExp) {
     return regex.test(entry);
+}
+
+export function createAvatar(entry: string) {
+    const tab = entry.toLowerCase().split(" ");
+
+    return (
+        tab
+            .map(l => l.charAt(0).toUpperCase())
+            .filter((_, i, tab) => i == 0 || i == tab.length - 1)
+            .join("")
+            .trim()
+    );
 }

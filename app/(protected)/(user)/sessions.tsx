@@ -1,6 +1,7 @@
+import { ConfirmBox } from "@/components/confirm-box";
 import { Container } from "@/components/container";
-import { MultiSessionAnimation } from "@/components/multi-session-animation";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { MultiSessionAnimation } from "@/components/sessions/multi-session-animation";
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
@@ -12,9 +13,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import { BackHandler, Text, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 export default function SessionsPage() {
     const { theme, themeShared } = useTheme();
@@ -28,8 +28,6 @@ export default function SessionsPage() {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const [loading, setLoading] = useState<boolean>(false);
     const [selected, setSelected] = useState<number | null>(null);
-    const confirmBoxActive = useSharedValue<boolean>(false);
-    const random = useSharedValue<number>(0);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const router = useRouter();
 
@@ -229,79 +227,6 @@ export default function SessionsPage() {
     }, [loading]);
 
     useEffect(() => {
-        confirmBoxActive.value = selected != null;
-    }, [selected]);
-
-    const confirmBoxContainerAnimation = useAnimatedStyle(() => ({
-        pointerEvents: confirmBoxActive.value ? "auto" : "none",
-    }));
-
-    const confirmBoxAnimation = useAnimatedStyle(() => ({
-        transform: [
-            {
-                scale: (
-                    confirmBoxActive.value ?
-                        withTiming(1, {
-                            duration: 300,
-                            easing: Easing.inOut(Easing.quad),
-                        })
-                        :
-                        withDelay(
-                            500,
-                            withTiming(0),
-                        )
-                ),
-            },
-            {
-                rotate: (
-                    confirmBoxActive.value ?
-                        withTiming("0deg")
-                        :
-                        withSequence(
-                            withTiming(random.value >= .6 ? "45deg" : "-45deg", {
-                                duration: 500,
-                                easing: Easing.inOut(Easing.linear),
-                            }),
-                            withTiming("0deg")
-                        )
-                ),
-            },
-            {
-                translateY: (
-                    confirmBoxActive.value ?
-                        withTiming(0)
-                        :
-                        withSequence(
-                            withTiming(screenHeightShared.value, {
-                                duration: 500,
-                                easing: Easing.inOut(Easing.linear),
-                            }),
-                            withTiming(0)
-                        )
-                ),
-            },
-        ],
-        opacity: (
-            confirmBoxActive.value ?
-                1
-                :
-                withDelay(
-                    200,
-                    withTiming(0)
-                )
-        ),
-    }));
-
-    const setRandomInt = useCallback(() => random.value = Math.random(), []);
-
-    useAnimatedReaction(
-        () => confirmBoxActive.value,
-        () => {
-            scheduleOnRN(setRandomInt);
-        }
-    );
-
-    useEffect(() => {
         screenHeightShared.value = screenHeight;
     }, [screenHeight]);
 
@@ -474,64 +399,13 @@ export default function SessionsPage() {
 
             {/* Confirmation box */}
 
-            <Animated.View
-                style={confirmBoxContainerAnimation}
-                className="absolute left-0 top-0 w-screen h-screen flex justify-center items-center z-[100] px-8"
-            >
-                <Pressable
-                    onPress={() => {
-                        setSelected(null);
-                    }}
-                    className="absolute left-0 top-0 size-full"
-                />
-
-                <Animated.View
-                    style={confirmBoxAnimation}
-                    className="w-full sm:w-[500px] rounded-2xl dark:bg-black bg-white z-[10]"
-                >
-                    <View
-                        style={{
-                            transform: [
-                                {
-                                    translateY: 8,
-                                },
-                            ],
-                            filter: "blur(5px)",
-                        }}
-                        className="absolute size-full dark:bg-back/50 bg-black/30 rounded-2xl"
-                    />
-
-                    <View className="w-full min-h-[200px] flex justify-center items-center gap-5 rounded-2xl p-3 border-2 dark:border-white/5 border-black/5 dark:bg-white/10 bg-white">
-                        <TextAnimated className="text-lg text-center">
-                            {t("sessions_list_confirm_box_desc")}
-                        </TextAnimated>
-
-                        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-3">
-                            <PressableAnimated
-                                scale={.95}
-                                onPress={() => {
-                                    setSelected(null);
-                                }}
-                                className="w-[120px] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-emerald-500"
-                            >
-                                <Text className="text-black/80 font-bold tracking-wider text-xl">
-                                    {t("sessions_list_confirm_box_cancel")}
-                                </Text>
-                            </PressableAnimated>
-
-                            <PressableAnimated
-                                scale={.95}
-                                onPress={() => { }}
-                                className="w-[120px] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-red-500"
-                            >
-                                <Text className="text-white/80 font-extrabold tracking-wider text-xl">
-                                    {t("sessions_list_confirm_box_submit")}
-                                </Text>
-                            </PressableAnimated>
-                        </View>
-                    </View>
-                </Animated.View>
-            </Animated.View>
+            <ConfirmBox
+                active={selected != null}
+                message={t("sessions_list_confirm_box_desc")}
+                backdropBackground="rgba(0, 0, 0, .2)"
+                onCancel={() => setSelected(null)}
+                onSubmit={() => setSelected(null)}
+            />
 
             {/* Bottom linear gradient */}
 

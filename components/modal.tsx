@@ -289,7 +289,7 @@ export const Modal = memo(({
                         style={{
                             width: screenWidth,
                             height: screenHeight + (screenHeight * .2),
-                            backgroundColor: backdropBackground,
+                            backgroundColor: backdropBackground.trim().length > 0 ? backdropBackground : undefined,
                             transform: [
                                 {
                                     translateY: -(screenHeight * .1),

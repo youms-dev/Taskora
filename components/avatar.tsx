@@ -1,39 +1,50 @@
 import { memo } from "react";
 import { View } from "react-native";
 import { TextAnimated } from "./text-animated";
+import { useTheme } from "@/hooks/use-theme";
+import { createAvatar } from "@/utils/tools";
 
 interface Props {
     size?: number;
-    scale?: number;
     name: string;
+    background?: string;
 }
 
 /**
  * 
- * @param size Avatar size
+ * @param size
  * @default 100
  * 
- * @param scale Avatar scale
- * @default 1
+ * @param name
  * 
- * @param name Avatar name
+ * @param background 
  * 
  * @returns Avatar component
  */
 
-export const Avatar = memo(({ size = 100, scale = 1, name }: Props) => {
+export const Avatar = memo(({ size = 100, name, background }: Props) => {
+    const { theme } = useTheme();
+
     return (
         <View
             style={{
                 width: size,
                 height: size,
-                transform: [{
-                    scale
-                }],
             }}
             className="shrink-0 rounded-full dark:bg-black bg-white"
         >
-            <View className="size-full flex justify-center items-center rounded-full border dark:border-white/10 border-black/10 dark:bg-white/20 bg-black/5">
+            <View
+                style={{
+                    backgroundColor: (
+                        background ?
+                            background
+                            :
+                            theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .05)"
+                    ),
+                    borderRadius: 9999,
+                }}
+                className="size-full flex justify-center items-center rounded-full border dark:border-white/10 border-black/10"
+            >
                 <TextAnimated
                     numberOfLines={1}
                     style={{
@@ -41,7 +52,7 @@ export const Avatar = memo(({ size = 100, scale = 1, name }: Props) => {
                     }}
                     className="font-bold"
                 >
-                    {name.trim().split(" ").map(l => l.charAt(0)).join("").toUpperCase().slice(0, 3)}
+                    {createAvatar(name)}
                 </TextAnimated>
             </View>
         </View>
