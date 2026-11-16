@@ -1,18 +1,10 @@
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
-import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/axios";
-import { supabase } from "@/lib/supabase";
-import { fileDatas } from "@/utils/tools";
 import Entypo from "@expo/vector-icons/Entypo";
-import { createId } from "@paralleldrive/cuid2";
-import { decode } from "base64-arraybuffer";
-import { File } from "expo-file-system";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { useWindowDimensions, View, ViewProps } from "react-native";
 import { Avatar } from "./avatar";
 import { PressableAnimated } from "./pressable-animated";
@@ -28,86 +20,11 @@ interface Props extends Pick<ViewProps, "onLayout"> {
  */
 
 export const PageTitle = ({ children, ...rest }: Props) => {
-    const [visible, setVisible] = useState<boolean>(false);
-    const [image, setImage] = useState<string | null>(null);
-    const { setToast } = useToast();
-    const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const { user } = useAuth();
     const router = useRouter();
     const { theme } = useTheme();
     const pathname = usePathname();
     const { width } = useWindowDimensions();
-
-    const pickImage = async () => {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (!permission.granted) {
-            setToast("Nous avons besoin de votre permission pour acceder à vos fichiers", "warning");
-            return;
-        }
-
-        const { canceled, assets } = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [4, 4],
-            quality: 1,
-        });
-
-        try {
-            setSaveLoading(true);
-            if (!canceled && assets) {
-                setImage(assets[0].uri);
-                const file = assets[0];
-                const { name, ext } = fileDatas(String(file.fileName));
-                const date = new Date();
-                const base64 = new File(file.uri).base64Sync();
-
-                if (!name || !ext) {
-                    return setToast("Fichier corrompu ou illisible !", "error");
-                }
-
-                if (user && user.user_metadata.photoUrl) {
-                    await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
-                }
-                const newName = name + date.getMilliseconds() + createId() + "." + ext;
-                const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
-                    upsert: true,
-                });
-
-                if (data) {
-                    await api.patch(`/user/update/${user?.id}`, {
-                        photoUrl: data.path,
-                    });
-                    await supabase.auth.refreshSession();
-                }
-            }
-            else {
-                setToast("Aucun fichier sélectionné 🥲", "warning");
-            }
-            setSaveLoading(false);
-        }
-        catch (error) {
-            setSaveLoading(false);
-            setToast("Une erreur s'est produite", "error");
-        }
-    };
-
-    const removePicture = async () => {
-        if (!user || !user.user_metadata.photoUrl) return;
-        try {
-            setSaveLoading(true);
-            await api.patch(`/user/update/${user?.id}`, {
-                photoUrl: false,
-            });
-            await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
-            await supabase.auth.refreshSession();
-            setSaveLoading(false);
-        }
-        catch (error) {
-            setSaveLoading(false);
-            setToast("Une erreur s'est produite", "error");
-        }
-    }
 
     return (
         <View

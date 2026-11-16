@@ -18,28 +18,106 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { emitter } from "@/lib/event-emitter";
+import { LOGOUT } from "@/constants/emitters";
+import { useToast } from "@/hooks/use-toast";
+import { fileDatas } from "@/utils/tools";
+import * as FileSystem from "expo-file-system";
+import { api } from "@/lib/axios";
+import { decode } from "base64-arraybuffer";
 
 export default function Profile() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { theme } = useTheme();
     const [confirmBoxActive, setConfirmBoxActive] = useState<boolean>(false);
     const [modalActive, setModalActive] = useState<boolean>(false);
     const router = useRouter();
+    const [visible, setVisible] = useState<boolean>(false);
+    const [image, setImage] = useState<string | null>(null);
+    const { setToast } = useToast();
+    const [saving, setSaving] = useState<boolean>(false);
 
-    const handleSignOut = async () => {
-        const { getItem, setItem } = useAsyncStorage(AUTH_STORAGE);
-        const exists = await getItem();
+    const handleSignOut = useCallback(async () => {
+        emitter.emit(LOGOUT);
+    }, []);
 
-        if (exists != null) {
-            await setItem(JSON.stringify({
-                verified: false
-            }));
+    const pickImage = useCallback(async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+            setToast(t("profile_permission_denied"), "warning", 5000);
+            return;
         }
-        supabase.auth.signOut();
-    }
+
+        const { canceled, assets } = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4, 4],
+            quality: 1,
+        });
+
+        try {
+            setSaving(true);
+            if (!canceled && assets) {
+                // setImage(assets[0].uri);
+                // const file = assets[0];
+                // const { name, ext } = fileDatas(String(file.fileName));
+                // const date = new Date();
+                // const base64 = new FileSystem.File(file.uri).base64Sync();
+
+                // if (!name || !ext) {
+                //     return setToast("Fichier corrompu ou illisible !", "error");
+                // }
+
+                // if (user && user.user_metadata.photoUrl) {
+                //     await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
+                // }
+                // const newName = name + date.getMilliseconds() + createId() + "." + ext;
+                // const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
+                //     upsert: true,
+                // });
+
+                // if (data) {
+                //     await api.patch(`/user/update/${user?.id}`, {
+                //         photoUrl: data.path,
+                //     });
+                //     await supabase.auth.refreshSession();
+                // }
+            }
+            else {
+                setToast("Aucun fichier sélectionné 🥲", "warning");
+            }
+        }
+        catch (error) {
+            setToast(t("error"), "error");
+        }
+        finally {
+            setSaving(false);
+        }
+    }, [setToast, i18n.language]);
+
+    const removePicture = useCallback(async () => {
+        // if (!user || !user.user_metadata.photoUrl) return;
+        try {
+            // setSaving(true);
+            // await api.patch(`/user/update/${user?.id}`, {
+            //     photoUrl: false,
+            // });
+            // await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
+            // await supabase.auth.refreshSession();
+            // setSaving(false);
+        }
+        catch (e) {
+            setToast(t("error"), "error");
+        }
+        finally {
+            setSaving(false);
+        }
+    }, [setToast, i18n.language]);
 
     return (
         <Container centerX>
@@ -227,6 +305,7 @@ export default function Profile() {
                                 size={25}
                                 color="red"
                             />
+
                             <Text className="w-max text-red-500 text-xl">
                                 {t("profile_logout")}
                             </Text>
@@ -240,7 +319,7 @@ export default function Profile() {
                 active={confirmBoxActive}
                 submitLabel={t("profile_logout_confirmed")}
                 onCancel={() => setConfirmBoxActive(false)}
-                onSubmit={() => setConfirmBoxActive(false)}
+                onSubmit={handleSignOut}
             />
 
             <Modal

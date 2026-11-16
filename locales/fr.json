@@ -11,6 +11,7 @@
     "profile_logout_question": "Êtes-vous sûr de vouloir vous déconnecter ?",
     "profile_discard": "Annuler",
     "profile_logout_confirmed": "Déconnexion",
+    "profile_permission_denied": "Accès à la galerie refusé !",
     "toast_cancel": "Annuler",
     "theme": "Thème",
     "deleting_setting": "Confirmation avant suppression",

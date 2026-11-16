@@ -100,6 +100,15 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.712341966499-80jr8hfiu6a5s3g4a0l0sd9bqo3nr62e"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Taskora to access your camera",
+          "microphonePermission": "Allow Taskora to access your microphone",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": true
+        }
       ]
     ],
     "experiments": {

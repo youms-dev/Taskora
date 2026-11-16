@@ -11,6 +11,7 @@
     "profile_logout_question": "Are your sure you want to log out ?",
     "profile_discard": "Discard",
     "profile_logout_confirmed": "Log out",
+    "profile_permission_denied": "Gallery access denied",
     "toast_cancel": "Cancel",
     "theme": "Theme",
     "deleting_setting": "Confirm before deleting",
