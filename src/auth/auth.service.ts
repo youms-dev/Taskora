@@ -326,6 +326,8 @@ export class AuthService {
         }
 
         if (!user.password) {
+            await redis.decr(key);
+
             return {
                 password: false,
             }
@@ -351,6 +353,7 @@ export class AuthService {
 
         if (setting._2FA) {
             await this.sendCode(user.email);
+            await redis.decr(key);
 
             return {
                 _2FA: true,
@@ -387,6 +390,8 @@ export class AuthService {
         }
 
         if (user.password) {
+            await redis.decr(key);
+
             return {
                 password: true,
             }
@@ -406,6 +411,7 @@ export class AuthService {
 
         if (setting._2FA) {
             await this.sendCode(user.email);
+            await redis.decr(key);
 
             return {
                 _2FA: true,
