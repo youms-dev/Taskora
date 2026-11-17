@@ -214,5 +214,7 @@
     "reset_password_step_3_item_4": "Modifier",
     "reset_password_step_3_item_5": "Compteur",
     "confirm_box_cancel": "Annuler",
-    "confirm_box_submit": "Valider"
+    "confirm_box_submit": "Valider",
+    "lock_screen_item_1": "{{name}} authentification",
+    "lock_screen_item_2": "{{name}} a besoin de vérifier votre identité"
 }

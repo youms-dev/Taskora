@@ -1,5 +1,5 @@
 import { BACKGROUND_TASK_MANAGEMENT, NOTIFICATION_BACKGROUND_MANAGEMENT } from "@/config/task-manager";
-import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { EVENTS_CHANGED, LOCK, TASKS_CHANGED, UNLOCK } from "@/constants/emitters";
 import { DELETE_CATEGORY, EVENT_REMINDER_CATEGORY, MARK_DONE_CATEGORY, REMINDER_CHANNEL, SNOOZE_CATEGORY, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { SettingsProvider } from "@/hooks/settings/use-settings-data";
@@ -8,7 +8,7 @@ import * as BackgroundTask from "expo-background-task";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import * as TaskManager from "expo-task-manager";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
 
@@ -23,6 +23,7 @@ export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
+    const [locked, setLocked] = useState<boolean>(false);
 
     const setupNotifications = useCallback(async () => {
         await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
@@ -182,35 +183,55 @@ export default function ProtectedLayout() {
         handleRegisterTasks();
     }, []);
 
+    useEffect(() => {
+        const onLock = () => {
+            setLocked(true);
+        }
+        const onUnLock = () => {
+            setLocked(false);
+        }
+
+        emitter.addListener(LOCK, onLock);
+        emitter.addListener(UNLOCK, onUnLock);
+
+        return () => {
+            emitter.removeAllListeners(LOCK);
+            emitter.removeAllListeners(UNLOCK);
+        }
+    }, []);
+
     return (
         <SettingsProvider>
-            <Stack
-                initialRouteName="(tabs)"
-                screenOptions={{
-                    headerShown: false,
-                }}
-            >
-                <Stack.Screen name="(tabs)" />
+            <Stack screenOptions={{
+                headerShown: false,
+            }}>
+                <Stack.Protected guard={false}>
+                    <Stack.Screen name="(tabs)" />
 
-                <Stack.Screen name="(user)" />
+                    <Stack.Screen name="(user)" />
 
-                <Stack.Screen name="(task)" />
+                    <Stack.Screen name="(task)" />
 
-                <Stack.Screen name="sync-data" />
+                    <Stack.Screen name="(task)" />
 
-                <Stack.Screen
-                    name="sounds"
-                    options={{
-                        animation: "fade_from_bottom",
-                    }}
-                />
+                    <Stack.Screen name="sync-data" />
 
-                <Stack.Screen
-                    name="lock-screen"
-                    options={{
-                        animation: "fade",
-                    }}
-                />
+                    <Stack.Screen
+                        name="sounds"
+                        options={{
+                            animation: "fade_from_bottom",
+                        }}
+                    />
+                </Stack.Protected>
+
+                <Stack.Protected guard={true}>
+                    <Stack.Screen
+                        name="lock-screen"
+                        options={{
+                            animation: "fade",
+                        }}
+                    />
+                </Stack.Protected>
             </Stack>
         </SettingsProvider>
     );

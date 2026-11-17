@@ -1,24 +1,27 @@
 import { memo, useEffect, useState } from "react";
-import { ColorValue, Text, View } from "react-native";
+import { ColorValue, Text, TextProps } from "react-native";
 
-interface Props {
-    children: string | number;
+interface Props extends TextProps {
+    children: string | number | Array<string | number>;
     className?: string;
     colors: ColorValue[];
+    style?: TextProps["style"];
 }
 
 /**
  * 
- * @param children The chain of characters that will be display
+ * @param children
  * 
- * @param className The list of classes that will be set the to the displayed element
+ * @param className
  * 
- * @param colors The list of colors that will be used
+ * @param colors 
+ * 
+ * @param style 
  * 
  * @returns 
  */
 
-export const TextGradient = memo(({ children, className, colors: textColors }: Props) => {
+export const TextGradient = memo(({ children, className, colors: textColors, style, ...rest }: Props) => {
     const [text, setText] = useState<typeof children>(children);
     const [count, setCount] = useState<number>(0);
 
@@ -28,7 +31,18 @@ export const TextGradient = memo(({ children, className, colors: textColors }: P
     }, [textColors, children, textColors]);
 
     return (
-        <View className="flex-row items-center">
+        <Text
+            {...rest}
+            style={[
+                {
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center"
+                },
+                style,
+            ]}
+            className={className}
+        >
             {
                 textColors.map((color, i) => {
                     const start = i * count;
@@ -37,16 +51,13 @@ export const TextGradient = memo(({ children, className, colors: textColors }: P
                     return (
                         <Text
                             key={i}
-                            numberOfLines={1}
-                            ellipsizeMode="clip"
                             style={{ color }}
-                            className={className}
                         >
                             {String(text).slice(start, end)}
                         </Text>
                     );
                 })
             }
-        </View>
+        </Text>
     );
 });

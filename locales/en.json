@@ -214,5 +214,7 @@
     "reset_password_step_3_item_4": "Update",
     "reset_password_step_3_item_5": "Counter",
     "confirm_box_cancel": "Cancel",
-    "confirm_box_submit": "Submit"
+    "confirm_box_submit": "Submit",
+    "lock_screen_item_1": "{{name}} Authentication",
+    "lock_screen_item_2": "{{name}} needs to verify your identity"
 }

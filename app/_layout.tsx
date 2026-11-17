@@ -189,6 +189,6 @@ export default function Layout() {
                     </DatabaseProvider>
                 </ThemeProvider>
             </KeyboardProvider>
-        </SafeAreaProvider >
+        </SafeAreaProvider>
     )
 }

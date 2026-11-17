@@ -19,3 +19,7 @@ export const EVENTS_CHANGED = "events-changed";
 export const LOGOUT = "logout";
 
 export const REFRESH_AUTH = "refresh-auth";
+
+export const LOCK = "lock";
+
+export const UNLOCK = "unlock";
