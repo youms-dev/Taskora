@@ -16,7 +16,6 @@ export class Session {
     @Column({
         name: "id_device",
         nullable: true,
-        unique: true,
     })
     idDevice: string;
 
@@ -39,8 +38,10 @@ export class Session {
 
     @Column({
         name: "refresh_token",
+        type: "text",
+        nullable: true,
     })
-    refreshToken: string;
+    refreshToken?: string | null;
 
     @CreateDateColumn({
         name: "created_at",

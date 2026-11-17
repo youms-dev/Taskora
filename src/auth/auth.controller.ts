@@ -8,6 +8,7 @@ import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResendCodeDto } from './dto/resend-code.dto';
+import { LogoutDto } from './dto/logout.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -53,7 +54,11 @@ export class AuthController {
 
   @Post("refresh")
   refresh(@Body() data: RefreshDto) {
-    console.log("Massa")
     return this.authService.refresh(data);
+  }
+
+  @Post("logout")
+  logout(@Body() data: LogoutDto) {
+    return this.authService.logout(data);
   }
 }

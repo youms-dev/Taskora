@@ -21,6 +21,7 @@ import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LogoutDto } from './dto/logout.dto';
 
 @Injectable()
 export class AuthService {
@@ -40,7 +41,7 @@ export class AuthService {
     ) { }
 
     async register(data: RegisterDto) {
-        const email = data.email.toLocaleLowerCase().trim();
+        const email = data.email.toLowerCase().trim();
 
         const user = await this.userRepo.findOne({
             where: {
@@ -116,7 +117,7 @@ export class AuthService {
     }
 
     async oAuthRegister(data: OAuthRegisterDto) {
-        const email = data.email.toLocaleLowerCase().trim();
+        const email = data.email.toLowerCase().trim();
 
         const user = await this.userRepo.findOne({
             where: {
@@ -304,7 +305,7 @@ export class AuthService {
     }
 
     async login(data: LoginDto) {
-        const email = data.email.toLocaleLowerCase().trim();
+        const email = data.email.toLowerCase().trim();
         const key = `login-attempts:${email}`;
         const attempts = await redis.incr(key);
 
@@ -368,7 +369,7 @@ export class AuthService {
     }
 
     async oAuthLogin(data: OAuthLoginDto) {
-        const email = data.email.toLocaleLowerCase().trim();
+        const email = data.email.toLowerCase().trim();
         const key = `login-attempts:${email}`;
         const attempts = await redis.incr(key);
 
@@ -466,7 +467,7 @@ export class AuthService {
     }
 
     async sendCode(email: string) {
-        const emailFormatted = email.toLocaleLowerCase().trim();
+        const emailFormatted = email.toLowerCase().trim();
         const key = `login-attempts:${email}`;
         const attempts = await redis.incr(key);
 
@@ -568,5 +569,27 @@ export class AuthService {
         catch (e) {
             throw new UnauthorizedException("Invalid token");
         }
+    }
+
+    async logout(data: LogoutDto) {
+        const email = data.email.toLowerCase();
+
+        const session = await this.sessionRepo.findOneBy({
+            user: {
+                email,
+            },
+            idDevice: data.idDevice,
+        });
+
+        if (!session) {
+            throw new NotFoundException("Session not found!");
+        }
+
+        await this.sessionRepo.save({
+            ...session,
+            refreshToken: null,
+        });
+
+        return true;
     }
 }
