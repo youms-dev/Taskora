@@ -9,7 +9,7 @@ import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
-import { AUTH_STORE } from '@/constants/secure-store';
+import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
@@ -30,6 +30,8 @@ import { ActivityIndicator, Platform, Text, TextInput, useWindowDimensions, View
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, SlideInRight, SlideOutLeft, SlideOutRight } from 'react-native-reanimated';
 import "../config/task-manager";
+import { emitter } from '@/lib/event-emitter';
+import { REFRESH_AUTH } from '@/constants/emitters';
 
 export default function Login() {
   const initialInputsValues = {
@@ -74,6 +76,7 @@ export default function Login() {
         return;
       }
 
+      const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
       const authStore = await SecureStore.getItemAsync(AUTH_STORE);
       let session: AuthType | null = null;
 
@@ -87,7 +90,7 @@ export default function Login() {
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
         provider,
-        idDevice: session?.idDevice,
+        idDevice,
       });
 
       if (data._2FA) {
@@ -106,7 +109,11 @@ export default function Login() {
         setWith0Auth(false);
       }
       else {
-        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+        const { idDevice, ...rest } = data;
+
+        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+        await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+        emitter.emit(REFRESH_AUTH);
       }
     }
     catch (e) {
@@ -145,6 +152,7 @@ export default function Login() {
       setLoading(true);
       loadingRef.current = true;
 
+      const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
       const authStore = await SecureStore.getItemAsync(AUTH_STORE);
       let session: AuthType | null = null;
 
@@ -158,7 +166,7 @@ export default function Login() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
-        idDevice: session?.idDevice,
+        idDevice,
       });
 
       if (data._2FA) {
@@ -170,7 +178,11 @@ export default function Login() {
         setInputsValues(initialInputsValues);
       }
       else {
-        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+        const { idDevice, ...rest } = data;
+
+        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+        await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+        emitter.emit(REFRESH_AUTH);
       }
     }
     catch (e) {
@@ -254,6 +266,7 @@ export default function Login() {
       setLoading(true);
       loadingRef.current = true;
 
+      const storeIdDevice = await SecureStore.getItemAsync(DEVICE_STORE);
       const authStore = await SecureStore.getItemAsync(AUTH_STORE);
       let session: AuthType | null = null;
 
@@ -267,13 +280,17 @@ export default function Login() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
-        idDevice: session?.idDevice,
+        idDevice: storeIdDevice,
       });
 
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      const { idDevice, ...rest } = data;
+
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
       setInputsValues(initialInputsValues);
       set_2fa(false);
+      emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
       const { status } = e as ApiError;

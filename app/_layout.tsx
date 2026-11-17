@@ -1,11 +1,13 @@
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
-import { AUTH_STORE } from "@/constants/secure-store";
+import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
+import { AUTH_STORE, DEVICE_STORE } from "@/constants/secure-store";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
+import { emitter } from "@/lib/event-emitter";
 import { AuthType } from "@/types/auth";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -25,6 +27,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
+import { api } from "@/lib/axios";
 
 preventAutoHideAsync();
 
@@ -74,7 +77,7 @@ export default function Layout() {
                 authFormatted = JSON.parse(authData);
             }
 
-            console.log("Auth user :", authFormatted);
+            // console.log("Auth user :", authFormatted);
             setAuth(authFormatted);
         }
         catch { }
@@ -83,20 +86,46 @@ export default function Layout() {
         }
     }, [auth]);
 
+    const handleLogout = useCallback(async () => {
+        if (!auth) return;
+        const currentAuth = auth;
+
+        setAuth(null);
+        await SecureStore.deleteItemAsync(AUTH_STORE);
+
+        try {
+            const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
+
+            await api.post("/auth/logout", {
+                idDevice,
+                email: currentAuth.email,
+            });
+        }
+        catch { }
+    }, [auth]);
+
     useEffect(() => {
         handleGetAuth();
-    }, []);
 
-    useEffect(() => {
-        const { remove } = AppState.addEventListener("change", async (state) => {
-            if (state == "background") {
-                console.log("We're in background");
-                await BackgroundTask.triggerTaskWorkerForTestingAsync();
-            }
-        });
+        emitter.addListener(REFRESH_AUTH, handleGetAuth);
+        emitter.addListener(LOGOUT, handleLogout);
 
-        () => remove();
-    }, []);
+        return () => {
+            emitter.removeAllListeners(REFRESH_AUTH);
+            emitter.removeAllListeners(LOGOUT);
+        }
+    }, [handleLogout]);
+
+    // useEffect(() => {
+    //     const { remove } = AppState.addEventListener("change", async (state) => {
+    //         if (state == "background") {
+    //             console.log("We're in background");
+    //             await BackgroundTask.triggerTaskWorkerForTestingAsync();
+    //         }
+    //     });
+
+    //     () => remove();
+    // }, []);
 
     if (!db || loading) return (
         <SplashScreen />

@@ -1,7 +1,8 @@
-import { memo, useEffect, useMemo } from "react";
+
+import { memo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
+import { BackHandler, LayoutChangeEvent, Pressable, Text, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
 import { TextAnimated } from "./text-animated";
 
@@ -15,161 +16,154 @@ interface Props {
     submitLabel?: string;
 }
 
-/**
- * @param active
- * 
- * @param onCancel
- * 
- * @param onSubmit
- * 
- * @param backdropBackground
- * 
- * @param message
- * 
- * @param cancelLabel
- * 
- * @param submitLabel
- * 
- * @returns Confirm box component
- * 
- */
+const OPEN_DURATION = 500;
+const CLOSE_DURATION = 500;
 
 export const ConfirmBox = memo(({ active: isActive, onCancel, onSubmit, backdropBackground, message, cancelLabel, submitLabel }: Props) => {
     const { t } = useTranslation();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const screenHeightShared = useSharedValue<number>(screenHeight);
-    const active = useSharedValue<boolean>(isActive);
-    const random = useSharedValue(0);
-    const height = useMemo(() => screenHeight + (screenHeight * .2), [screenHeight]);
+    const boxHeight = useSharedValue(0);
+    const scale = useSharedValue(isActive ? 1 : 0);
+    const opacity = useSharedValue(isActive ? 1 : 0);
+    const translateY = useSharedValue(0);
+    const rotate = useSharedValue("0deg");
+    const backdropOpacity = useSharedValue(isActive ? 1 : 0);
+
+    const onLayout = useCallback((e: LayoutChangeEvent) => {
+        boxHeight.value = e.nativeEvent.layout.height;
+    }, []);
 
     const confirmBoxAnimation = useAnimatedStyle(() => ({
+        opacity: opacity.value,
         transform: [
-            {
-                scale: (
-                    active.value ?
-                        withTiming(1, {
-                            duration: 300,
-                            easing: Easing.inOut(Easing.quad),
-                        })
-                        :
-                        withDelay(
-                            500,
-                            withTiming(0),
-                        )
-                ),
-            },
-            {
-                rotate: (
-                    active.value ?
-                        withTiming("0deg")
-                        :
-                        withSequence(
-                            withTiming(random.value >= .6 ? "45deg" : "-45deg", {
-                                duration: 500,
-                                easing: Easing.inOut(Easing.linear),
-                            }),
-                            withTiming("0deg")
-                        )
-                ),
-            },
-            {
-                translateY: (
-                    active.value ?
-                        withTiming(screenHeightShared.value * .05)
-                        :
-                        withSequence(
-                            withTiming(screenHeightShared.value, {
-                                duration: 500,
-                                easing: Easing.inOut(Easing.linear),
-                            }),
-                            withTiming(0)
-                        )
-                ),
-            },
+            { translateY: translateY.value },
+            { scale: scale.value },
+            { rotate: rotate.value },
         ],
-        opacity: (
-            active.value ?
-                1
-                :
-                withDelay(
-                    200,
-                    withTiming(0)
-                )
-        ),
+    }));
+
+    const backdropAnimation = useAnimatedStyle(() => ({
+        opacity: backdropOpacity.value,
     }));
 
     useEffect(() => {
-        screenHeightShared.value = screenHeight;
-    }, [screenHeight]);
+        if (isActive) {
+            scale.value = 0;
+            opacity.value = 1;
+            translateY.value = 20;
+            rotate.value = "0deg";
 
-    useEffect(() => {
-        active.value = isActive;
-        if (isActive) random.value = Math.random();
+            scale.value = withTiming(1, {
+                duration: OPEN_DURATION,
+                easing: Easing.out(Easing.quad),
+            });
 
-        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (isActive) {
-                onCancel();
-                return true;
-            }
-            return false;
+            translateY.value = withTiming(0, {
+                duration: OPEN_DURATION,
+                easing: Easing.out(Easing.quad),
+            });
+
+            rotate.value = withTiming("0deg", {
+                duration: OPEN_DURATION,
+            });
+
+            backdropOpacity.value = withTiming(1, {
+                duration: 200,
+            });
+
+            return;
+        }
+
+        const randomRotation = Math.random() >= 0.6 ? "45deg" : "-45deg";
+
+        translateY.value = withTiming(screenHeight * .7, {
+            duration: CLOSE_DURATION,
+            easing: Easing.inOut(Easing.linear),
         });
 
-        return () => remove();
+        rotate.value = withTiming(randomRotation, {
+            duration: CLOSE_DURATION,
+            easing: Easing.inOut(Easing.linear),
+        });
+
+        scale.value = withTiming(0, {
+            duration: CLOSE_DURATION,
+            easing: Easing.in(Easing.quad),
+        });
+
+        opacity.value = withDelay(
+            200,
+            withTiming(0, {
+                duration: 200,
+            }),
+        );
+
+        backdropOpacity.value = withTiming(0, {
+            duration: 200,
+        });
+    }, [isActive, screenHeight]);
+
+    useEffect(() => {
+        if (!isActive) return;
+
+        const subscription = BackHandler.addEventListener(
+            "hardwareBackPress",
+            () => {
+                onCancel();
+                return true;
+            },
+        );
+
+        return () => subscription.remove();
     }, [isActive, onCancel]);
 
     return (
         <Animated.View
-            style={[
-                {
-                    width: screenWidth,
-                    height,
-                    pointerEvents: isActive ? "auto" : "none",
-                    transform: [
-                        {
-                            translateY: -(screenHeight * .2),
-                        }
-                    ]
-                }
-            ]}
-            className="absolute left-0 top-0 flex justify-center items-center z-[100] px-8"
+            pointerEvents={isActive ? "auto" : "none"}
+            style={{
+                width: screenWidth,
+                height: screenHeight,
+            }}
+            className="absolute left-0 top-0 flex justify-center items-center z-[100]"
         >
+
             {/* Backdrop */}
 
-            {
-                isActive && (
-                    <Pressable
-                        onPress={onCancel}
-                        style={{
-                            width: screenWidth,
-                            height,
-                            backgroundColor: (
-                                backdropBackground ?
-                                    backdropBackground
-                                    :
-                                    "rgba(0, 0, 0, .2)"
-                            ),
-                        }}
-                        className="absolute left-0 top-0"
-                    />
-                )
-            }
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    {
+                        backgroundColor: backdropBackground ?? "rgba(0, 0, 0, .2)",
+                        height: screenHeight + (screenHeight * .1),
+                    },
+                    backdropAnimation,
+                ]}
+                className="absolute size-full"
+            />
+
+            <Pressable
+                onPress={onCancel}
+                className="absolute size-full"
+            />
 
             {/* Box */}
 
             <Animated.View
-                style={confirmBoxAnimation}
-                className="w-full sm:w-[500px] rounded-2xl dark:bg-black bg-white z-[10]"
+                onLayout={onLayout}
+                style={[
+                    confirmBoxAnimation,
+                    {
+                        width: screenWidth > 600 ? 500 : screenWidth * 0.9,
+                    },
+                ]}
+                className="rounded-2xl dark:bg-black bg-white z-[10]"
             >
 
                 {/* Shadow */}
 
                 <View
                     style={{
-                        transform: [
-                            {
-                                translateY: 8,
-                            },
-                        ],
+                        transform: [{ translateY: 8 }],
                         filter: "blur(5px)",
                     }}
                     className="absolute size-full dark:bg-back/50 bg-black/30 rounded-2xl"
@@ -186,8 +180,8 @@ export const ConfirmBox = memo(({ active: isActive, onCancel, onSubmit, backdrop
 
                     <View className="w-full flex flex-row justify-center items-center gap-3">
                         <PressableAnimated
-                            scale={.95}
-                            onPress={onSubmit}
+                            scale={0.95}
+                            onPress={onCancel}
                             className="w-[45%] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-emerald-500"
                         >
                             <Text className="text-black font-bold tracking-wider text-xl">
@@ -196,7 +190,7 @@ export const ConfirmBox = memo(({ active: isActive, onCancel, onSubmit, backdrop
                         </PressableAnimated>
 
                         <PressableAnimated
-                            scale={.95}
+                            scale={0.95}
                             onPress={onSubmit}
                             className="w-[45%] h-[45px] flex flex-row justify-center items-center rounded-2xl bg-red-500"
                         >

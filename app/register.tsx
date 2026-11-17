@@ -1,17 +1,19 @@
-import { OAuthButton } from '@/components/oauth-button';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
 import { Modal } from '@/components/modal';
+import { OAuthButton } from '@/components/oauth-button';
 import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
+import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
-import { AUTH_STORE } from '@/constants/secure-store';
+import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
+import { emitter } from '@/lib/event-emitter';
 import { AUTH_PROVIDER } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
 import { Entypo, FontAwesome6, Fontisto } from '@expo/vector-icons';
@@ -159,16 +161,16 @@ export default function Register() {
         provider: provider,
       });
 
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      const { idDevice, ...rest } = data;
+
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+
       setInputsValues(initialInputsValues);
-      setLoading(false);
-      loadingRef.current = false;
+      emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
       const { status } = e as ApiError;
-
-      setLoading(false);
-      loadingRef.current = false;
 
       if (status == 409) {
         setToast(t("register_conflict"), "error", 5000);
@@ -176,6 +178,10 @@ export default function Register() {
       else {
         setToast(t("error"), "error");
       }
+    }
+    finally {
+      setLoading(false);
+      loadingRef.current = false;
     }
   }, [i18n.language, setToast, checked]);
 
@@ -203,9 +209,13 @@ export default function Register() {
         deviceType: Platform.OS.toUpperCase(),
       });
 
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+      const { idDevice, ...rest } = data;
+
+      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
       setInputsValues(initialInputsValues);
+      emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
       const { status, data } = e as ApiError;

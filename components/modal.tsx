@@ -156,6 +156,11 @@ export const Modal = memo(({
                 })
                 .onEnd(({ translationY: y }) => {
                     dragging.value = false;
+                    if (!active.value) {
+                        scheduleOnRN(handleClose);
+                        return;
+                    }
+
                     if (scrolling.value || !closable.value || scroll.value != 0) {
                         translateY.value = withTiming(0, {
                             duration: 200,
@@ -329,7 +334,7 @@ export const Modal = memo(({
                                         (
                                             <Animated.View
                                                 style={dragHandlerAnimation}
-                                                className="w-20 h-2 rounded-2xl my-2"
+                                                className="w-[50px] h-2 rounded-2xl my-2"
                                             />
                                         )
                                 )
