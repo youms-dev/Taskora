@@ -1,7 +1,7 @@
 import { COLORS } from '@/constants/colors';
 import { useTheme } from '@/hooks/use-theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, cancelAnimation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -126,7 +126,7 @@ interface Props {
   height?: number;
 }
 
-export const MultiSessionAnimation = ({
+export const MultiSessionAnimation = memo(({
   width = 360,
   height,
 }: Props) => {
@@ -378,4 +378,4 @@ export const MultiSessionAnimation = ({
       />
     </View>
   );
-};
+});

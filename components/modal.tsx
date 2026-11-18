@@ -1,6 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
 import { memo, ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
-import { BackHandler, DimensionValue, KeyboardAvoidingView, Platform, Pressable, useWindowDimensions, View } from "react-native";
+import { BackHandler, DimensionValue, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { Easing, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -26,8 +26,6 @@ interface Props {
     dragHandlerBackground?: string;
     scrollableContent?: boolean;
 }
-
-const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
 
 const PressableAnimated = Animated.createAnimatedComponent(Pressable);
 
@@ -275,8 +273,7 @@ export const Modal = memo(({
     }));
 
     return (
-        <AnimatedKeyboardAvoidingView
-            behavior={Platform.OS == "android" ? "height" : "padding"}
+        <Animated.View
             style={[
                 {
                     width: screenWidth,
@@ -369,6 +366,6 @@ export const Modal = memo(({
                     }
                 </Animated.View>
             </GestureDetector>
-        </AnimatedKeyboardAvoidingView>
+        </Animated.View>
     );
 });

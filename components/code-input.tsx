@@ -9,6 +9,14 @@ interface Props extends TextInputProps {
     setValue: (value: string) => void;
 }
 
+/**
+ * @param value
+ * 
+ * @param setValue
+ * 
+ * @returns Code input component
+ */
+
 export const CodeInput = memo(forwardRef<TextInput, Props>(({ value, setValue, ...rest }: Props, ref) => {
     const codeRef = useRef<TextInput>(null);
     const [focus, setCodeFocus] = useState<boolean>(false);

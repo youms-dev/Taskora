@@ -23,7 +23,7 @@ export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
-    const [locked, setLocked] = useState<boolean>(false);
+    const [locked, setLocked] = useState<boolean>(true);
 
     const setupNotifications = useCallback(async () => {
         await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
@@ -188,7 +188,7 @@ export default function ProtectedLayout() {
             setLocked(true);
         }
         const onUnLock = () => {
-            setLocked(false);
+            setLocked(true);
         }
 
         emitter.addListener(LOCK, onLock);
@@ -205,26 +205,28 @@ export default function ProtectedLayout() {
             <Stack screenOptions={{
                 headerShown: false,
             }}>
-                <Stack.Protected guard={false}>
+                <Stack.Protected guard={true}>
                     <Stack.Screen name="(tabs)" />
 
+                    <Stack.Screen name="(folders)" />
+
+                    <Stack.Screen name="(task)" />
+                    
                     <Stack.Screen name="(user)" />
-
-                    <Stack.Screen name="(task)" />
-
-                    <Stack.Screen name="(task)" />
-
-                    <Stack.Screen name="sync-data" />
-
+                    
                     <Stack.Screen
                         name="sounds"
                         options={{
                             animation: "fade_from_bottom",
                         }}
                     />
+
+                    <Stack.Screen name="sync-data" />
+
+                    <Stack.Screen name="(local-auth)" />
                 </Stack.Protected>
 
-                <Stack.Protected guard={true}>
+                <Stack.Protected guard={false}>
                     <Stack.Screen
                         name="lock-screen"
                         options={{

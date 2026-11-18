@@ -664,24 +664,30 @@ export default function Settings() {
 
                             {/* Lock app */}
 
-                            <PressableAnimated
-                                scale={1}
-                                className="flex self-start flex-row gap-5"
+                            <Pressable
+                                onPress={() => router.navigate("/(protected)/(local-auth)")}
+                                className="w-full flex flex-row justify-between items-center gap-3 self-start"
                             >
-                                <FontAwesome5
-                                    name="user-lock"
-                                    size={20}
-                                    color={
-                                        theme == "dark"
-                                            ? "rgba(255, 255, 255, .3)"
-                                            : "rgba(0, 0, 0, .3)"
-                                    }
-                                />
+                                <View className="max-w-[80%] flex flex-row items-center gap-5 overflow-hidden">
+                                    <View>
+                                        <FontAwesome5
+                                            name="user-lock"
+                                            size={20}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                        />
+                                    </View>
 
-                                <TextAnimated className="max-w-[85%] text-lg">
-                                    {t("settings_lock_app")}
-                                </TextAnimated>
-                            </PressableAnimated>
+                                    <View className="max-w-[80%]">
+                                        <TextAnimated className="text-lg">
+                                            {t("settings_lock_app")}
+                                        </TextAnimated>
+                                    </View>
+                                </View>
+
+                                <View className="pointer-events-none">
+                                    <Toggle active={!!setting?.autoSync} />
+                                </View>
+                            </Pressable>
 
                             {/* 2FA */}
 

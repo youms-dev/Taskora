@@ -1,5 +1,5 @@
 import { useTheme } from '@/hooks/use-theme';
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, Extrapolation, SharedValue, cancelAnimation, interpolate, useAnimatedProps, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
@@ -226,7 +226,7 @@ interface Props {
   height?: number;
 }
 
-export const SyncAnimation = ({ width = 360, height }: Props) => {
+export const SyncAnimation = memo(({ width = 360, height }: Props) => {
   const h = height ?? width * (190 / 300);
   const progress = useSharedValue(0);
   const reduceMotion = useReducedMotion();
@@ -278,4 +278,4 @@ export const SyncAnimation = ({ width = 360, height }: Props) => {
       </Svg>
     </View>
   );
-};
+});
