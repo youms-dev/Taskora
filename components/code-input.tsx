@@ -4,7 +4,7 @@ import { Keyboard, TextInput, TextInputProps, Vibration, View } from "react-nati
 import Animated, { Easing, FadeInDown, FadeOutUp } from "react-native-reanimated";
 import { PressableAnimated } from "./pressable-animated";
 
-interface Props extends TextInputProps {
+interface Props extends Pick<TextInputProps, "onSubmitEditing"> {
     value: string;
     setValue: (value: string) => void;
 }
@@ -101,6 +101,7 @@ export const CodeInput = memo(forwardRef<TextInput, Props>(({ value, setValue, .
             </View>
 
             <TextInput
+                {...rest}
                 ref={handleRef}
                 keyboardType="number-pad"
                 onFocus={() => setCodeFocus(true)}

@@ -18,7 +18,7 @@ import * as SecureStore from "expo-secure-store";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -44,6 +44,7 @@ export default function Layout() {
     const [locales] = useLocales();
     const { i18n } = useTranslation();
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
+    const authRef = useRef<typeof auth>(null);
 
     useEffect(() => {
         (async () => {
@@ -70,7 +71,7 @@ export default function Layout() {
 
     const handleGetAuth = useCallback(async () => {
         try {
-            !auth && setLoading(true);
+            !authRef.current && setLoading(true);
             const authData = await SecureStore.getItemAsync(AUTH_STORE);
             let authFormatted: AuthType | null = null;
 
@@ -85,11 +86,11 @@ export default function Layout() {
         finally {
             setLoading(false);
         }
-    }, [auth]);
+    }, []);
 
     const handleLogout = useCallback(async () => {
-        if (!auth) return;
-        const currentAuth = auth;
+        if (!authRef.current) return;
+        const currentAuth = authRef.current;
 
         setAuth(null);
         await SecureStore.deleteItemAsync(AUTH_STORE);
@@ -103,7 +104,7 @@ export default function Layout() {
             });
         }
         catch { }
-    }, [auth]);
+    }, []);
 
     useEffect(() => {
         handleGetAuth();
@@ -115,7 +116,7 @@ export default function Layout() {
             emitter.removeAllListeners(REFRESH_AUTH);
             emitter.removeAllListeners(LOGOUT);
         }
-    }, [handleLogout]);
+    }, []);
 
     // useEffect(() => {
     //     const { remove } = AppState.addEventListener("change", async (state) => {
@@ -127,6 +128,10 @@ export default function Layout() {
 
     //     () => remove();
     // }, []);
+
+    useEffect(() => {
+        authRef.current = auth;
+    }, [auth]);
 
     if (!db || loading) return (
         <SplashScreen />

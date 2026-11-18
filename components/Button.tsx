@@ -59,37 +59,43 @@ export const Button = memo(({ children, loaderSize = 20, loading = false, width 
       style={{
         width: layout?.width,
         height: layout?.height,
-        backgroundColor,
         borderRadius: rounded,
       }}
       className={clsx(
-        'flex justify-center items-center p-2',
-        loading && "opacity-70 pointer-events-none",
+        loading && "opacity-70 pointer-events-none dark:bg-black bg-white",
       )}
     >
-      {
-        !loading && (
-          <View
-            style={{
-              width,
-              height,
-            }}
-            onLayout={(e) => setLayout(e.nativeEvent.layout)}
-            className="absolute flex flex-row justify-center items-center gap-3"
-          >
-            {children}
-          </View>
-        )
-      }
+      <View
+        style={{
+          backgroundColor,
+          borderRadius: rounded,
+        }}
+        className="size-full flex justify-center items-center p-2"
+      >
+        {
+          !loading && (
+            <View
+              style={{
+                width,
+                height,
+              }}
+              onLayout={(e) => setLayout(e.nativeEvent.layout)}
+              className="absolute flex flex-row justify-center items-center gap-3"
+            >
+              {children}
+            </View>
+          )
+        }
 
-      {
-        loading && (
-          <ActivityIndicator
-            size={loaderSize}
-            color={loaderColor}
-          />
-        )
-      }
+        {
+          loading && (
+            <ActivityIndicator
+              size={loaderSize}
+              color={loaderColor}
+            />
+          )
+        }
+      </View>
     </PressableAnimated>
   );
 });

@@ -98,7 +98,7 @@ export default function SyncDataPage() {
 
                 {/* Enable card */}
 
-                <View className="w-full flex flex-row justify-between gap-3 dark:bg-white/10 bg-white rounded-2xl mt-6 p-3">
+                <View className="w-full flex flex-row justify-between items-center gap-3 dark:bg-white/10 bg-white rounded-2xl mt-6 p-3">
                     <View className="w-[80%]">
                         <TextAnimated className="text-lg">
                             {t("auto-sync_enable")}
