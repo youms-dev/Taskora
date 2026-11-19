@@ -12,6 +12,7 @@ import * as TaskManager from "expo-task-manager";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Platform } from "react-native";
+import * as ScreenCapture from "expo-screen-capture";
 
 const CONFIG: NotificationChannelInput = {
     name: "Reminders",
@@ -187,7 +188,8 @@ export default function ProtectedLayout() {
         handleRegisterTasks();
     }, []);
 
-    const onLock = useCallback(() => {
+    const onLock = useCallback(async () => {
+        await ScreenCapture.preventScreenCaptureAsync();
         setLocked(true);
         currentPathname.current = pathname;
     }, [pathname]);

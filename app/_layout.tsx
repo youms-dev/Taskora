@@ -1,4 +1,4 @@
-import { SplashScreen } from "@/components/spash-screen";
+import { SplashScreen as SplashScreenComponent } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { ATTEMPTS_STORAGE, LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
@@ -15,7 +15,6 @@ import * as BackgroundTask from "expo-background-task";
 import { useLocales } from "expo-localization";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,8 +29,12 @@ import "./global.css";
 import { api } from "@/lib/axios";
 import { LocalAuthProvider } from "@/hooks/local-auth/use-local-auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SplashScreen from "expo-splash-screen";
 
-preventAutoHideAsync();
+SplashScreen.setOptions({
+    fade: true,
+});
+SplashScreen.preventAutoHideAsync();
 
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
@@ -65,7 +68,7 @@ export default function Layout() {
 
                 setDb(database);
                 await database.execAsync(INIT_DATABASE);
-                await hideAsync();
+                await SplashScreen.hideAsync();
             }
         })();
     }, [db]);
@@ -149,7 +152,7 @@ export default function Layout() {
 
 
     if (!db || loading) return (
-        <SplashScreen />
+        <SplashScreenComponent />
     )
 
     return (

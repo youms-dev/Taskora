@@ -406,7 +406,7 @@ export default function LockScreen() {
     const upHalfChildAnimation = useAnimatedStyle(() => ({
         transform: [
             {
-                translateX: 10,
+                translateX: 15,
             },
             {
                 translateY: withDelay(500,
@@ -634,11 +634,11 @@ export default function LockScreen() {
                     >
                         <Animated.View
                             style={upHalfChildAnimation}
-                            className="absolute right-0 bottom-0 w-[10px] h-[50%] dark:bg-black bg-white"
+                            className="absolute right-0 bottom-0 w-[20px] h-[50%] dark:bg-black bg-white"
                         >
                             <View
                                 style={{
-                                    backgroundColor: theme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
+                                    backgroundColor: theme == "dark" ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .05)"
                                 }}
                                 className="size-full"
                             />
