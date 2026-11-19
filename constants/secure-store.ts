@@ -4,4 +4,4 @@ export const DEVICE_STORE = "device-key";
 
 export const LOCAL_AUTH_STORE = "local-auth";
 
-export const AUTH_ATTEMPTS_STORE = "auth-attempts";
+export const LOCAL_AUTH_ATTEMPTS_STORE = "local-auth-attempts";

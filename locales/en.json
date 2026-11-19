@@ -217,6 +217,8 @@
     "confirm_box_submit": "Submit",
     "lock_screen_item_1": "{{name}} Authentication",
     "lock_screen_item_2": "{{name}} needs to verify your identity",
+    "lock_screen_429_item_1": "Too many attempts",
+    "lock_screen_429_item_2": "Retry in",
     "local_auth_title": "Local authentication",
     "local_auth_section_1_item_1": "Keep {{name}} locked so that only you can access your data, schedule events, or manage your resources.",
     "local_auth_section_2_item_1": "Enable local authentication",

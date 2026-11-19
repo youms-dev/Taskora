@@ -3,15 +3,21 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { TextGradient } from "@/components/text-gradient";
 import { COLORS } from "@/constants/colors";
+import { UNLOCK } from "@/constants/emitters";
 import { APP_NAME } from "@/constants/names";
+import { LOCAL_AUTH_ATTEMPTS_STORE } from "@/constants/secure-store";
+import { useLocalAuth } from "@/hooks/local-auth/use-local-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { emitter } from "@/lib/event-emitter";
+import { AttemptsType } from "@/types/auth";
 import { FontAwesome5 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import clsx from "clsx";
 import * as Authentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, useWindowDimensions, Vibration, View } from "react-native";
+import { AppState, FlatList, Text, useWindowDimensions, Vibration, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, SharedValue, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -36,14 +42,18 @@ interface ButtonProps {
     onPress: () => void;
     delayLongPress: number;
     onLongPress: () => void;
+    hideFingerButton: boolean;
 }
 
-const Button = memo(({ index, value, onBackSpacePress, onFingerPrintPress, onPress, delayLongPress, onLongPress }: ButtonProps) => {
+const Button = memo(({ index, value, onBackSpacePress, onFingerPrintPress, onPress, delayLongPress, onLongPress, hideFingerButton }: ButtonProps) => {
     const { theme } = useTheme();
     const isFingerPrint = index == 9;
     const isBackSpace = index == 11;
+    const touchable = !isFingerPrint || !hideFingerButton;
 
     const handlePress = useCallback(() => {
+        if (!touchable) return;
+
         if (isFingerPrint) {
             onFingerPrintPress();
         }
@@ -69,6 +79,7 @@ const Button = memo(({ index, value, onBackSpacePress, onFingerPrintPress, onPre
                 width: SIZE,
                 height: SIZE,
                 marginHorizontal: MARGIN,
+                opacity: isFingerPrint ? (!touchable ? 0 : 1) : 1,
             }}
             className="rounded-full dark:bg-black bg-white"
         >
@@ -169,7 +180,7 @@ const Button = memo(({ index, value, onBackSpacePress, onFingerPrintPress, onPre
                     }
                 </View>
             </View>
-        </PressableAnimated>
+        </PressableAnimated >
     );
 });
 
@@ -284,6 +295,43 @@ const Box = memo(({ active, shake }: BoxProps) => {
     );
 });
 
+interface TimerProps {
+    entry: number;
+    onEndReached: () => void;
+}
+
+const Timer = memo(({ entry, onEndReached }: TimerProps) => {
+    const interval = useRef<ReturnType<typeof setInterval>>(null);
+    const [time, setTime] = useState<string>(String(entry));
+
+    useEffect(() => {
+        let val = entry;
+
+        setTime(String(entry));
+
+        interval.current = setInterval(() => {
+            if (val == 0) {
+                onEndReached();
+                interval.current && clearInterval(interval.current);
+                return;
+            }
+
+            val--;
+            setTime(String(val));
+        }, 1000);
+
+        return () => {
+            interval.current && clearInterval(interval.current);
+        }
+    }, [entry, onEndReached]);
+
+    return (
+        <Text>
+            {time}
+        </Text>
+    );
+});
+
 export default function LockScreen() {
     const { theme } = useTheme();
     const [lock, setLock] = useState<boolean>(true);
@@ -296,8 +344,42 @@ export default function LockScreen() {
     const shake = useSharedValue<boolean>(false);
     const shakeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const { t, i18n } = useTranslation();
+    const [active, setActive] = useState<boolean>(false);
+    const { localAuth } = useLocalAuth();
+    const attemptsRef = useRef<number>(0);
+    const [loading, setLoading] = useState<boolean>(true);
+    const count = useRef<number>(1);
+    const [expiresAt, setExpiresAt] = useState<number>(0);
 
     const numbers = useMemo(() => Array(12).fill(0).map((_, i, tab) => i < tab.length - 3 ? i + 1 : 0), []);
+
+    const attempts = useMemo(() => ({
+        increment: async () => {
+            if (attemptsRef.current >= 5) {
+                const val = count.current * 5;
+                const exp = Date.now() + (1000 * val);
+
+                await SecureStore.setItemAsync(LOCAL_AUTH_ATTEMPTS_STORE, JSON.stringify({
+                    attempts: count.current,
+                    expiresAt: exp,
+                } as AttemptsType));
+
+                count.current = count.current + 1;
+                setActive(false);
+                setExpiresAt(val);
+            }
+            else {
+                attemptsRef.current = attemptsRef.current + 1;
+            }
+        },
+        reset: async (all?: boolean) => {
+            await SecureStore.deleteItemAsync(LOCAL_AUTH_ATTEMPTS_STORE);
+            setActive(true);
+            attemptsRef.current = 0;
+            setExpiresAt(0);
+            if (all) count.current = 1;
+        },
+    }), []);
 
     const upHalfAnimation = useAnimatedStyle(() => ({
         transform: [{
@@ -364,19 +446,21 @@ export default function LockScreen() {
     }, [theme]);
 
     const onSuccess = useCallback(() => {
+        attempts.reset(true);
         lockShared.value = false;
         setLock(false);
+        setValue("");
         timeout.current = setTimeout(() => {
             setLock(true);
             lockShared.value = true;
+            emitter.emit(UNLOCK);
         }, 1500);
     }, []);
 
-    const handleLocalAuth = useCallback(async () => {
+    const handleSystemAuth = useCallback(async () => {
         timeout.current && clearTimeout(timeout.current);
         const { success } = await Authentication.authenticateAsync({
             requireConfirmation: false,
-            biometricsSecurityLevel: "strong",
             promptMessage: t("lock_screen_item_1", { name: APP_NAME }),
             promptDescription: t("lock_screen_item_2", { name: APP_NAME }),
         });
@@ -421,6 +505,23 @@ export default function LockScreen() {
         }
     }, []);
 
+    const onPress = useCallback((item: number) => {
+        if (shake.value || !localAuth) return;
+        const next = (value + String(item)).slice(0, 5);
+
+        if (next.trim().length == 5) {
+            if (next == localAuth.code) {
+                onSuccess();
+            }
+            else {
+                shake.value = true;
+                attempts.increment();
+            }
+        }
+
+        setValue(next);
+    }, [value, onSuccess, localAuth]);
+
     const renderItem = useCallback(({ item, index }: { item: number; index: number }) => {
         return (
             <Button
@@ -432,26 +533,14 @@ export default function LockScreen() {
                     }
                     return prev;
                 })}
-                onFingerPrintPress={handleLocalAuth}
-                onPress={() => setValue(prev => {
-                    const value = (prev + String(item)).slice(0, 5);
-
-                    if (value.trim().length == 5) {
-                        if (value == "12345") {
-                            onSuccess();
-                        }
-                        else {
-                            shake.value = true;
-                        }
-                    }
-
-                    return value;
-                })}
+                onFingerPrintPress={handleSystemAuth}
+                onPress={() => onPress(item)}
                 delayLongPress={150}
                 onLongPress={() => setValue("")}
+                hideFingerButton={!localAuth?.systemAuth}
             />
         );
-    }, []);
+    }, [onPress, localAuth]);
 
     const getItemLayout = useCallback((_data: any, index: number) => ({
         length: SIZE,
@@ -476,6 +565,44 @@ export default function LockScreen() {
             }
         }
     );
+
+    const getAttempts = useCallback(async () => {
+        if (!localAuth) return;
+        const data = await SecureStore.getItemAsync(LOCAL_AUTH_ATTEMPTS_STORE);
+
+        if (data) {
+            const dataParsed = JSON.parse(data) as AttemptsType;
+            const diff = dataParsed.expiresAt - Date.now();
+
+            if (diff > 0) {
+                count.current = dataParsed.attempts;
+                setExpiresAt(Math.ceil(diff / 1000));
+                setActive(false);
+            }
+            else {
+                attempts.reset();
+                localAuth.systemAuth && handleSystemAuth();
+            }
+        }
+        else {
+            attempts.reset();
+            localAuth.systemAuth && handleSystemAuth();
+        }
+        setLoading(false);
+        setActive(true);
+    }, [localAuth]);
+
+    useEffect(() => {
+        getAttempts();
+
+        const { remove } = AppState.addEventListener("change", (state) => {
+            if (state == "active") {
+                getAttempts();
+            }
+        });
+
+        return () => remove();
+    }, [getAttempts]);
 
     return (
         <Container centerX>
@@ -542,34 +669,73 @@ export default function LockScreen() {
             {/* Section 2 */}
 
             <View className="w-full h-[75%] flex items-center gap-10 pt-20">
-                <View className="w-full flex flex-row justify-center items-center gap-5 px-3">
-                    {
-                        Array(5).fill(0).map((_, i) => {
-                            return (
-                                <Box
-                                    key={i}
-                                    active={!!value[i]}
-                                    shake={shake}
-                                />
-                            );
-                        })
-                    }
-                </View>
+                {
+                    !loading && (
+                        <>
+                            {/* Timer */}
 
-                <View className="w-full flex items-center">
-                    <FlatList
-                        data={numbers}
-                        keyExtractor={(_, i) => String(i)}
-                        numColumns={3}
-                        renderItem={renderItem}
-                        getItemLayout={getItemLayout}
-                        contentContainerStyle={{
-                            rowGap: 20,
-                            paddingVertical: 10,
-                        }}
-                        contentContainerClassName="w-full flex items-center"
-                    />
-                </View>
+                            {
+                                !active && (
+                                    <View className="w-full flex items-center">
+                                        <TextAnimated className="text-center text-xl font-bold">
+                                            {t("lock_screen_429_item_1")}
+                                        </TextAnimated>
+
+                                        <TextAnimated className="text-center text-lg mt-3">
+                                            {t("lock_screen_429_item_2")}
+                                        </TextAnimated>
+
+                                        <View className="flex justify-center items-center mt-2">
+                                            <TextAnimated className="text-lg font-medium">
+                                                <Timer
+                                                    entry={expiresAt}
+                                                    onEndReached={() => attempts.reset()}
+                                                /> s
+                                            </TextAnimated>
+                                        </View>
+                                    </View>
+                                )
+                            }
+
+                            {/* Pad */}
+
+                            {
+                                active && (
+                                    <>
+                                        <View className="w-full flex flex-row justify-center items-center gap-5 px-3">
+                                            {
+                                                Array(5).fill(0).map((_, i) => {
+                                                    return (
+                                                        <Box
+                                                            key={i}
+                                                            active={!!value[i]}
+                                                            shake={shake}
+                                                        />
+                                                    );
+                                                })
+                                            }
+                                        </View>
+
+                                        <View className="w-full flex items-center">
+                                            <FlatList
+                                                data={numbers}
+                                                keyExtractor={(_, i) => String(i)}
+                                                numColumns={3}
+                                                renderItem={renderItem}
+                                                getItemLayout={getItemLayout}
+                                                contentContainerStyle={{
+                                                    rowGap: 20,
+                                                    paddingVertical: 10,
+                                                }}
+                                                contentContainerClassName="w-full flex items-center"
+                                            />
+                                        </View>
+                                    </>
+                                )
+                            }
+                        </>
+                    )
+                }
             </View>
 
             {/* Section 3 */}

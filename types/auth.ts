@@ -10,7 +10,7 @@ export type LocalAuthType = {
     systemAuth: boolean;
 }
 
-export type AuthAttemptsType = {
+export type AttemptsType = {
     attempts: number;
     expiresAt: number;
 }

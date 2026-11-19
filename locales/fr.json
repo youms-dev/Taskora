@@ -217,6 +217,8 @@
     "confirm_box_submit": "Valider",
     "lock_screen_item_1": "{{name}} authentification",
     "lock_screen_item_2": "{{name}} a besoin de vérifier votre identité",
+    "lock_screen_429_item_1": "Trop de tentatives",
+    "lock_screen_429_item_2": "Réessayez dans",
     "local_auth_title": "Authentification locale",
     "local_auth_section_1_item_1": "Gardez {{name}} verrouillée pour être la seule personne à pouvoir accéder à vos données, planifier des évènements ou gérer vos ressources.",
     "local_auth_section_2_item_1": "Activer l'authentification locale",

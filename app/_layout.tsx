@@ -2,7 +2,7 @@ import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
 import { ATTEMPTS_STORAGE, LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
-import { AUTH_STORE, DEVICE_STORE, LOCAL_AUTH_STORE } from "@/constants/secure-store";
+import { AUTH_STORE, DEVICE_STORE, LOCAL_AUTH_ATTEMPTS_STORE, LOCAL_AUTH_STORE } from "@/constants/secure-store";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";
@@ -110,6 +110,7 @@ export default function Layout() {
         setAuth(null);
         await SecureStore.deleteItemAsync(AUTH_STORE);
         await SecureStore.deleteItemAsync(LOCAL_AUTH_STORE);
+        await SecureStore.deleteItemAsync(LOCAL_AUTH_ATTEMPTS_STORE);
         await deleteAttempts();
 
         try {
