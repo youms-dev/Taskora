@@ -1,7 +1,8 @@
-import { LocalAuthType } from "@/types/auth";
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
 import { LOCAL_AUTH_STORE } from "@/constants/secure-store";
+import { LocalAuthType } from "@/types/auth";
+import * as ScreenCapture from "expo-screen-capture";
+import * as SecureStore from "expo-secure-store";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 const Context = createContext<{
     localAuth: LocalAuthType | null;
@@ -51,6 +52,17 @@ export const LocalAuthProvider = ({ children }: Props) => {
     useEffect(() => {
         get();
     }, []);
+
+    useEffect(() => {
+        (async () => {
+            if (auth?.enabled) {
+                await ScreenCapture.preventScreenCaptureAsync();
+            }
+            else {
+                await ScreenCapture.allowScreenCaptureAsync();
+            }
+        })();
+    }, [auth]);
 
     return (
         <Context.Provider value={{

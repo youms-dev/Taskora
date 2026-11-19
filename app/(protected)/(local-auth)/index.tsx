@@ -59,8 +59,8 @@ export default function LocalAuthPage() {
         setModalActive(false);
         reset();
     }, [value, localAuth, target, decrement]);
-
-    const handleToggleLocalAuth = useCallback(() => {
+    
+    const handleToggleLocalAuth = useCallback(async() => {
         if (!localAuth) {
             router.navigate({
                 pathname: "/(protected)/(local-auth)/create"

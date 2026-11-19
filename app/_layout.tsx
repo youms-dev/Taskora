@@ -30,6 +30,7 @@ import { api } from "@/lib/axios";
 import { LocalAuthProvider } from "@/hooks/local-auth/use-local-auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
+import * as ScreenCapture from "expo-screen-capture";
 
 SplashScreen.setOptions({
     fade: true,
@@ -111,10 +112,14 @@ export default function Layout() {
         const currentAuth = authRef.current;
 
         setAuth(null);
+        
         await SecureStore.deleteItemAsync(AUTH_STORE);
         await SecureStore.deleteItemAsync(LOCAL_AUTH_STORE);
         await SecureStore.deleteItemAsync(LOCAL_AUTH_ATTEMPTS_STORE);
+
         await deleteAttempts();
+
+        await ScreenCapture.allowScreenCaptureAsync();
 
         try {
             const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);

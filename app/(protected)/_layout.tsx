@@ -12,7 +12,6 @@ import * as TaskManager from "expo-task-manager";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Platform } from "react-native";
-import * as ScreenCapture from "expo-screen-capture";
 
 const CONFIG: NotificationChannelInput = {
     name: "Reminders",
@@ -189,12 +188,11 @@ export default function ProtectedLayout() {
     }, []);
 
     const onLock = useCallback(async () => {
-        await ScreenCapture.preventScreenCaptureAsync();
         setLocked(true);
         currentPathname.current = pathname;
     }, [pathname]);
-
-    const onUnLock = useCallback(() => {
+    
+    const onUnLock = useCallback(async() => {
         setLocked(false);
         if (currentPathname.current) {
             router.navigate(currentPathname.current as any);
