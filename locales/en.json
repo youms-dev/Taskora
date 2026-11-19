@@ -228,6 +228,8 @@
     "local_auth_section_3_item_6": "Remove",
     "local_auth_section_3_item_7": "Disable",
     "local_auth_400": "Invalid code",
+    "local_auth_attempts_item_1": "{{number}} attempts remaining",
+    "local_auth_attempts_item_2": "You'll be logged out of {{name}} when the countdown reaches zero.",
     "local_auth_create_next": "Next",
     "local_auth_create_prev": "Back",
     "local_auth_create_step_1_item_1": "Confirm your current PIN",

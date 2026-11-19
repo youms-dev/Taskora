@@ -1,8 +1,8 @@
 import { SplashScreen } from "@/components/spash-screen";
 import { DATABASE_NAME, INIT_DATABASE } from "@/config/sql";
-import { LANGUAGE_STORAGE } from "@/constants/async-storage";
+import { ATTEMPTS_STORAGE, LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
-import { AUTH_STORE, DEVICE_STORE } from "@/constants/secure-store";
+import { AUTH_STORE, DEVICE_STORE, LOCAL_AUTH_STORE } from "@/constants/secure-store";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
 import { ThemeProvider } from "@/hooks/use-theme";
@@ -28,7 +28,8 @@ import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
 import { api } from "@/lib/axios";
-import { LocalAuthProvider } from "@/hooks/use-local-auth";
+import { LocalAuthProvider } from "@/hooks/local-auth/use-local-auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 preventAutoHideAsync();
 
@@ -69,6 +70,20 @@ export default function Layout() {
         })();
     }, [db]);
 
+    const deleteAttempts = useCallback(async () => {
+        const { removeItem } = useAsyncStorage(ATTEMPTS_STORAGE);
+
+        await removeItem();
+    }, []);
+
+    useEffect(() => {
+        authRef.current = auth;
+    }, [auth]);
+
+    useEffect(() => {
+        deleteAttempts();
+    }, []);
+
     const handleGetAuth = useCallback(async () => {
         try {
             !authRef.current && setLoading(true);
@@ -94,6 +109,8 @@ export default function Layout() {
 
         setAuth(null);
         await SecureStore.deleteItemAsync(AUTH_STORE);
+        await SecureStore.deleteItemAsync(LOCAL_AUTH_STORE);
+        await deleteAttempts();
 
         try {
             const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
@@ -129,9 +146,6 @@ export default function Layout() {
     //     () => remove();
     // }, []);
 
-    useEffect(() => {
-        authRef.current = auth;
-    }, [auth]);
 
     if (!db || loading) return (
         <SplashScreen />

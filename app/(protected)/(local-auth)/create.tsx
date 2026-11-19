@@ -3,7 +3,9 @@ import { CodeInput } from "@/components/code-input";
 import { Container } from "@/components/container";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
-import { useLocalAuth } from "@/hooks/use-local-auth";
+import { APP_NAME } from "@/constants/names";
+import { useAttempts } from "@/hooks/local-auth/use-attempts";
+import { useLocalAuth } from "@/hooks/local-auth/use-local-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { Entypo } from "@expo/vector-icons";
@@ -11,16 +13,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, Text, TextInput, View } from "react-native";
-import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
+import Animated, { Easing, FadeInDown, FadeOutDown, SlideInRight, SlideOutLeft } from "react-native-reanimated";
 
 export default function CreatePage() {
+    const params = useLocalSearchParams();
     const initialInputsValue = {
         currentCode: "",
         code: "",
         confirmCode: "",
     }
     const [inputsValues, setInputsValues] = useState<typeof initialInputsValue>(initialInputsValue);
-    const [step, setStep] = useState<number>(1);
+    const [step, setStep] = useState<number>(params.action ? 1 : 2);
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const currentCodeRef = useRef<TextInput>(null);
@@ -29,10 +32,11 @@ export default function CreatePage() {
     const { setToast } = useToast();
     const { localAuth, save } = useLocalAuth();
     const router = useRouter();
-    const params = useLocalSearchParams();
+    const { attempts, reset, decrement } = useAttempts();
 
     const handleSubmit = useCallback(async () => {
         if (!localAuth && params.action) return;
+
         if (inputsValues.code.trim().length == 0) {
             setStep(1);
             return;
@@ -82,22 +86,20 @@ export default function CreatePage() {
 
     const handleCheckCode = useCallback(async () => {
         if (!localAuth || !params.action) return;
+
         if (inputsValues.currentCode.trim().length < 5) {
             currentCodeRef.current?.focus();
             return;
         }
         else if (inputsValues.currentCode.trim() != localAuth.code) {
             setToast(t("local_auth_create_wrong"), "error");
+            decrement();
             return;
         }
-        setStep(prev => prev + 1);
-    }, [localAuth, inputsValues, setToast]);
 
-    useEffect(() => {
-        if (!params.action) {
-            setStep(prev => prev + 1);
-        }
-    }, []);
+        setStep(prev => prev + 1);
+        reset();
+    }, [localAuth, inputsValues, setToast]);
 
     return (
         <Container centerX>
@@ -172,6 +174,22 @@ export default function CreatePage() {
                             />
                         </View>
 
+                        {
+                            attempts <= 5 && (
+                                <View className="w-full flex items-center gap-5 px-3 mt-3">
+                                    <View className="w-full flex items-center gap-3">
+                                        <Text className="text-xl text-amber-500">
+                                            {t("local_auth_attempts_item_1", { number: attempts })}
+                                        </Text>
+
+                                        <Text className="text-xl text-amber-500 text-center">
+                                            {t("local_auth_attempts_item_2", { name: APP_NAME })}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )
+                        }
+
                         {/* Button */}
 
                         <View className="w-full flex items-center mt-[60px]">
@@ -202,11 +220,11 @@ export default function CreatePage() {
                         {/* Title */}
 
                         <Animated.View
-                            entering={FadeInDown
+                            entering={SlideInRight
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
-                            exiting={FadeOutDown
+                            exiting={SlideOutLeft
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
@@ -280,11 +298,11 @@ export default function CreatePage() {
                         {/* Title */}
 
                         <Animated.View
-                            entering={FadeInDown
+                            entering={SlideInRight
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
-                            exiting={FadeOutDown
+                            exiting={SlideOutLeft
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }

@@ -228,6 +228,8 @@
     "local_auth_section_3_item_6": "Supprimer",
     "local_auth_section_3_item_7": "Désactiver",
     "local_auth_400": "Code invalide",
+    "local_auth_attempts_item_1": "{{number}} tentative(s) restante(s)",
+    "local_auth_attempts_item_2": "Arrivé à 0 vous serez totalement déconnecté de {{name}} !",
     "local_auth_create_next": "Suivant",
     "local_auth_create_prev": "Précédent",
     "local_auth_create_step_1_item_1": "Confirmez votre code actuel",

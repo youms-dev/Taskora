@@ -8,7 +8,8 @@ import { TextAnimated } from "@/components/text-animated";
 import { Toggle } from "@/components/toggle";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME } from "@/constants/names";
-import { useLocalAuth } from "@/hooks/use-local-auth";
+import { useAttempts } from "@/hooks/local-auth/use-attempts";
+import { useLocalAuth } from "@/hooks/local-auth/use-local-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { Entypo, MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
@@ -17,7 +18,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, FadeInDown, FadeOutDown, SlideInLeft, useFrameCallback } from "react-native-reanimated";
+import Animated, { Easing, FadeInDown, FadeOutDown, SlideInLeft } from "react-native-reanimated";
 
 export default function LocalAuthPage() {
     const { theme } = useTheme();
@@ -30,15 +31,18 @@ export default function LocalAuthPage() {
     const { localAuth, save, remove } = useLocalAuth();
     const { setToast } = useToast();
     const [target, setTarget] = useState<"delete" | "disable">("delete");
+    const { attempts, decrement, reset } = useAttempts();
 
-    const handleDeleteOrDisable = useCallback(() => {
+    const handleDeleteOrDisable = useCallback(async () => {
         if (!localAuth) return;
-        if (value.trim().length == 0) {
+
+        if (value.trim().length < 5) {
             codeRef.current?.focus();
             return;
         }
-        else if (value.trim() != localAuth?.code) {
+        else if (value.trim() != localAuth.code) {
             setToast(t("local_auth_400"), "error");
+            decrement();
             return;
         }
 
@@ -48,12 +52,13 @@ export default function LocalAuthPage() {
         else {
             save({
                 ...localAuth,
-                enabled: !false,
+                enabled: false,
             });
         }
         setTarget("delete");
         setModalActive(false);
-    }, [value, localAuth, target]);
+        reset();
+    }, [value, localAuth, target, decrement]);
 
     const handleToggleLocalAuth = useCallback(() => {
         if (!localAuth) {
@@ -63,13 +68,24 @@ export default function LocalAuthPage() {
 
             return;
         }
-        setModalActive(true);
-        setTarget("disable");
+        else if (localAuth.enabled) {
+            setModalActive(true);
+            setTarget("disable");
+            codeRef.current?.focus();
+        }
+        else {
+            save({
+                ...localAuth,
+                enabled: true,
+            });
+        }
     }, [localAuth]);
 
     useEffect(() => {
         if (!modalActive) {
             setValue("");
+            setTarget("delete");
+            codeRef.current?.blur();
         }
     }, [modalActive]);
 
@@ -288,7 +304,7 @@ export default function LocalAuthPage() {
                 backdropBackground="rgba(0, 0, 0, .2)"
                 dragHandlerContainerBackground={theme == "dark" ? "rgba(255, 255, 255, .05)" : "white"}
                 className="dark:bg-black bg-white border-2 dark:border-t-white/10 border-t-black/10 border-x-transparent border-b-transparent rounded-t-[30px]"
-                contentContainerClassName="w-full min-h-full dark:bg-white/5 bg-white pt-[100px]"
+                contentContainerClassName="w-full min-h-full dark:bg-white/5 bg-white pt-[50px]"
             >
                 <View className="w-full flex items-center gap-8 px-3">
                     <View className="w-full flex items-center px-3">
@@ -305,6 +321,22 @@ export default function LocalAuthPage() {
                     />
                 </View>
 
+                {
+                    attempts <= 5 && (
+                        <View className="w-full flex items-center gap-5 px-3 mt-3">
+                            <View className="w-full flex items-center gap-3">
+                                <Text className="text-xl text-amber-500">
+                                    {t("local_auth_attempts_item_1", { number: attempts })}
+                                </Text>
+
+                                <Text className="text-xl text-amber-500 text-center">
+                                    {t("local_auth_attempts_item_2", { name: APP_NAME })}
+                                </Text>
+                            </View>
+                        </View>
+                    )
+                }
+
                 <View className="w-full flex items-center mt-[50px]">
                     <Button
                         width={200}
@@ -313,13 +345,13 @@ export default function LocalAuthPage() {
                         backgroundColor={target == "delete" ?
                             COLORS.red[500]
                             :
-                            theme == "dark" ? "rgba(255, 255, 255, .2)" : "rgba(0, 0, 0, .8)"
+                            theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"
                         }
                         onPress={handleDeleteOrDisable}
                     >
                         <Text className={clsx(
-                            "text-xl text-white font-bold",
-                            target == "disable" && "text-white/80",
+                            "text-xl font-bold",
+                            target == "delete" ? "text-white" : "dark:text-black/80 text-white/80",
                         )}>
                             {target == "delete" ?
                                 t("local_auth_section_3_item_6")

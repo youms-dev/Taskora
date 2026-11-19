@@ -62,7 +62,8 @@ export const Button = memo(({ children, loaderSize = 20, loading = false, width 
         borderRadius: rounded,
       }}
       className={clsx(
-        loading && "opacity-70 pointer-events-none dark:bg-black bg-white",
+        "dark:bg-black bg-white",
+        loading && "opacity-70 pointer-events-none",
       )}
     >
       <View
@@ -78,6 +79,7 @@ export const Button = memo(({ children, loaderSize = 20, loading = false, width 
               style={{
                 width,
                 height,
+                borderRadius: rounded,
               }}
               onLayout={(e) => setLayout(e.nativeEvent.layout)}
               className="absolute flex flex-row justify-center items-center gap-3"
