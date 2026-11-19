@@ -11,6 +11,7 @@ import { Toggle } from "@/components/toggle";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME } from "@/constants/names";
+import { useLocalAuth } from "@/hooks/local-auth/use-local-auth";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
 import { NotificationSoundType } from "@/types/database/setting";
@@ -43,6 +44,7 @@ export default function Settings() {
     const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
     const router = useRouter();
     const { setting, setSetting } = useSettingsData();
+    const { localAuth } = useLocalAuth();
 
     const sound = useMemo(() => {
         if (!setting || !setting.notificationSound) return null;
@@ -685,7 +687,7 @@ export default function Settings() {
                                 </View>
 
                                 <View className="pointer-events-none">
-                                    <Toggle active={!!setting?.autoSync} />
+                                    <Toggle active={localAuth?.enabled} />
                                 </View>
                             </Pressable>
 

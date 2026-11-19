@@ -198,98 +198,99 @@ export default function LocalAuthPage() {
                                 .duration(300)
                                 .easing(Easing.inOut(Easing.quad))
                             }
-                            className={clsx(
-                                "w-full flex items-center dark:bg-white/10 bg-white rounded-2xl mt-6 p-3",
-                                !localAuth.enabled && "dark:opacity-60 opacity-40 pointer-events-none",
-                            )}
+                            className="w-full rounded-2xl mt-6"
                         >
+                            <View className={clsx(
+                                "w-full flex items-center dark:bg-white/10 bg-white p-3 rounded-2xl",
+                                !localAuth.enabled && "dark:opacity-60 opacity-40 pointer-events-none",
+                            )}>
+                                {/* Pin */}
 
-                            {/* Pin */}
+                                <View className="w-full flex items-center">
+                                    <View className="w-full flex flex-row items-center gap-3">
+                                        <View>
+                                            <Octicons
+                                                name="number"
+                                                size={30}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                            />
+                                        </View>
 
-                            <View className="w-full flex items-center">
-                                <View className="w-full flex flex-row items-center gap-3">
-                                    <View>
-                                        <Octicons
-                                            name="number"
-                                            size={30}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
-                                        />
-                                    </View>
-
-                                    <View className="w-[85%]">
-                                        <TextAnimated
-                                            numberOfLines={1}
-                                            className="text-lg"
-                                        >
-                                            {t("local_auth_section_3_item_1")}
-                                        </TextAnimated>
-                                    </View>
-                                </View>
-
-                                <View className="w-full flex items-center pt-3 px-3">
-                                    <Pressable
-                                        onPress={() => router.navigate({
-                                            pathname: "/(protected)/(local-auth)/create",
-                                            params: {
-                                                action: localAuth && "update",
-                                            }
-                                        })}
-                                        className="flex flex-row items-center gap-3 self-start"
-                                    >
-                                        <View className="size-[10px] dark:bg-white/10 bg-black/30 rounded-full" />
-
-                                        <View className="max-w-[90%]">
-                                            <TextAnimated className="text-lg">
-                                                {t("local_auth_section_3_item_2")}
+                                        <View className="w-[85%]">
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                className="text-lg"
+                                            >
+                                                {t("local_auth_section_3_item_1")}
                                             </TextAnimated>
                                         </View>
-                                    </Pressable>
+                                    </View>
 
-                                    <Pressable
-                                        onPress={() => {
-                                            setModalActive(true);
-                                            codeRef.current?.focus();
-                                        }}
-                                        className="flex flex-row items-center gap-3 self-start mt-5"
-                                    >
-                                        <View className="size-[10px] bg-red-500/30 rounded-full" />
+                                    <View className="w-full flex items-center pt-3 px-3">
+                                        <Pressable
+                                            onPress={() => router.navigate({
+                                                pathname: "/(protected)/(local-auth)/create",
+                                                params: {
+                                                    action: localAuth && "update",
+                                                }
+                                            })}
+                                            className="flex flex-row items-center gap-3 self-start"
+                                        >
+                                            <View className="size-[10px] dark:bg-white/10 bg-black/30 rounded-full" />
 
-                                        <View className="max-w-[90%]">
-                                            <Text className="text-lg text-red-500">
-                                                {t("local_auth_section_3_item_3")}
-                                            </Text>
-                                        </View>
-                                    </Pressable>
+                                            <View className="max-w-[90%]">
+                                                <TextAnimated className="text-lg">
+                                                    {t("local_auth_section_3_item_2")}
+                                                </TextAnimated>
+                                            </View>
+                                        </Pressable>
+
+                                        <Pressable
+                                            onPress={() => {
+                                                setModalActive(true);
+                                                codeRef.current?.focus();
+                                            }}
+                                            className="flex flex-row items-center gap-3 self-start mt-5"
+                                        >
+                                            <View className="size-[10px] bg-red-500/30 rounded-full" />
+
+                                            <View className="max-w-[90%]">
+                                                <Text className="text-lg text-red-500">
+                                                    {t("local_auth_section_3_item_3")}
+                                                </Text>
+                                            </View>
+                                        </Pressable>
+                                    </View>
                                 </View>
-                            </View>
 
-                            {/* System auth */}
+                                {/* System auth */}
 
-                            <View className="w-full flex flex-row items-center mt-6">
-                                <View className="w-[80%] flex flex-row items-center gap-3">
+                                <View className="w-full flex flex-row items-center mt-6">
+                                    <View className="w-[80%] flex flex-row items-center gap-3">
+                                        <View>
+                                            <MaterialCommunityIcons
+                                                name="fingerprint"
+                                                size={30}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                            />
+                                        </View>
+
+                                        <View className="w-[85%]">
+                                            <TextAnimated className="text-lg">
+                                                {t("local_auth_section_3_item_4")}
+                                            </TextAnimated>
+                                        </View>
+                                    </View>
+
                                     <View>
-                                        <MaterialCommunityIcons
-                                            name="fingerprint"
-                                            size={30}
-                                            color={theme == "dark" ? "rgba(255, 255, 255, .3)" : "rgba(0, 0, 0, .3)"}
+                                        <Toggle
+                                            active={localAuth?.systemAuth}
+                                            onPress={() => save({
+                                                ...localAuth,
+                                                systemAuth: !localAuth.systemAuth,
+                                            })}
                                         />
                                     </View>
-
-                                    <View className="w-[85%]">
-                                        <TextAnimated className="text-lg">
-                                            {t("local_auth_section_3_item_4")}
-                                        </TextAnimated>
-                                    </View>
-                                </View>
-
-                                <View>
-                                    <Toggle
-                                        active={localAuth?.systemAuth}
-                                        onPress={() => save({
-                                            ...localAuth,
-                                            systemAuth: !localAuth.systemAuth,
-                                        })}
-                                    />
                                 </View>
                             </View>
                         </Animated.View>

@@ -205,7 +205,7 @@ export default function ProtectedLayout() {
             <Stack screenOptions={{
                 headerShown: false,
             }}>
-                <Stack.Protected guard={true}>
+                <Stack.Protected guard={false}>
                     <Stack.Screen name="(tabs)" />
 
                     <Stack.Screen name="(folders)" />
@@ -226,7 +226,7 @@ export default function ProtectedLayout() {
                     <Stack.Screen name="(local-auth)" />
                 </Stack.Protected>
 
-                <Stack.Protected guard={false}>
+                <Stack.Protected guard={true}>
                     <Stack.Screen
                         name="lock-screen"
                         options={{
