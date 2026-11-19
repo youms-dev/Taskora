@@ -246,5 +246,17 @@
     "local_auth_create_success": "PIN code created successfully",
     "local_auth_create_400": "PINs don't match",
     "local_auth_create_changed": "Changed successfully",
-    "local_auth_create_wrong": "Invalid code"
+    "local_auth_create_wrong": "Invalid code",
+    "update_email_prev": "Back",
+    "update_email_step_1_item_1": "Change your email address",
+    "update_email_step_1_item_2": "Enter your new email address",
+    "update_email_step_1_item_3": "Submit",
+    "update_email_step_2_item_1": "Verify your email address",
+    "update_email_step_2_item_2": "Enter the code sent to this email address",
+    "update_email_step_2_item_3": "Verify",
+    "update_email_step_3_item_1": "New password",
+    "update_email_step_3_item_2": "Your account doesn't currently have a password yet.\nAdd one to continue.",
+    "update_email_step_3_item_3": "Enter your new account password",
+    "update_email_step_3_item_4": "Counter",
+    "update_email_step_3_item_5": "Add"
 }

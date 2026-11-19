@@ -16,6 +16,8 @@ interface Props extends TextInputProps {
   value: TextInputProps["value"];
   eye?: boolean;
   visible?: boolean;
+  eyeXPosition?: number;
+  eyeYPosition?: number;
 }
 
 /**
@@ -35,15 +37,19 @@ interface Props extends TextInputProps {
  * 
  * @param visible
  * 
+ * @param eyeXPosition
+ * 
+ * @param eyeYPosition
+ * 
  * @returns The input component
  */
 
-export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, visible: textVisible, ...rest }: Props, inputRef) => {
+export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, icon, paddingLeft = 50, paddingRight = 20, value, eye, visible: textVisible = true, eyeXPosition = -15, eyeYPosition = 44, ...rest }: Props, inputRef) => {
   const { theme, themeShared } = useTheme();
   const ref = useRef<TextInput>(null);
   const [focus, setFocus] = useState<boolean>(false);
   const focusShared = useSharedValue<boolean>(false);
-  const [visible, setVisible] = useState<boolean>(!!textVisible);
+  const [visible, setVisible] = useState<boolean>(eye ? false : textVisible);
 
   useEffect(() => {
     const { remove } = Keyboard.addListener("keyboardDidHide", () => {
@@ -78,11 +84,15 @@ export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, ic
 
   return (
     <View className="w-full flex items-center gap-2">
-      <View className="w-full">
-        <TextAnimated className="text-xl">
-          {label}
-        </TextAnimated>
-      </View>
+      {
+        label && (
+          <View className="w-full">
+            <TextAnimated className="text-xl">
+              {label}
+            </TextAnimated>
+          </View>
+        )
+      }
 
       <Animated.View
         style={focusAnimation}
@@ -117,10 +127,10 @@ export const Input = memo(forwardRef<TextInput, Props>(({ placeholder, label, ic
             style={{
               transform: [
                 {
-                  translateX: -15,
+                  translateX: eyeXPosition,
                 },
                 {
-                  translateY: 44,
+                  translateY: eyeYPosition,
                 },
               ]
             }}

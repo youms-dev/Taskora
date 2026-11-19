@@ -10,6 +10,13 @@ export default function UserLayout() {
             <Stack.Screen name="profile" />
 
             <Stack.Screen name="sessions" />
+
+            <Stack.Screen
+                name="update-email"
+                options={{
+                    animation: "fade",
+                }}
+            />
         </Stack>
     );
 }

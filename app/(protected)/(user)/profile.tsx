@@ -3,6 +3,7 @@ import { Button } from "@/components/button";
 import { ConfirmBox } from "@/components/confirm-box";
 import { Container } from "@/components/container";
 import { Eye } from "@/components/eye";
+import { Input } from "@/components/input";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
@@ -10,6 +11,7 @@ import { COLORS } from "@/constants/colors";
 import { LOGOUT } from "@/constants/emitters";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
 import { emitter } from "@/lib/event-emitter";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -18,6 +20,8 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
+import { createId } from "@paralleldrive/cuid2";
+import clsx from "clsx";
 import * as Camera from "expo-camera";
 import { CameraView } from "expo-camera";
 import * as FileSystem from "expo-file-system";
@@ -26,8 +30,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, BackHandler, Linking, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import Animated, { Easing, FadeIn, FadeOut, SlideOutRight, useAnimatedStyle, withSequence, withTiming } from "react-native-reanimated";
+import { AppState, BackHandler, Linking, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import Animated, { Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, FadeOutDown, FadeOutUp, SlideOutRight, useAnimatedStyle, withSequence, withTiming } from "react-native-reanimated";
 
 export default function Profile() {
     const { t, i18n } = useTranslation();
@@ -43,6 +48,14 @@ export default function Profile() {
     const cameraRef = useRef<CameraView>(null);
     const [image, setImage] = useState<Camera.CameraCapturedPicture | null>(null);
     const settingOpen = useRef<boolean>(false);
+    const initialInputsValues = {
+        name: "Youms",
+        email: "youms.vantablack@gmail.com",
+    };
+    const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
+    const nameRef = useRef<TextInput>(null);
+    const emailRef = useRef<TextInput>(null);
+    const [editName, setEditName] = useState<boolean>(false);
 
     const handleSignOut = useCallback(async () => {
         emitter.emit(LOGOUT);
@@ -65,7 +78,7 @@ export default function Profile() {
         });
 
         if (!canceled && assets) {
-            handleSave(assets[0].uri);
+            handleSave(assets[0].uri, assets[0].mimeType ?? "image/png");
         }
         else {
             setToast(t("profile_no_image_picked"), "warning");
@@ -101,10 +114,33 @@ export default function Profile() {
         setImage(data);
     }, []);
 
-    const handleSave = useCallback(async (photo: string) => {
+    const handleSave = useCallback(async (photo: string, type: string) => {
         try {
             setSaving(true);
-            console.log(photo);
+
+            const fileName = createId() + Date.now();
+            const fileType = (() => {
+                if (type.indexOf("/") != -1) {
+                    return type;
+                }
+                return `image/${type.split(".").pop() ?? "png"}`;
+            })();
+
+            const formData = new FormData();
+
+            formData.append("file", {
+                uri: photo,
+                name: fileName,
+                type: fileType,
+            } as any);
+
+            const { data } = await api.post("/user/update-photo", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                }
+            });
+
+            console.log("Res :", data)
             // setImage(assets[0].uri);
             // const file = assets[0];
             // const { name, ext } = fileDatas(String(file.fileName));
@@ -130,8 +166,9 @@ export default function Profile() {
             //     await supabase.auth.refreshSession();
             // }
         }
-        catch (error) {
+        catch (e) {
             setToast(t("error"), "error");
+            console.log("Error :", e);
         }
         finally {
             handleDeleteFromCache(photo);
@@ -216,7 +253,12 @@ export default function Profile() {
             centerX
             safeArea={false}
         >
-            <View className="w-screen h-screen flex items-center pt-[50px] dark:bg-black bg-transparent">
+            <KeyboardAwareScrollView
+                showsVerticalScrollIndicator={false}
+                bottomOffset={15}
+                className="w-screen h-screen pt-[50px] dark:bg-black bg-transparent"
+                contentContainerClassName="items-center"
+            >
                 {/* Header */}
 
                 <View className="w-full h-[50px] flex flex-row items-center mb-5 px-3">
@@ -263,7 +305,10 @@ export default function Profile() {
                 >
                     {/* Section 1 */}
 
-                    <View className="flex items-center">
+                    <View className={clsx(
+                        "flex items-center",
+                        editName && "opacity-50 pointer-events-none",
+                    )}>
                         <View className="flex items-center">
                             <View
                                 style={{
@@ -300,43 +345,129 @@ export default function Profile() {
                     {/* Section 2 */}
 
                     <View className="w-full flex items-center gap-10 mt-16">
+
+                        {/* Name */}
+
                         <View className="w-full flex flex-row items-center px-3">
-                            <View className="flex flex-row gap-8">
-                                <View className="translate-y-4">
-                                    <FontAwesome5
-                                        name="user-alt"
-                                        size={20}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.8)"}
-                                    />
-                                </View>
-
-                                <View className="flex gap-2 pr-[120px]">
-                                    <View className="flex flex-row gap-5">
-                                        <TextAnimated className="text-xl">
-                                            {t("profile_name")}
-                                        </TextAnimated>
-
-                                        <PressableAnimated scale={.8}>
+                            {
+                                !editName && (
+                                    <Animated.View
+                                        entering={FadeInUp
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        exiting={FadeOutUp
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        className="flex flex-row gap-8"
+                                    >
+                                        <View className="translate-y-4">
                                             <FontAwesome5
-                                                name="user-edit"
+                                                name="user-alt"
                                                 size={20}
-                                                color={COLORS.emerald[500]}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.8)"}
+                                            />
+                                        </View>
+
+                                        <View className="flex gap-2 pr-[120px]">
+                                            <View className="flex flex-row gap-5">
+                                                <TextAnimated className="text-xl">
+                                                    {t("profile_name")}
+                                                </TextAnimated>
+
+                                                <PressableAnimated
+                                                    scale={.95}
+                                                    onPress={() => setEditName(true)}
+                                                >
+                                                    <FontAwesome5
+                                                        name="user-edit"
+                                                        size={20}
+                                                        color={COLORS.emerald[500]}
+                                                    />
+                                                </PressableAnimated>
+                                            </View>
+
+                                            <TextAnimated
+                                                numberOfLines={1}
+                                                className="text-xl"
+                                            >
+                                                Lorem ipsum dolor sit amet.
+                                            </TextAnimated>
+                                        </View>
+                                    </Animated.View>
+                                )
+                            }
+
+                            {
+                                editName && (
+                                    <Animated.View
+                                        entering={FadeInDown
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        exiting={FadeOutDown
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        className="sm:w-[500px] w-full flex flex-row items-center gap-5"
+                                    >
+                                        <View className="w-[80%]">
+                                            <Input
+                                                ref={nameRef}
+                                                value={inputsValues.name}
+                                                onChangeText={(e) => setInputsValues(prev => ({
+                                                    ...prev,
+                                                    name: e,
+                                                }))}
+                                                icon={(
+                                                    <View
+                                                        style={{
+                                                            transform: [
+                                                                {
+                                                                    translateX: 15,
+                                                                },
+                                                                {
+                                                                    translateY: 15,
+                                                                },
+                                                            ]
+                                                        }}
+                                                        className="absolute left-0 top-0 pointer-events-none"
+                                                    >
+                                                        <FontAwesome5
+                                                            name="user-alt"
+                                                            size={22}
+                                                            color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                                        />
+                                                    </View>
+                                                )}
+                                            />
+                                        </View>
+
+                                        <PressableAnimated
+                                            scale={.95}
+                                            onPress={() => setEditName(false)}
+                                            className="size-[40px] flex justify-center items-center shrink-0 rounded-full bg-emerald-500"
+                                        >
+                                            <AntDesign
+                                                name="check"
+                                                size={25}
+                                                color="black"
                                             />
                                         </PressableAnimated>
-                                    </View>
+                                    </Animated.View>
+                                )
+                            }
 
-                                    <TextAnimated
-                                        numberOfLines={1}
-                                        className="text-xl"
-                                    >
-                                        Lorem ipsum dolor sit amet.
-                                    </TextAnimated>
-                                </View>
-                            </View>
                         </View>
 
-                        <View className="w-full flex flex-row items-center px-3">
-                            <View className="flex flex-row gap-8">
+                        {/* Email */}
+
+                        <View className={clsx(
+                            "w-full flex flex-row items-center px-3",
+                            editName && "opacity-50 pointer-events-none",
+                        )}>
+                            <Animated.View className="flex flex-row gap-8" >
                                 <View className="translate-y-4">
                                     <FontAwesome5
                                         name="envelope-open-text"
@@ -351,7 +482,12 @@ export default function Profile() {
                                             {t("profile_email")}
                                         </TextAnimated>
 
-                                        <PressableAnimated scale={.8}>
+                                        <PressableAnimated
+                                            onPress={() => router.navigate({
+                                                pathname: "/(protected)/(user)/update-email",
+                                            })}
+                                            scale={.95}
+                                        >
                                             <MaterialCommunityIcons
                                                 name="email-edit"
                                                 size={23}
@@ -367,10 +503,15 @@ export default function Profile() {
                                         Lorem ipsum dolor sit amet.
                                     </TextAnimated>
                                 </View>
-                            </View>
+                            </Animated.View>
                         </View>
 
-                        <View className="w-full px-3">
+                        {/* Password */}
+
+                        <View className={clsx(
+                            "w-full px-3",
+                            editName && "opacity-50 pointer-events-none",
+                        )}>
                             <PressableAnimated
                                 scale={1}
                                 className="flex flex-row self-start items-center gap-8"
@@ -387,7 +528,12 @@ export default function Profile() {
                             </PressableAnimated>
                         </View>
 
-                        <View className="w-full px-3 rounded-2xl">
+                        {/* Log out */}
+
+                        <View className={clsx(
+                            "w-full px-3 rounded-2xl",
+                            editName && "opacity-50 pointer-events-none",
+                        )}>
                             <PressableAnimated
                                 onPress={() => setConfirmBoxActive(true)}
                                 className="flex flex-row items-center self-start shrink gap-8"
@@ -405,7 +551,7 @@ export default function Profile() {
                         </View>
                     </View>
                 </ScrollView>
-            </View>
+            </KeyboardAwareScrollView>
 
             <ConfirmBox
                 message={t("profile_logout_question")}
@@ -652,7 +798,7 @@ export default function Profile() {
                                                 height={50}
                                                 loaderSize={30}
                                                 loading={saving}
-                                                onPress={() => handleSave(image.uri)}
+                                                onPress={() => handleSave(image.uri, image.format)}
                                             >
                                                 <Text
                                                     numberOfLines={1}

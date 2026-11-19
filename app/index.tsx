@@ -77,12 +77,6 @@ export default function Login() {
       }
 
       const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
-      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
-      let session: AuthType | null = null;
-
-      if (authStore) {
-        session = JSON.parse(authStore);
-      }
 
       const { data } = await api.post("/auth/oauth-login", {
         email: authData.user.email,
@@ -153,12 +147,6 @@ export default function Login() {
       loadingRef.current = true;
 
       const idDevice = await SecureStore.getItemAsync(DEVICE_STORE);
-      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
-      let session: AuthType | null = null;
-
-      if (authStore) {
-        session = JSON.parse(authStore);
-      }
 
       const { data } = await api.post("/auth/login", {
         email: inputsValues.email,
@@ -267,12 +255,6 @@ export default function Login() {
       loadingRef.current = true;
 
       const storeIdDevice = await SecureStore.getItemAsync(DEVICE_STORE);
-      const authStore = await SecureStore.getItemAsync(AUTH_STORE);
-      let session: AuthType | null = null;
-
-      if (authStore) {
-        session = JSON.parse(authStore);
-      }
 
       const { data } = await api.post("/auth/login/2fa/check-code", {
         email: inputsValues.email,
