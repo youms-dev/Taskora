@@ -113,6 +113,7 @@ export class AuthService {
             refreshToken,
             idDevice,
             email: newUser.email,
+            photo: newUser.photo,
         };
     }
 
@@ -189,6 +190,7 @@ export class AuthService {
             refreshToken,
             idDevice,
             email: newUser.email,
+            photo: newUser.photo,
         };
     }
 
@@ -229,6 +231,7 @@ export class AuthService {
                     refreshToken,
                     idDevice: data.idDevice,
                     email: user.email,
+                    photo: user.photo,
                 };
             }
             else {
@@ -264,6 +267,7 @@ export class AuthService {
                     refreshToken,
                     idDevice,
                     email: user.email,
+                    photo: user.photo,
                 };
             }
         }
@@ -300,6 +304,7 @@ export class AuthService {
                 refreshToken,
                 idDevice,
                 email: user.email,
+                photo: user.photo,
             };
         }
     }
