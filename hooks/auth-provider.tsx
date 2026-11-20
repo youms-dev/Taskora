@@ -10,7 +10,7 @@ type AuthContextType = {
     loading: boolean;
     getUser: () => void;
     updatePhoto: (value: string | null) => void;
-    auth: Omit<AuthType, "accessToken" | "refreshToken"> | null;
+    auth: AuthType | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,11 +30,10 @@ interface Props {
 export const AuthProvider = ({ children, auth, refresh }: Props) => {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<AuthContextType["user"] | null>(null);
-    const { getUser, updateUserPhoto } = useUsers();
+    const { getUser, updateUser } = useUsers();
 
     const handleGetUser = useCallback(async () => {
         if (!auth) return;
-
         try {
             setLoading(true);
 
@@ -54,7 +53,7 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
         if (!auth || !user) return;
         setLoading(true);
 
-        await updateUserPhoto(user.email, photo);
+        await updateUser(photo, user.email, "photo");
 
         await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
             ...auth,

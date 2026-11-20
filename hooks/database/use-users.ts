@@ -56,7 +56,7 @@ export const useUsers = () => {
         }
     }
 
-    async function updateUserPhoto(email: string, photo: string | null): Promise<true | unknown> {
+    async function updateUser(value: string | null, email: string, target: "photo" | "name"): Promise<true | unknown> {
         if (!db) return;
 
         try {
@@ -66,7 +66,12 @@ export const useUsers = () => {
                 throw 404;
             }
 
-            await db.runAsync("UPDATE user SET photo = ? WHERE email = ?", [photo, email.toLowerCase().trim()]);
+            if(target == "photo") {
+                await db.runAsync("UPDATE user SET photo = ? WHERE email = ?", [value, email.toLowerCase().trim()]);
+            }
+            else {
+                await db.runAsync("UPDATE user SET name = ? WHERE email = ?", [value, email.toLowerCase().trim()]);
+            }
 
             return true;
         }
@@ -78,6 +83,6 @@ export const useUsers = () => {
     return {
         getUser,
         createUser,
-        updateUserPhoto,
+        updateUser,
     }
 }

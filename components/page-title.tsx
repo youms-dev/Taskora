@@ -58,7 +58,7 @@ export const PageTitle = ({ children, ...rest }: Props) => {
                     {
                         !user?.photo && (
                             <Avatar
-                                name={"Youms"}
+                                name={user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")}
                                 size={40}
                             />
                         )

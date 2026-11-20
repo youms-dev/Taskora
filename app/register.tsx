@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { emitter } from '@/lib/event-emitter';
+import { AuthType } from '@/types/auth';
 import { DeviceTypeEnum } from '@/types/database/session';
 import { AUTH_PROVIDER, UserType } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
@@ -134,7 +135,7 @@ export default function Register() {
   const { createUser } = useUsers();
   const { createSession } = useSessions();
 
-  const finalize = useCallback(async (data: Pick<UserType, "email" | "photo" | "provider"> & {
+  const finalize = useCallback(async (data: AuthType & Pick<UserType, "provider"> & {
     idDevice: string;
   }) => {
     const idUser = await createUser({
@@ -151,7 +152,7 @@ export default function Register() {
       deviceType: Platform.OS.toUpperCase() as DeviceTypeEnum,
     });
 
-    const { idDevice, ...rest } = data;
+    const { idDevice, provider, ...rest } = data;
 
     await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
     await SecureStore.setItemAsync(DEVICE_STORE, idDevice);

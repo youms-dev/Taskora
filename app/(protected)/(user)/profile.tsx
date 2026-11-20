@@ -2,18 +2,22 @@ import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
 import { ConfirmBox } from "@/components/confirm-box";
 import { Container } from "@/components/container";
-import { Eye } from "@/components/eye";
 import { Input } from "@/components/input";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { LOGOUT } from "@/constants/emitters";
+import { NAME_FORMAT_ERROR, NAME_LENGTH_ERROR } from "@/constants/errors";
+import { APP_NAME } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
+import { useUsers } from "@/hooks/database/use-users";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
 import { emitter } from "@/lib/event-emitter";
+import { ApiError } from "@/types/errors";
+import { formatName } from "@/utils/tools";
 import { Fontisto } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -30,7 +34,7 @@ import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, AppState, BackHandler, Linking, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -50,14 +54,16 @@ export default function Profile() {
     const cameraRef = useRef<CameraView>(null);
     const [image, setImage] = useState<Camera.CameraCapturedPicture | null>(null);
     const settingOpen = useRef<boolean>(false);
-    const initialInputsValues = {
-        name: "Youms",
-        email: "youms.vantablack@gmail.com",
-    };
-    const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
     const nameRef = useRef<TextInput>(null);
     const [editName, setEditName] = useState<boolean>(false);
-    const { user, updatePhoto } = useAuth();
+    const { user, updatePhoto, getUser } = useAuth();
+    const { updateUser } = useUsers();
+    const [name, setName] = useState<string>(user?.name ?? "");
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const editable = useMemo(() => {
+        return (user?.name ?? "").trim().toLowerCase() != name.trim().toLowerCase();
+    }, [user, name]);
 
     const handleSignOut = useCallback(async () => {
         emitter.emit(LOGOUT);
@@ -134,7 +140,7 @@ export default function Profile() {
             })();
             const formData = new FormData();
 
-            formData.append("email", "youms.vantablack@gmail.com");
+            formData.append("email", user.email);
             formData.append("file", {
                 uri: photo,
                 name: fileName,
@@ -166,13 +172,15 @@ export default function Profile() {
     }, []);
 
     const removePicture = useCallback(async () => {
+        if (!user) return;
+
         setModalActive(false);
 
         try {
             setSaving(true);
 
             await api.patch("/user/remove-photo", {
-                email: "youms.vantablack@gmail.com",
+                email: user.email,
             });
 
             updatePhoto(null);
@@ -183,7 +191,7 @@ export default function Profile() {
         finally {
             setSaving(false);
         }
-    }, [setToast, i18n.language, updatePhoto]);
+    }, [setToast, i18n.language, updatePhoto, user]);
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -229,53 +237,131 @@ export default function Profile() {
         ]
     }));
 
+    const handleUpdate = useCallback(async () => {
+        if (!user) return;
+
+        if (name.trim().length == 0) {
+            nameRef.current?.focus();
+            return;
+        }
+        else if ((user.name ?? "").trim().toUpperCase() == name.toUpperCase()) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            await api.patch("/user/update-name", {
+                email: user.email,
+                name,
+            });
+
+            await updateUser(formatName(name), user.email, "name");
+            getUser();
+            setEditName(false);
+        }
+        catch (e) {
+            const { data } = e as ApiError;
+
+            if (data.message && Array.isArray(data.message)) {
+                const messages = data.message as string[];
+
+                if (messages.includes(NAME_FORMAT_ERROR)) {
+                    setToast(t("profile_error_format"), "warning", 5000);
+                }
+                else if (messages.includes(NAME_LENGTH_ERROR)) {
+                    setToast(t("profile_error_length"), "warning", 5000);
+                }
+                else {
+                    setToast(t("error"), "error", 5000);
+                }
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [setToast, i18n.language, updatePhoto, user, name, getUser]);
+
+    useEffect(() => {
+        if (!editName) {
+            setName(user?.name ?? "");
+        }
+
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (editName) {
+                setEditName(false);
+                return true;
+            }
+            return false;
+        });
+
+        return () => remove();
+    }, [editName, user]);
+
     return (
-        <Container
-            centerX
-            safeArea={false}
-        >
+        <Container centerX>
+            {/* Header */}
+
+            <View
+                style={{
+                    transform: [
+                        {
+                            translateY: 15,
+                        },
+                    ]
+                }}
+                className="absolute w-full h-[50px] flex flex-row items-center mb-5 px-3 z-[100]"
+            >
+                <View className="w-[190px] dark:bg-white bg-black rounded-[50px]">
+                    <View className="flex flex-row items-center gap-6 dark:bg-black/85 bg-white/90 rounded-[50px]">
+                        <PressableAnimated
+                            onPress={() => {
+                                if (editName) {
+                                    setEditName(false);
+                                }
+                                else {
+                                    router.back();
+                                }
+                            }}
+                            className="size-[50px] dark:bg-black bg-black rounded-full"
+                        >
+                            <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border dark:border-white/10 border-white">
+                                <Entypo
+                                    name="chevron-left"
+                                    size={25}
+                                    color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
+                                />
+                            </View>
+                        </PressableAnimated>
+
+                        <View className="h-full flex flex-row items-center gap-3">
+                            <TextAnimated
+                                dark={COLORS.emerald[500]}
+                                light={COLORS.emerald[500]}
+                                className="text-2xl font-bold"
+                            >
+                                {t("profile_title")}
+                            </TextAnimated>
+
+                            <AntDesign
+                                name="user"
+                                size={25}
+                                color={COLORS.emerald[500]}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </View>
+
             <KeyboardAwareScrollView
                 showsVerticalScrollIndicator={false}
                 bottomOffset={15}
                 className="w-screen h-screen pt-[50px] dark:bg-black bg-transparent"
                 contentContainerClassName="items-center"
             >
-                {/* Header */}
-
-                <View className="w-full h-[50px] flex flex-row items-center mb-5 px-3">
-                    <View className="w-[190px] dark:bg-white bg-black rounded-[50px]">
-                        <View className="flex flex-row items-center gap-6 dark:bg-black/85 bg-white/90 rounded-[50px]">
-                            <PressableAnimated
-                                onPress={() => router.back()}
-                                className="size-[50px] dark:bg-black bg-black rounded-full"
-                            >
-                                <View className="size-full flex justify-center items-center dark:bg-white/10 bg-white rounded-full border dark:border-white/10 border-white">
-                                    <Entypo
-                                        name="chevron-left"
-                                        size={25}
-                                        color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .9)"}
-                                    />
-                                </View>
-                            </PressableAnimated>
-
-                            <View className="h-full flex flex-row items-center gap-3">
-                                <TextAnimated
-                                    dark={COLORS.emerald[500]}
-                                    light={COLORS.emerald[500]}
-                                    className="text-2xl font-bold"
-                                >
-                                    {t("profile_title")}
-                                </TextAnimated>
-
-                                <AntDesign
-                                    name="user"
-                                    size={25}
-                                    color={COLORS.emerald[500]}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </View>
 
                 {/* Content */}
 
@@ -287,7 +373,7 @@ export default function Profile() {
                     {/* Section 1 */}
 
                     <View className={clsx(
-                        "flex items-center",
+                        "flex items-center mt-[30px]",
                         editName && "opacity-50 pointer-events-none",
                     )}>
                         <View className="size-[200px] flex items-center rounded-full">
@@ -321,7 +407,7 @@ export default function Profile() {
                                     ],
                                     filter: "blur(5px)"
                                 }}
-                                className="absolute bottom-0 size-[200px] bg-black/10 -z-[1] rounded-full"
+                                className="absolute bottom-0 size-[200px] bg-black/20 -z-[1] rounded-full"
                             />
 
                             {/* Avatar */}
@@ -330,7 +416,7 @@ export default function Profile() {
                                 !user?.photo && (
                                     <Avatar
                                         size={200}
-                                        name="Youmbi Le-duc"
+                                        name={user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")}
                                         background={theme == "light" ? "white" : undefined}
                                     />
                                 )
@@ -422,11 +508,11 @@ export default function Profile() {
                                                 </PressableAnimated>
                                             </View>
 
-                                            <TextAnimated
-                                                numberOfLines={1}
-                                                className="text-xl"
-                                            >
-                                                Lorem ipsum dolor sit amet.
+                                            <TextAnimated className={clsx(
+                                                "text-xl",
+                                                !user?.name && "opacity-60",
+                                            )}>
+                                                {user?.name ?? t("profile_item_1", { name: APP_NAME })}
                                             </TextAnimated>
                                         </View>
                                     </Animated.View>
@@ -449,30 +535,33 @@ export default function Profile() {
                                         <View className="w-[80%]">
                                             <Input
                                                 ref={nameRef}
-                                                value={inputsValues.name}
-                                                onChangeText={(e) => setInputsValues(prev => ({
-                                                    ...prev,
-                                                    name: e,
-                                                }))}
+                                                placeholder="Your name"
+                                                value={name}
+                                                onChangeText={(e) => setName(e)}
                                                 icon={(
                                                     <View
                                                         style={{
                                                             transform: [
                                                                 {
-                                                                    translateX: 15,
+                                                                    translateX: 10,
                                                                 },
                                                                 {
-                                                                    translateY: 15,
+                                                                    translateY: 10,
                                                                 },
                                                             ]
                                                         }}
-                                                        className="absolute left-0 top-0 pointer-events-none"
+                                                        className="absolute left-0 top-0"
                                                     >
-                                                        <FontAwesome5
-                                                            name="user-alt"
-                                                            size={22}
-                                                            color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
-                                                        />
+                                                        <PressableAnimated
+                                                            scale={.95}
+                                                            onPress={() => setEditName(false)}
+                                                        >
+                                                            <Entypo
+                                                                name="cross"
+                                                                size={35}
+                                                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                                            />
+                                                        </PressableAnimated>
                                                     </View>
                                                 )}
                                             />
@@ -480,19 +569,34 @@ export default function Profile() {
 
                                         <PressableAnimated
                                             scale={.95}
-                                            onPress={() => setEditName(false)}
-                                            className="size-[40px] flex justify-center items-center shrink-0 rounded-full bg-emerald-500"
+                                            disabled={loading || !editable}
+                                            onPress={handleUpdate}
+                                            className={clsx(
+                                                "size-[40px] flex justify-center items-center shrink-0 rounded-full bg-emerald-500",
+                                                (loading || !editable) && "opacity-50",
+                                            )}
                                         >
-                                            <AntDesign
-                                                name="check"
-                                                size={25}
-                                                color="black"
-                                            />
+                                            {
+                                                loading ?
+                                                    (
+                                                        <ActivityIndicator
+                                                            size={25}
+                                                            color="black"
+                                                        />
+                                                    )
+                                                    :
+                                                    (
+                                                        <AntDesign
+                                                            name="check"
+                                                            size={25}
+                                                            color="black"
+                                                        />
+                                                    )
+                                            }
                                         </PressableAnimated>
                                     </Animated.View>
                                 )
                             }
-
                         </View>
 
                         {/* Email */}
@@ -530,11 +634,8 @@ export default function Profile() {
                                         </PressableAnimated>
                                     </View>
 
-                                    <TextAnimated
-                                        numberOfLines={1}
-                                        className="text-xl"
-                                    >
-                                        Lorem ipsum dolor sit amet.
+                                    <TextAnimated className="text-xl">
+                                        {user?.email ?? ""}
                                     </TextAnimated>
                                 </View>
                             </Animated.View>
@@ -598,7 +699,7 @@ export default function Profile() {
             {/* Options */}
 
             <Modal
-                height={screenHeight * .25}
+                height={screenHeight * .3}
                 active={modalActive}
                 onClose={() => setModalActive(false)}
                 dragHandlerContainerBackground={theme == "dark" ? "rgba(255, 255, 255, .1)" : "white"}
