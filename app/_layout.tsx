@@ -98,7 +98,7 @@ export default function Layout() {
                 authFormatted = JSON.parse(authData);
             }
 
-            // console.log("Auth user :", authFormatted);
+            console.log("Auth user :", authFormatted);
             setAuth(authFormatted);
         }
         catch { }
@@ -112,7 +112,7 @@ export default function Layout() {
         const currentAuth = authRef.current;
 
         setAuth(null);
-        
+
         await SecureStore.deleteItemAsync(AUTH_STORE);
         await SecureStore.deleteItemAsync(LOCAL_AUTH_STORE);
         await SecureStore.deleteItemAsync(LOCAL_AUTH_ATTEMPTS_STORE);
@@ -171,7 +171,7 @@ export default function Layout() {
                                 backgroundColor: colorScheme == "dark" ? "black" : "white"
                             }}>
                                 <ToastProvider>
-                                    <AuthProvider>
+                                    <AuthProvider user={auth}>
                                         {
                                             !loading && (
                                                 <Stack

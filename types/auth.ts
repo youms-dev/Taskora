@@ -2,6 +2,7 @@ export type AuthType = {
     accessToken: string;
     refreshToken: string;
     email: string;
+    photo?: string | null;
 }
 
 export type LocalAuthType = {

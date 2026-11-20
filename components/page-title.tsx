@@ -52,21 +52,22 @@ export const PageTitle = ({ children, ...rest }: Props) => {
                 }
 
                 <PressableAnimated
-                    className="size-[50px] rounded-full p-1"
+                    className="size-[40px] flex justify-center items-center rounded-full"
                     onPress={() => router.navigate("/(protected)/(user)/profile")}
                 >
                     {
-                        user && !user.user_metadata.photoUrl && (
+                        !user?.photo && (
                             <Avatar
-                                name={user.user_metadata.name}
-                                size={50}
+                                name={"Youms"}
+                                size={40}
                             />
                         )
                     }
+
                     {
-                        user && user.user_metadata.photoUrl && (
+                        user?.photo && (
                             <Image
-                                source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.user_metadata.photoUrl }}
+                                source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.photo }}
                                 style={{
                                     width: "100%",
                                     height: "100%",

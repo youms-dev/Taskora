@@ -48,7 +48,7 @@ export const Avatar = memo(({ size = 100, name, background }: Props) => {
                 <TextAnimated
                     numberOfLines={1}
                     style={{
-                        fontSize: size * .5,
+                        fontSize: size * .45,
                     }}
                     className="font-bold"
                 >

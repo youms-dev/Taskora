@@ -8,19 +8,14 @@ import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/types/errors";
-import { checkLength, checkPattern, fileDatas } from "@/utils/tools";
+import { checkLength, checkPattern } from "@/utils/tools";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { createId } from "@paralleldrive/cuid2";
-import { decode } from "base64-arraybuffer";
 import clsx from "clsx";
-import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
-import { api } from "../lib/axios";
-import { supabase } from "../lib/supabase";
 
 export default function Onboarding() {
     const [page, setPage] = useState<number>(0);
@@ -123,39 +118,39 @@ export default function Onboarding() {
         };
 
         try {
-            const nameFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
+            // const nameFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
 
-            if (image.trim().length == 0) {
-                await api.patch(`/user/update/${user?.id}`, {
-                    name: nameFormatted,
-                });
-            }
-            else {
-                const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
-                const base64 = new File(image).base64Sync();
+            // if (image.trim().length == 0) {
+            //     await api.patch(`/user/update/${user?.id}`, {
+            //         name: nameFormatted,
+            //     });
+            // }
+            // else {
+            //     const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
+            //     const base64 = new File(image).base64Sync();
 
-                if (!fileName || !fileExt) {
-                    setToast("Fichier corrompu ou illisible !", "error");
-                    return;
-                }
+            //     if (!fileName || !fileExt) {
+            //         setToast("Fichier corrompu ou illisible !", "error");
+            //         return;
+            //     }
 
-                const date = new Date();
-                const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
-                const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
-                    upsert: true,
-                });
-                await api.patch(`/user/update/${user?.id}`, {
-                    name: nameFormatted,
-                    photoUrl: data?.path,
-                });
-            }
-            setToast("Bienvenue ☺️", "success");
-            setTimeout(async () => {
-                await supabase.auth.refreshSession();
-                setImage("");
-                setValue("");
-                setLoading(false);
-            }, 500);
+            //     const date = new Date();
+            //     const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
+            //     const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
+            //         upsert: true,
+            //     });
+            //     await api.patch(`/user/update/${user?.id}`, {
+            //         name: nameFormatted,
+            //         photoUrl: data?.path,
+            //     });
+            // }
+            // setToast("Bienvenue ☺️", "success");
+            // setTimeout(async () => {
+            //     await supabase.auth.refreshSession();
+            //     setImage("");
+            //     setValue("");
+            //     setLoading(false);
+            // }, 500);
         }
         catch (e) {
             const error = e as ApiError;
@@ -235,9 +230,9 @@ export default function Onboarding() {
                             <Input
                                 placeholder="John Doe"
                                 cursorColor={theme === "dark" ? "white" : "black"}
-                                icon={{
-                                    name: "user-tie",
-                                }}
+                                // icon={{
+                                //     name: "user-tie",
+                                // }}
                                 value={value}
                                 onChangeText={(e) => setValue(e)}
                             />
@@ -282,7 +277,7 @@ export default function Onboarding() {
                             {
                                 image.trim().length > 0 && (
                                     <Button
-                                        background="bg-red-500"
+                                        // background="bg-red-500"
                                         scale={.7}
                                         onPress={() => setImage("")}
                                         className="w-[150px] h-[60px]"

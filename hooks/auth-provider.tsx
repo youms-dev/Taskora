@@ -1,52 +1,69 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
-import { api } from "@/lib/axios";
+import { AUTH_STORE } from "@/constants/secure-store";
+import { AuthType } from "@/types/auth";
+import * as SecureStore from "expo-secure-store";
+import { createContext, ReactNode, useCallback, useContext, useState } from "react";
 
 type AuthContextType = {
-    user: User | null;
-    session: Session | null;
+    user: Omit<AuthType, "accessToken" | "refreshToken"> | null;
     loading: boolean;
+    getUser: () => void;
+    updatePhoto: (value: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
-    session: null,
     loading: true,
-})
+    getUser: () => { },
+    updatePhoto: () => { },
+});
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [session, setSession] = useState<Session | null>(null);
+interface Props {
+    children: ReactNode;
+    user: AuthContextType["user"] | null;
+}
+
+export const AuthProvider = ({ children, user: entryUser }: Props) => {
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<AuthContextType["user"] | null>(entryUser);
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
-            setSession(data.session);
-            setLoading(false);
+    const handleGetUser = useCallback(async () => {
+        setLoading(true);
+
+        const data = await SecureStore.getItemAsync(AUTH_STORE);
+
+        if (data) {
+            const { accessToken, refreshToken, ...rest } = JSON.parse(data) as AuthType;
+
+            setUser({ ...rest });
+        }
+
+        setLoading(false);
+    }, []);
+
+    const handleUpdatePhoto = useCallback(async (photo: string | null) => {
+        if (!user) return;
+        setLoading(true);
+
+        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
+            ...user,
+            photo,
+        }));
+
+        setUser({
+            ...user,
+            photo,
         });
 
-        const { data: listener } = supabase.auth.onAuthStateChange(
-            (_, session) => {
-                setSession(session);
-
-                if (session?.access_token) {
-                    api.defaults.headers.common.Authorization = `Bearer ${session.access_token}`;
-                }
-                else {
-                    api.defaults.headers.common.Authorization = "";
-                }
-            }
-        )
-
-        return () => listener.subscription.unsubscribe();
-    }, []);
+        setLoading(false);
+    }, [user]);
 
     return (
         <AuthContext.Provider
             value={{
-                session,
-                user: session?.user ?? null,
+                user,
                 loading,
+                getUser: handleGetUser,
+                updatePhoto: handleUpdatePhoto,
             }}
         >
             {children}

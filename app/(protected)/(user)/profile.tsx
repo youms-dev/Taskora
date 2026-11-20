@@ -9,10 +9,12 @@ import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { LOGOUT } from "@/constants/emitters";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/axios";
 import { emitter } from "@/lib/event-emitter";
+import { Fontisto } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -30,7 +32,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, BackHandler, Linking, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, AppState, BackHandler, Linking, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, FadeOutDown, FadeOutUp, SlideOutRight, useAnimatedStyle, withSequence, withTiming } from "react-native-reanimated";
 
@@ -54,8 +56,8 @@ export default function Profile() {
     };
     const [inputsValues, setInputsValues] = useState<typeof initialInputsValues>(initialInputsValues);
     const nameRef = useRef<TextInput>(null);
-    const emailRef = useRef<TextInput>(null);
     const [editName, setEditName] = useState<boolean>(false);
+    const { user, updatePhoto } = useAuth();
 
     const handleSignOut = useCallback(async () => {
         emitter.emit(LOGOUT);
@@ -115,6 +117,11 @@ export default function Profile() {
     }, []);
 
     const handleSave = useCallback(async (photo: string, type: string) => {
+        if (!user) return;
+
+        setImage(null);
+        setCameraActive(false);
+
         try {
             setSaving(true);
 
@@ -125,58 +132,31 @@ export default function Profile() {
                 }
                 return `image/${type.split(".").pop() ?? "png"}`;
             })();
-
             const formData = new FormData();
 
+            formData.append("email", "youms.vantablack@gmail.com");
             formData.append("file", {
                 uri: photo,
                 name: fileName,
                 type: fileType,
             } as any);
 
-            const { data } = await api.post("/user/update-photo", formData, {
+            const { data } = await api.patch("/user/update-photo", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 }
             });
 
-            console.log("Res :", data)
-            // setImage(assets[0].uri);
-            // const file = assets[0];
-            // const { name, ext } = fileDatas(String(file.fileName));
-            // const date = new Date();
-            // const base64 = new FileSystem.File(file.uri).base64Sync();
-
-            // if (!name || !ext) {
-            //     return setToast("Fichier corrompu ou illisible !", "error");
-            // }
-
-            // if (user && user.user_metadata.photoUrl) {
-            //     await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
-            // }
-            // const newName = name + date.getMilliseconds() + createId() + "." + ext;
-            // const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
-            //     upsert: true,
-            // });
-
-            // if (data) {
-            //     await api.patch(`/user/update/${user?.id}`, {
-            //         photoUrl: data.path,
-            //     });
-            //     await supabase.auth.refreshSession();
-            // }
+            updatePhoto(data);
         }
         catch (e) {
             setToast(t("error"), "error");
-            console.log("Error :", e);
         }
         finally {
             handleDeleteFromCache(photo);
-            setCameraActive(false);
-            setImage(null);
             setSaving(false);
         }
-    }, []);
+    }, [user]);
 
     const handleDeleteFromCache = useCallback(async (link: string) => {
         try {
@@ -186,15 +166,16 @@ export default function Profile() {
     }, []);
 
     const removePicture = useCallback(async () => {
-        // if (!user || !user.user_metadata.photoUrl) return;
+        setModalActive(false);
+
         try {
-            // setSaving(true);
-            // await api.patch(`/user/update/${user?.id}`, {
-            //     photoUrl: false,
-            // });
-            // await supabase.storage.from("files").remove([user.user_metadata.photoUrl]);
-            // await supabase.auth.refreshSession();
-            // setSaving(false);
+            setSaving(true);
+
+            await api.patch("/user/remove-photo", {
+                email: "youms.vantablack@gmail.com",
+            });
+
+            updatePhoto(null);
         }
         catch (e) {
             setToast(t("error"), "error");
@@ -202,7 +183,7 @@ export default function Profile() {
         finally {
             setSaving(false);
         }
-    }, [setToast, i18n.language]);
+    }, [setToast, i18n.language, updatePhoto]);
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -309,7 +290,28 @@ export default function Profile() {
                         "flex items-center",
                         editName && "opacity-50 pointer-events-none",
                     )}>
-                        <View className="flex items-center">
+                        <View className="size-[200px] flex items-center rounded-full">
+                            {
+                                saving && (
+                                    <Animated.View
+                                        entering={FadeIn
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        exiting={FadeOut
+                                            .duration(300)
+                                            .easing(Easing.inOut(Easing.quad))
+                                        }
+                                        className="absolute size-full flex justify-center items-center z-[1] rounded-full bg-black/50"
+                                    >
+                                        <ActivityIndicator
+                                            size={50}
+                                            color={COLORS.emerald[500]}
+                                        />
+                                    </Animated.View>
+                                )
+                            }
+
                             <View
                                 style={{
                                     transform: [
@@ -322,24 +324,51 @@ export default function Profile() {
                                 className="absolute bottom-0 size-[200px] bg-black/10 -z-[1] rounded-full"
                             />
 
-                            <Avatar
-                                size={200}
-                                name="Youmbi Le-duc"
-                                background={theme == "light" ? "white" : undefined}
-                            />
+                            {/* Avatar */}
+
+                            {
+                                !user?.photo && (
+                                    <Avatar
+                                        size={200}
+                                        name="Youmbi Le-duc"
+                                        background={theme == "light" ? "white" : undefined}
+                                    />
+                                )
+                            }
+
+                            {/* Photo */}
+
+                            {
+                                user?.photo && (
+                                    <Image
+                                        source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.photo }}
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            borderRadius: 9999,
+                                            aspectRatio: 1,
+                                        }}
+                                        contentFit="cover"
+                                    />
+                                )
+                            }
                         </View>
 
-                        <PressableAnimated
-                            scale={.95}
-                            onPress={() => setModalActive(true)}
-                            className="absolute bottom-0 right-0 size-[50px] flex justify-center items-center bg-emerald-500 rounded-full shadow-lg shadow-black"
-                        >
-                            <FontAwesome
-                                name="camera"
-                                size={25}
-                                color="rgba(0, 0, 0, 1)"
-                            />
-                        </PressableAnimated>
+                        {
+                            !saving && (
+                                <PressableAnimated
+                                    scale={.95}
+                                    onPress={() => setModalActive(true)}
+                                    className="absolute bottom-0 right-0 size-[50px] flex justify-center items-center bg-emerald-500 rounded-full shadow-lg shadow-black z-[2]"
+                                >
+                                    <FontAwesome
+                                        name="camera"
+                                        size={25}
+                                        color="rgba(0, 0, 0, 1)"
+                                    />
+                                </PressableAnimated>
+                            )
+                        }
                     </View>
 
                     {/* Section 2 */}
@@ -575,6 +604,9 @@ export default function Profile() {
                 contentContainerClassName="w-full min-h-full dark:bg-white/10 bg-white pt-5 px-3"
             >
                 <View className="w-full flex items-center gap-6 px-3 mt-5">
+
+                    {/* Camera */}
+
                     <PressableAnimated
                         scale={.95}
                         onPress={handleCamera}
@@ -593,6 +625,8 @@ export default function Profile() {
                             {t("profile_modal_item_1")}
                         </TextAnimated>
                     </PressableAnimated>
+
+                    {/* Gallery */}
 
                     <PressableAnimated
                         scale={.95}
@@ -616,19 +650,25 @@ export default function Profile() {
                         </TextAnimated>
                     </PressableAnimated>
 
+                    {/* Remove */}
+
                     <PressableAnimated
                         scale={.95}
-                        onPress={() => { }}
-                        className="self-start flex flex-row items-center gap-7"
+                        onPress={removePicture}
+                        className="self-start flex flex-row items-center gap-[34px]"
                     >
-                        <Eye />
+                        <Fontisto
+                            name="trash"
+                            size={25}
+                            color={COLORS.red[500]}
+                        />
 
-                        <TextAnimated
+                        <Text
                             numberOfLines={1}
-                            className="text-xl"
+                            className="text-xl text-red-500"
                         >
                             {t("profile_modal_item_3")}
-                        </TextAnimated>
+                        </Text>
                     </PressableAnimated>
                 </View>
             </Modal>
@@ -815,7 +855,6 @@ export default function Profile() {
                     </Animated.View>
                 )
             }
-
         </Container>
     );
 }
