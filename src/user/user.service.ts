@@ -6,6 +6,8 @@ import { supabaseAdmin } from 'src/lib/supabase';
 import { Repository } from 'typeorm';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { RemovePhotoDto } from './dto/remove-photo.dto';
+import { UpdateNameDto } from './dto/update-name.dto';
+import { formatString } from 'src/utils/tools';
 
 @Injectable()
 export class UserService {
@@ -92,6 +94,28 @@ export class UserService {
     await this.userRepo.save({
       ...user,
       photo: null,
+    });
+
+    return true;
+  }
+
+  async updateName(data: UpdateNameDto) {
+    const email = data.email.toLowerCase().trim();
+    const name = formatString(data.name);
+
+    const user = await this.userRepo.findOne({
+      where: {
+        email,
+      }
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found!");
+    }
+
+    await this.userRepo.save({
+      ...user,
+      name,
     });
 
     return true;
