@@ -30,7 +30,7 @@ export class JwtAuthGard extends AuthGuard("jwt") {
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: process.env.ACCESS_SECRET,
             });
-            const session = await this.sessionService.getSessionByDevice(payload.idDevice ?? "");
+            const session = await this.sessionService.getSessionByDevice(payload);
 
             req.user = session.user;
 

@@ -22,6 +22,7 @@ import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LogoutDto } from './dto/logout.dto';
+import { AuthPayload } from 'src/types/auth';
 
 @Injectable()
 export class AuthService {
@@ -65,8 +66,8 @@ export class AuthService {
         const idDevice = createId();
         const brand = formatString(data.deviceBrand);
         const deviceName = formatString(data.deviceName);
-        const payload = {
-            email: newUser.email,
+        const payload: AuthPayload = {
+            id: newUser.idUser,
             idDevice,
         }
 
@@ -142,8 +143,8 @@ export class AuthService {
         const idDevice = createId();
         const brand = formatString(data.deviceBrand);
         const deviceName = formatString(data.deviceName);
-        const payload = {
-            email: newUser.email,
+        const payload: AuthPayload = {
+            id: newUser.idUser,
             idDevice,
         }
 
@@ -206,8 +207,8 @@ export class AuthService {
             });
 
             if (session) {
-                const payload = {
-                    email: user.email,
+                const payload: AuthPayload = {
+                    id: user.idUser,
                     idDevice: data.idDevice,
                 }
 
@@ -238,8 +239,8 @@ export class AuthService {
                 const idDevice = createId();
                 const deviceName = formatString(data.deviceName);
                 const brand = formatString(data.deviceBrand);
-                const payload = {
-                    email: user.email,
+                const payload: AuthPayload = {
+                    id: user.idUser,
                     idDevice,
                 }
 
@@ -275,8 +276,8 @@ export class AuthService {
             const idDevice = createId();
             const deviceName = formatString(data.deviceName);
             const brand = formatString(data.deviceBrand);
-            const payload = {
-                email: user.email,
+            const payload: AuthPayload = {
+                id: user.idUser,
                 idDevice,
             }
 
@@ -531,13 +532,13 @@ export class AuthService {
 
     async refresh(data: RefreshDto) {
         try {
-            const payload = await this.jwtService.verifyAsync(data.refreshToken, {
+            const payload: AuthPayload = await this.jwtService.verifyAsync(data.refreshToken, {
                 secret: process.env.REFRESH_SECRET,
             });
 
             const session = await this.sessionRepo.findOneBy({
                 user: {
-                    email: payload.email ?? "",
+                    idUser: payload.id ?? "",
                 },
                 idDevice: payload.idDevice ?? "",
                 refreshToken: data.refreshToken,
@@ -546,8 +547,9 @@ export class AuthService {
             if (!session) {
                 throw new NotFoundException("Session not found!");
             }
+
             const newPayload = {
-                email: payload.email,
+                id: payload.id,
                 idDevice: payload.idDevice,
             }
 
