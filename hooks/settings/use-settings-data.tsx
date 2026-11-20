@@ -1,6 +1,6 @@
-import { SplashScreen } from "@/components/spash-screen";
 import { SettingType } from "@/types/database/setting";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth-provider";
 import { useSettings } from "../database/use-setting";
 
 type ContextType = {
@@ -26,21 +26,26 @@ export const SettingsProvider = ({ children }: Props) => {
     const [loading, setLoading] = useState<boolean>(false);
     const { getSetting, setSetting: editSetting } = useSettings();
     const loadingRef = useRef<boolean>(false);
+    const { user } = useAuth();
 
     const handleGetSetting = useCallback(async () => {
-        if (loadingRef.current) return;
+        if (loadingRef.current || !user) return;
         try {
             setLoading(true);
-            const data = await getSetting() as Required<SettingType>;
+            loadingRef.current = true;
+
+            const data = await getSetting(user.email) as Required<SettingType>;
 
             setSetting(data);
-            setLoading(false);
         }
         catch (e) {
-            setLoading(false);
             console.log(e);
         }
-    }, []);
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [user]);
 
     const handleSetSetting = useCallback(async (entry: Required<SettingType>) => {
         const prev = setting;
@@ -64,10 +69,6 @@ export const SettingsProvider = ({ children }: Props) => {
         handleGetSetting();
     }, []);
 
-    useEffect(() => {
-        loadingRef.current = loading;
-    }, [loading]);
-
     return (
         <Context.Provider value={{
             setting,
@@ -75,13 +76,7 @@ export const SettingsProvider = ({ children }: Props) => {
             loading,
             setSetting: handleSetSetting,
         }}>
-            {
-                !setting ? (
-                    <SplashScreen />
-                )
-                    :
-                    children
-            }
+            {children}
         </Context.Provider>
     );
 }

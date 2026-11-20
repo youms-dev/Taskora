@@ -341,7 +341,12 @@ export default function Profile() {
                             {
                                 user?.photo && (
                                     <Image
-                                        source={{ uri: process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.photo }}
+                                        source={{
+                                            uri: user.photo.startsWith("https://") ?
+                                                user.photo
+                                                :
+                                                process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.photo
+                                        }}
                                         style={{
                                             width: "100%",
                                             height: "100%",

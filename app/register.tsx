@@ -10,6 +10,7 @@ import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
+import { useUsers } from '@/hooks/database/use-users';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
@@ -127,6 +128,7 @@ export default function Register() {
   const passwordRef = useRef<TextInput>(null);
   const [modalActive, setModalActive] = useState<boolean>(false);
   const [checked, setChecked] = useState<boolean>(false);
+  const { createUser } = useUsers();
 
   const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current || !checked) return;
@@ -161,12 +163,17 @@ export default function Register() {
         provider: provider,
       });
 
+      await createUser({
+        email: data.email,
+        photo: data.photo,
+        provider,
+      });
+
       const { idDevice, ...rest } = data;
 
       await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
       await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
-      setInputsValues(initialInputsValues);
       emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
@@ -209,12 +216,16 @@ export default function Register() {
         deviceType: Platform.OS.toUpperCase(),
       });
 
+      await createUser({
+        email: data.email,
+        photo: data.photo,
+      });
+
       const { idDevice, ...rest } = data;
 
       await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
       await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
-      setInputsValues(initialInputsValues);
       emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
@@ -253,7 +264,10 @@ export default function Register() {
   }, [i18n.language, inputsValues, setToast, checked]);
 
   return (
-    <Container centerX safeArea={false}>
+    <Container
+      centerX
+      safeArea={false}
+    >
 
       {/* Back button */}
 

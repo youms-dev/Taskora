@@ -147,8 +147,9 @@ const drop = `
     DROP TABLE IF EXISTS setting;
 `;
 
+
+// ${drop}
 export const INIT_DATABASE = `
-${drop}
         
     CREATE TABLE IF NOT EXISTS setting (
         id_setting TEXT PRIMARY KEY NOT NULL,
@@ -228,5 +229,5 @@ ${drop}
         FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE
     );
 
-    ${initSettings}
     `;
+// ${initSettings}

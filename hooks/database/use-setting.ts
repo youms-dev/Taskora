@@ -4,34 +4,46 @@ import { useDatabase } from "./use-database";
 export const useSettings = () => {
     const { db } = useDatabase();
 
-    async function getSetting(): Promise<SettingType | unknown> {
+    async function getSetting(id: string): Promise<SettingType | unknown> {
         if (!db) return;
 
         try {
-            const data = await db.getFirstAsync("SELECT * FROM setting") as SQLiteSettingType;
-            const { id_setting, notification_sound, confirm_before_delete, _2FA, auto_sync, created_at, updated_at, ...rest } = data;
+            const data = await db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [id]) as SQLiteSettingType;
+            let dataParsed: SettingType | null = null;
 
-            return {
-                ...rest,
-                idSetting: id_setting,
-                notificationSound: notification_sound,
-                confirmBeforeDelete: Boolean(confirm_before_delete),
-                _2FA: Boolean(_2FA),
-                autoSync: Boolean(auto_sync),
-                createdAt: created_at,
-                updatedAt: updated_at,
-            } as SettingType;
+            if (data) {
+                const { id_setting, notification_sound, confirm_before_delete, _2FA, auto_sync, created_at, updated_at, ...rest } = data;
+
+                dataParsed = {
+                    ...rest,
+                    idSetting: id_setting,
+                    notificationSound: notification_sound,
+                    confirmBeforeDelete: Boolean(confirm_before_delete),
+                    _2FA: Boolean(_2FA),
+                    autoSync: Boolean(auto_sync),
+                    createdAt: created_at,
+                    updatedAt: updated_at,
+                } as SettingType;
+            }
+
+            return dataParsed;
         }
         catch (e) {
             throw e;
         }
     }
 
-    async function setSetting(data: Required<SettingType>): Promise<Boolean | unknown> {
+    async function setSetting(data: Required<SettingType>): Promise<true | unknown> {
         if (!db) return;
 
         try {
-            await db.runAsync("UPDATE setting SET language = ?, notification_sound = ?, confirm_before_delete = ?, _2FA = ?, auto_sync = ?", [data.language, data.notificationSound, Number(data.confirmBeforeDelete), Number(data._2FA), Number(data.autoSync)]);
+            const setting = db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [data.idSetting]);
+
+            if (!setting) {
+                throw 404;
+            }
+
+            await db.runAsync("UPDATE setting SET language = ?, notification_sound = ?, confirm_before_delete = ?, _2FA = ?, auto_sync = ? WHERE id_setting = ?", [data.language, data.notificationSound, Number(data.confirmBeforeDelete), Number(data._2FA), Number(data.autoSync), data.idSetting]);
 
             return true;
         }

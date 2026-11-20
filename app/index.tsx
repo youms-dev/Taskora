@@ -1,19 +1,21 @@
-import { OAuthButton } from '@/components/oauth-button';
 import { CodeInput } from '@/components/code-input';
 import { Container } from '@/components/container';
 import { Input } from '@/components/input';
+import { OAuthButton } from '@/components/oauth-button';
 import { PressableAnimated } from '@/components/pressable-animated';
 import { Rotate } from '@/components/rotate';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
+import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
+import { useUsers } from '@/hooks/database/use-users';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
-import { AuthType } from '@/types/auth';
+import { emitter } from '@/lib/event-emitter';
 import { AUTH_PROVIDER } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
@@ -30,8 +32,6 @@ import { ActivityIndicator, Platform, Text, TextInput, useWindowDimensions, View
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInDown, FadeInUp, FadeOutDown, SlideInRight, SlideOutLeft, SlideOutRight } from 'react-native-reanimated';
 import "../config/task-manager";
-import { emitter } from '@/lib/event-emitter';
-import { REFRESH_AUTH } from '@/constants/emitters';
 
 export default function Login() {
   const initialInputsValues = {
@@ -51,8 +51,10 @@ export default function Login() {
   const passwordRef = useRef<TextInput>(null);
   const [_2fa, set_2fa] = useState<boolean>(false);
   const codeRef = useRef<TextInput>(null);
+  const { getUser, createUser } = useUsers();
+  const providerRef = useRef<AUTH_PROVIDER>(null);
 
-  const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
+  const handleOAuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current) return;
     try {
       setLoading(true);
@@ -89,6 +91,7 @@ export default function Login() {
 
       if (data._2FA) {
         set_2fa(true);
+        providerRef.current = provider;
         setInputsValues(prev => ({
           ...prev,
           email: authData.user.email,
@@ -103,10 +106,21 @@ export default function Login() {
         setWith0Auth(false);
       }
       else {
+        const user = await getUser(data.email);
+
+        if (!user) {
+          await createUser({
+            email: data.email,
+            photo: data.photo,
+            provider,
+          });
+        }
+
         const { idDevice, ...rest } = data;
 
         await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
         await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+
         emitter.emit(REFRESH_AUTH);
       }
     }
@@ -159,6 +173,7 @@ export default function Login() {
 
       if (data._2FA) {
         set_2fa(true);
+        providerRef.current = null;
       }
       else if ("password" in data && data.password == false) {
         setToast(t("login_no_password"), "default", 5000);
@@ -166,10 +181,20 @@ export default function Login() {
         setInputsValues(initialInputsValues);
       }
       else {
+        const user = await getUser(data.email);
+
+        if (!user) {
+          await createUser({
+            email: data.email,
+            photo: data.photo,
+          });
+        }
+
         const { idDevice, ...rest } = data;
 
         await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
         await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+
         emitter.emit(REFRESH_AUTH);
       }
     }
@@ -265,13 +290,21 @@ export default function Login() {
         idDevice: storeIdDevice,
       });
 
+      const user = await getUser(data.email);
+
+      if (!user) {
+        await createUser({
+          email: data.email,
+          photo: data.photo,
+          provider: providerRef.current,
+        });
+      }
+
       const { idDevice, ...rest } = data;
 
       await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
       await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
-      setInputsValues(initialInputsValues);
-      set_2fa(false);
       emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
@@ -386,7 +419,7 @@ export default function Login() {
                           name="Google"
                           icon="google"
                           loading={loading}
-                          onPress={() => handle0AuthSignIn(AUTH_PROVIDER.GOOGLE)}
+                          onPress={() => handleOAuthSignIn(AUTH_PROVIDER.GOOGLE)}
                         />
                       </View>
 

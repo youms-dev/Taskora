@@ -1,13 +1,16 @@
 import { AUTH_STORE } from "@/constants/secure-store";
 import { AuthType } from "@/types/auth";
+import { UserType } from "@/types/database/user";
 import * as SecureStore from "expo-secure-store";
-import { createContext, ReactNode, useCallback, useContext, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { useUsers } from "./database/use-users";
 
 type AuthContextType = {
-    user: Omit<AuthType, "accessToken" | "refreshToken"> | null;
+    user: UserType | null;
     loading: boolean;
     getUser: () => void;
     updatePhoto: (value: string | null) => void;
+    auth: Omit<AuthType, "accessToken" | "refreshToken"> | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,37 +18,46 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     getUser: () => { },
     updatePhoto: () => { },
+    auth: null,
 });
 
 interface Props {
     children: ReactNode;
-    user: AuthContextType["user"] | null;
+    auth: AuthContextType["auth"] | null;
+    refresh: () => void;
 }
 
-export const AuthProvider = ({ children, user: entryUser }: Props) => {
+export const AuthProvider = ({ children, auth, refresh }: Props) => {
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<AuthContextType["user"] | null>(entryUser);
+    const [user, setUser] = useState<AuthContextType["user"] | null>(null);
+    const { getUser, updateUserPhoto } = useUsers();
 
     const handleGetUser = useCallback(async () => {
-        setLoading(true);
+        if (!auth) return;
 
-        const data = await SecureStore.getItemAsync(AUTH_STORE);
+        try {
+            setLoading(true);
 
-        if (data) {
-            const { accessToken, refreshToken, ...rest } = JSON.parse(data) as AuthType;
+            const data = await getUser(auth.email) as typeof user;
 
-            setUser({ ...rest });
+            setUser(data);
         }
-
-        setLoading(false);
-    }, []);
+        catch (e) {
+            console.log(e);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [auth]);
 
     const handleUpdatePhoto = useCallback(async (photo: string | null) => {
-        if (!user) return;
+        if (!auth || !user) return;
         setLoading(true);
 
+        await updateUserPhoto(user.email, photo);
+
         await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
-            ...user,
+            ...auth,
             photo,
         }));
 
@@ -54,8 +66,14 @@ export const AuthProvider = ({ children, user: entryUser }: Props) => {
             photo,
         });
 
+        refresh();
+
         setLoading(false);
-    }, [user]);
+    }, [user, auth, refresh]);
+
+    useEffect(() => {
+        handleGetUser();
+    }, [handleGetUser]);
 
     return (
         <AuthContext.Provider
@@ -64,6 +82,7 @@ export const AuthProvider = ({ children, user: entryUser }: Props) => {
                 loading,
                 getUser: handleGetUser,
                 updatePhoto: handleUpdatePhoto,
+                auth,
             }}
         >
             {children}

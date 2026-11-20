@@ -4,7 +4,7 @@ export type UserType = {
     name?: string | null;
     email: string;
     photo?: string | null;
-    provider: AUTH_PROVIDER,
+    provider?: AUTH_PROVIDER | null,
     createdAt: Date;
     updatedAt: Date;
 }
@@ -15,7 +15,7 @@ export type SQLiteUserType = {
     name?: string | null;
     email: string;
     photo?: string | null;
-    provider: AUTH_PROVIDER,
+    provider?: AUTH_PROVIDER | null,
     created_at: Date;
     updated_at: Date;
 }

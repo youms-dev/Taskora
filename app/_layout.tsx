@@ -62,17 +62,19 @@ export default function Layout() {
         })();
     }, []);
 
-    useEffect(() => {
-        (async () => {
-            if (!db) {
-                const database = await openDatabaseAsync(DATABASE_NAME);
+    const openDatabase = useCallback(async () => {
+        if (!db) {
+            const database = await openDatabaseAsync(DATABASE_NAME);
 
-                setDb(database);
-                await database.execAsync(INIT_DATABASE);
-                await SplashScreen.hideAsync();
-            }
-        })();
+            setDb(database);
+            await database.execAsync(INIT_DATABASE);
+            await SplashScreen.hideAsync();
+        }
     }, [db]);
+
+    useEffect(() => {
+        openDatabase();
+    }, [openDatabase]);
 
     const deleteAttempts = useCallback(async () => {
         const { removeItem } = useAsyncStorage(ATTEMPTS_STORAGE);
@@ -98,7 +100,7 @@ export default function Layout() {
                 authFormatted = JSON.parse(authData);
             }
 
-            console.log("Auth user :", authFormatted);
+            // console.log("Auth user :", authFormatted);
             setAuth(authFormatted);
         }
         catch { }
@@ -155,7 +157,6 @@ export default function Layout() {
     //     () => remove();
     // }, []);
 
-
     if (!db || loading) return (
         <SplashScreenComponent />
     )
@@ -171,48 +172,47 @@ export default function Layout() {
                                 backgroundColor: colorScheme == "dark" ? "black" : "white"
                             }}>
                                 <ToastProvider>
-                                    <AuthProvider user={auth}>
-                                        {
-                                            !loading && (
-                                                <Stack
-                                                    screenOptions={{
-                                                        headerShown: false,
-                                                        animation: "fade",
-                                                        contentStyle: {
-                                                            backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
-                                                        }
+                                    <AuthProvider
+                                        auth={auth}
+                                        refresh={handleGetAuth}
+                                    >
+                                        <Stack
+                                            screenOptions={{
+                                                headerShown: false,
+                                                animation: "fade",
+                                                contentStyle: {
+                                                    backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
+                                                }
+                                            }}
+                                        >
+                                            <Stack.Protected guard={!auth}>
+                                                <Stack.Screen name="index" />
+                                            </Stack.Protected>
+
+                                            <Stack.Protected guard={!auth}>
+                                                <Stack.Screen
+                                                    name="register"
+                                                    options={{
+                                                        animation: "fade_from_bottom"
                                                     }}
-                                                >
-                                                    <Stack.Protected guard={!auth}>
-                                                        <Stack.Screen name="index" />
-                                                    </Stack.Protected>
+                                                />
+                                            </Stack.Protected>
 
-                                                    <Stack.Protected guard={!auth}>
-                                                        <Stack.Screen
-                                                            name="register"
-                                                            options={{
-                                                                animation: "fade_from_bottom"
-                                                            }}
-                                                        />
-                                                    </Stack.Protected>
+                                            <Stack.Protected guard={!!auth}>
+                                                <Stack.Screen
+                                                    name="(protected)"
+                                                    options={{
+                                                        animation: "fade",
+                                                    }}
+                                                />
+                                            </Stack.Protected>
 
-                                                    <Stack.Protected guard={!!auth}>
-                                                        <Stack.Screen
-                                                            name="(protected)"
-                                                            options={{
-                                                                animation: "fade",
-                                                            }}
-                                                        />
-                                                    </Stack.Protected>
+                                            <Stack.Protected guard={false}>
+                                                <Stack.Screen name="onboarding" />
+                                            </Stack.Protected>
 
-                                                    <Stack.Protected guard={false}>
-                                                        <Stack.Screen name="onboarding" />
-                                                    </Stack.Protected>
-
-                                                    <Stack.Screen name="reset-password" />
-                                                </Stack>
-                                            )
-                                        }
+                                            <Stack.Screen name="reset-password" />
+                                        </Stack>
                                     </AuthProvider>
                                 </ToastProvider>
                             </GestureHandlerRootView>
