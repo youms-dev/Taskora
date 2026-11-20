@@ -147,7 +147,6 @@ const drop = `
     DROP TABLE IF EXISTS setting;
 `;
 
-
 // ${drop}
 export const INIT_DATABASE = `
         
@@ -217,7 +216,7 @@ export const INIT_DATABASE = `
     CREATE INDEX IF NOT EXISTS task_start_at_index ON task(start_at);
     
     CREATE TABLE IF NOT EXISTS session (
-        id_setting TEXT NOT NULL PRIMARY KEY,
+        id_session TEXT NOT NULL PRIMARY KEY,
         id_user TEXT NOT NULL,
         id_device TEXT NOT NULL,
         device_name TEXT NOT NULL,

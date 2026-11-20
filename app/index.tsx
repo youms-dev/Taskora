@@ -11,13 +11,16 @@ import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
+import { useSessions } from '@/hooks/database/use-sessions';
 import { useUsers } from '@/hooks/database/use-users';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { emitter } from '@/lib/event-emitter';
-import { AUTH_PROVIDER } from '@/types/database/user';
+import { DeviceTypeEnum } from '@/types/database/session';
+import { AUTH_PROVIDER, UserType } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
+import { formatName } from '@/utils/tools';
 import { FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import clsx from 'clsx';
@@ -53,6 +56,37 @@ export default function Login() {
   const codeRef = useRef<TextInput>(null);
   const { getUser, createUser } = useUsers();
   const providerRef = useRef<AUTH_PROVIDER>(null);
+  const { createSession } = useSessions();
+
+  const finalize = useCallback(async (data: Pick<UserType, "email" | "photo" | "provider"> & {
+    idDevice: string;
+  }) => {
+    const user = await getUser(data.email) as UserType | null;
+    let idUser = user?.idUser;
+
+    if (!user) {
+      idUser = await createUser({
+        email: data.email,
+        photo: data.photo,
+        provider: data.provider,
+      }) as string;
+    }
+
+    await createSession({
+      idUser: idUser!,
+      idDevice: data.idDevice,
+      deviceName: formatName(Device.deviceName ?? ""),
+      deviceBrand: formatName(Device.brand ?? ""),
+      deviceType: Platform.OS.toUpperCase() as DeviceTypeEnum,
+    });
+
+    const { idDevice, ...rest } = data;
+
+    await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+    await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+
+    emitter.emit(REFRESH_AUTH);
+  }, []);
 
   const handleOAuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current) return;
@@ -106,22 +140,10 @@ export default function Login() {
         setWith0Auth(false);
       }
       else {
-        const user = await getUser(data.email);
-
-        if (!user) {
-          await createUser({
-            email: data.email,
-            photo: data.photo,
-            provider,
-          });
-        }
-
-        const { idDevice, ...rest } = data;
-
-        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
-        await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
-
-        emitter.emit(REFRESH_AUTH);
+        await finalize({
+          ...data,
+          provider,
+        });
       }
     }
     catch (e) {
@@ -181,21 +203,7 @@ export default function Login() {
         setInputsValues(initialInputsValues);
       }
       else {
-        const user = await getUser(data.email);
-
-        if (!user) {
-          await createUser({
-            email: data.email,
-            photo: data.photo,
-          });
-        }
-
-        const { idDevice, ...rest } = data;
-
-        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
-        await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
-
-        emitter.emit(REFRESH_AUTH);
+        await finalize(data);
       }
     }
     catch (e) {
@@ -290,22 +298,10 @@ export default function Login() {
         idDevice: storeIdDevice,
       });
 
-      const user = await getUser(data.email);
-
-      if (!user) {
-        await createUser({
-          email: data.email,
-          photo: data.photo,
-          provider: providerRef.current,
-        });
-      }
-
-      const { idDevice, ...rest } = data;
-
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
-      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
-
-      emitter.emit(REFRESH_AUTH);
+      await finalize({
+        ...data,
+        provider: providerRef.current,
+      });
     }
     catch (e) {
       const { status } = e as ApiError;

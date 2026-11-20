@@ -10,13 +10,16 @@ import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
+import { useSessions } from '@/hooks/database/use-sessions';
 import { useUsers } from '@/hooks/database/use-users';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { emitter } from '@/lib/event-emitter';
-import { AUTH_PROVIDER } from '@/types/database/user';
+import { DeviceTypeEnum } from '@/types/database/session';
+import { AUTH_PROVIDER, UserType } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
+import { formatName } from '@/utils/tools';
 import { Entypo, FontAwesome6, Fontisto } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import clsx from 'clsx';
@@ -129,6 +132,32 @@ export default function Register() {
   const [modalActive, setModalActive] = useState<boolean>(false);
   const [checked, setChecked] = useState<boolean>(false);
   const { createUser } = useUsers();
+  const { createSession } = useSessions();
+
+  const finalize = useCallback(async (data: Pick<UserType, "email" | "photo" | "provider"> & {
+    idDevice: string;
+  }) => {
+    const idUser = await createUser({
+      email: data.email,
+      photo: data.photo,
+      provider: data.provider,
+    });
+
+    await createSession({
+      idUser: idUser as string,
+      idDevice: data.idDevice,
+      deviceName: formatName(Device.deviceName ?? ""),
+      deviceBrand: formatName(Device.brand ?? ""),
+      deviceType: Platform.OS.toUpperCase() as DeviceTypeEnum,
+    });
+
+    const { idDevice, ...rest } = data;
+
+    await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
+    await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
+
+    emitter.emit(REFRESH_AUTH);
+  }, []);
 
   const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {
     if (loadingRef.current || !checked) return;
@@ -163,18 +192,10 @@ export default function Register() {
         provider: provider,
       });
 
-      await createUser({
-        email: data.email,
-        photo: data.photo,
+      await finalize({
+        ...data,
         provider,
       });
-
-      const { idDevice, ...rest } = data;
-
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
-      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
-
-      emitter.emit(REFRESH_AUTH);
     }
     catch (e) {
       const { status } = e as ApiError;
@@ -216,17 +237,7 @@ export default function Register() {
         deviceType: Platform.OS.toUpperCase(),
       });
 
-      await createUser({
-        email: data.email,
-        photo: data.photo,
-      });
-
-      const { idDevice, ...rest } = data;
-
-      await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
-      await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
-
-      emitter.emit(REFRESH_AUTH);
+      await finalize(data);
     }
     catch (e) {
       const { status, data } = e as ApiError;

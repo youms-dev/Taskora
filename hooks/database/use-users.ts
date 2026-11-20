@@ -31,7 +31,7 @@ export const useUsers = () => {
         }
     }
 
-    async function createUser(data: Omit<UserType, "idUser" | "idSetting" | "createdAt" | "updatedAt">): Promise<true | unknown> {
+    async function createUser(data: Omit<UserType, "idUser" | "idSetting" | "createdAt" | "updatedAt">): Promise<string | unknown> {
         if (!db) return;
 
         try {
@@ -40,17 +40,16 @@ export const useUsers = () => {
             if (user) {
                 throw 429;
             }
-
+            const idSetting = createId();
+            const idUser = createId();
+            
             await db.withTransactionAsync(async () => {
-                const idSetting = createId();
-                const idUser = createId();
-
                 await db.runAsync("INSERT INTO setting (id_setting) VALUES(?)", [idSetting]);
 
                 await db.runAsync("INSERT INTO user (id_user, id_setting, email, provider, photo) VALUES(?, ?, ?, ?, ?)", [idUser, idSetting, data.email.toLowerCase().trim(), data.provider ?? null, data.photo ?? null]);
             });
 
-            return true;
+            return idUser;
         }
         catch (e) {
             throw e;

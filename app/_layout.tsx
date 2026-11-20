@@ -100,7 +100,6 @@ export default function Layout() {
                 authFormatted = JSON.parse(authData);
             }
 
-            // console.log("Auth user :", authFormatted);
             setAuth(authFormatted);
         }
         catch { }
