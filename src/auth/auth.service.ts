@@ -13,16 +13,16 @@ import { Setting } from 'src/database/entities/setting.entity';
 import { User } from 'src/database/entities/user.entity';
 import { brevo } from 'src/lib/brevo';
 import { redis } from 'src/lib/redis';
+import { AuthPayload } from 'src/types/auth';
 import { formatString, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
 import { _2FADto } from './dto/2fa.dto';
 import { LoginDto } from './dto/login.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
-import { LogoutDto } from './dto/logout.dto';
-import { AuthPayload } from 'src/types/auth';
 
 @Injectable()
 export class AuthService {
@@ -67,7 +67,7 @@ export class AuthService {
         const brand = formatString(data.deviceBrand);
         const deviceName = formatString(data.deviceName);
         const payload: AuthPayload = {
-            id: newUser.idUser,
+            sub: newUser.idUser,
             idDevice,
         }
 
@@ -113,8 +113,11 @@ export class AuthService {
             accessToken,
             refreshToken,
             idDevice,
-            email: newUser.email,
-            photo: newUser.photo,
+            user: {
+                id: newUser.idUser,
+                email: newUser.email,
+                photo: newUser.photo,
+            }
         };
     }
 
@@ -144,7 +147,7 @@ export class AuthService {
         const brand = formatString(data.deviceBrand);
         const deviceName = formatString(data.deviceName);
         const payload: AuthPayload = {
-            id: newUser.idUser,
+            sub: newUser.idUser,
             idDevice,
         }
 
@@ -190,95 +193,32 @@ export class AuthService {
             accessToken,
             refreshToken,
             idDevice,
-            email: newUser.email,
-            photo: newUser.photo,
+            user: {
+                id: newUser.idUser,
+                email: newUser.email,
+                photo: newUser.photo,
+            }
         };
     }
 
     async handleSession(user: User, data: Omit<LoginDto, "password">) {
-        if (data.idDevice) {
-            const session = await this.sessionRepo.findOne({
+        const session = (data.idDevice ?
+            await this.sessionRepo.findOne({
                 where: {
                     user: {
                         email: user.email,
                     },
                     idDevice: data.idDevice,
                 }
-            });
+            })
+            :
+            null
+        );
 
-            if (session) {
-                const payload: AuthPayload = {
-                    id: user.idUser,
-                    idDevice: data.idDevice,
-                }
-
-                const accessToken = await this.jwtService.signAsync(payload, {
-                    expiresIn: "15m",
-                    secret: process.env.ACCESS_SECRET,
-                });
-
-                const refreshToken = await this.jwtService.signAsync(payload, {
-                    expiresIn: "30d",
-                    secret: process.env.REFRESH_SECRET,
-                });
-
-                await this.sessionRepo.save({
-                    ...session,
-                    refreshToken,
-                });
-
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice: data.idDevice,
-                    email: user.email,
-                    photo: user.photo,
-                };
-            }
-            else {
-                const idDevice = createId();
-                const deviceName = formatString(data.deviceName);
-                const brand = formatString(data.deviceBrand);
-                const payload: AuthPayload = {
-                    id: user.idUser,
-                    idDevice,
-                }
-
-                const accessToken = await this.jwtService.signAsync(payload, {
-                    expiresIn: "15m",
-                    secret: process.env.ACCESS_SECRET,
-                });
-
-                const refreshToken = await this.jwtService.signAsync(payload, {
-                    expiresIn: "30d",
-                    secret: process.env.REFRESH_SECRET,
-                });
-
-                await this.sessionRepo.save({
-                    user,
-                    idDevice,
-                    deviceName,
-                    refreshToken,
-                    deviceBrand: brand,
-                    deviceType: data.deviceType,
-                });
-
-                return {
-                    accessToken,
-                    refreshToken,
-                    idDevice,
-                    email: user.email,
-                    photo: user.photo,
-                };
-            }
-        }
-        else {
-            const idDevice = createId();
-            const deviceName = formatString(data.deviceName);
-            const brand = formatString(data.deviceBrand);
+        if (data.idDevice && session) {
             const payload: AuthPayload = {
-                id: user.idUser,
-                idDevice,
+                sub: user.idUser,
+                idDevice: data.idDevice,
             }
 
             const accessToken = await this.jwtService.signAsync(payload, {
@@ -292,22 +232,59 @@ export class AuthService {
             });
 
             await this.sessionRepo.save({
-                user,
-                idDevice,
-                deviceName,
+                ...session,
                 refreshToken,
-                deviceBrand: brand,
-                deviceType: data.deviceType,
             });
 
             return {
                 accessToken,
                 refreshToken,
-                idDevice,
-                email: user.email,
-                photo: user.photo,
+                idDevice: data.idDevice,
+                user: {
+                    id: user.idUser,
+                    email: user.email,
+                    photo: user.photo,
+                }
             };
         }
+
+        const idDevice = createId();
+        const deviceName = formatString(data.deviceName);
+        const brand = formatString(data.deviceBrand);
+        const payload: AuthPayload = {
+            sub: user.idUser,
+            idDevice,
+        }
+
+        const accessToken = await this.jwtService.signAsync(payload, {
+            expiresIn: "15m",
+            secret: process.env.ACCESS_SECRET,
+        });
+
+        const refreshToken = await this.jwtService.signAsync(payload, {
+            expiresIn: "30d",
+            secret: process.env.REFRESH_SECRET,
+        });
+
+        await this.sessionRepo.save({
+            user,
+            idDevice,
+            deviceName,
+            refreshToken,
+            deviceBrand: brand,
+            deviceType: data.deviceType,
+        });
+
+        return {
+            accessToken,
+            refreshToken,
+            idDevice,
+            user: {
+                id: user.idUser,
+                email: user.email,
+                photo: user.photo,
+            }
+        };
     }
 
     async login(data: LoginDto) {
@@ -538,7 +515,7 @@ export class AuthService {
 
             const session = await this.sessionRepo.findOneBy({
                 user: {
-                    idUser: payload.id ?? "",
+                    idUser: payload.sub ?? "",
                 },
                 idDevice: payload.idDevice ?? "",
                 refreshToken: data.refreshToken,
@@ -549,7 +526,7 @@ export class AuthService {
             }
 
             const newPayload = {
-                id: payload.id,
+                id: payload.sub,
                 idDevice: payload.idDevice,
             }
 
@@ -579,11 +556,9 @@ export class AuthService {
     }
 
     async logout(data: LogoutDto) {
-        const email = data.email.toLowerCase();
-
         const session = await this.sessionRepo.findOneBy({
             user: {
-                email,
+                idUser: data.idUser,
             },
             idDevice: data.idDevice,
         });

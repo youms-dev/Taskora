@@ -1,4 +1,4 @@
 export type AuthPayload = {
-    id: string;
+    sub: string;
     idDevice: string;
 }

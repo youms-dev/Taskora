@@ -13,7 +13,7 @@ export class SessionService {
             where: {
                 idDevice: data.idDevice ?? "",
                 user: {
-                    idUser: data.id ?? "",
+                    idUser: data.sub ?? "",
                 }
             },
             relations: {

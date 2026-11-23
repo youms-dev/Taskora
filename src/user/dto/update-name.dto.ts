@@ -4,7 +4,7 @@ import { NAME_FORMAT_ERROR, NAME_LENGTH_ERROR } from 'src/constants/errors';
 import { NAME_REGEX } from 'src/constants/regex';
 import { UpdatePhotoDto } from './update-photo.dto';
 
-export class UpdateNameDto extends PickType(UpdatePhotoDto, ["email"]) {
+export class UpdateNameDto extends PickType(UpdatePhotoDto, ["idUser"]) {
     @IsString({
         message: "name must be a string",
     })

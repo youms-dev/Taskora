@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
 import { User } from 'src/database/entities/user.entity';
 import { supabaseAdmin } from 'src/lib/supabase';
+import { formatString } from 'src/utils/tools';
 import { Repository } from 'typeorm';
-import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { RemovePhotoDto } from './dto/remove-photo.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
-import { formatString } from 'src/utils/tools';
+import { UpdatePhotoDto } from './dto/update-photo.dto';
 
 @Injectable()
 export class UserService {
@@ -30,11 +30,9 @@ export class UserService {
   }
 
   async updatePhoto(data: UpdatePhotoDto, file: any) {
-    const email = data.email.toLowerCase().trim();
-
     const user = await this.userRepo.findOne({
       where: {
-        email,
+        idUser: data.idUser,
       }
     });
 
@@ -72,11 +70,9 @@ export class UserService {
   }
 
   async removePhoto(data: RemovePhotoDto) {
-    const email = data.email.toLowerCase().trim();
-
     const user = await this.userRepo.findOne({
       where: {
-        email,
+        idUser: data.idUser,
       }
     });
 
@@ -100,12 +96,11 @@ export class UserService {
   }
 
   async updateName(data: UpdateNameDto) {
-    const email = data.email.toLowerCase().trim();
     const name = formatString(data.name);
 
     const user = await this.userRepo.findOne({
       where: {
-        email,
+        idUser: data.idUser,
       }
     });
 
