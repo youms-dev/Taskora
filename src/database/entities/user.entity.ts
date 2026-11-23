@@ -26,9 +26,10 @@ export class User {
     email: string;
 
     @Column({
+        type: "text",
         nullable: true,
     })
-    password?: string;
+    password?: string | null;
 
     @Column({
         type: "text",
@@ -41,7 +42,7 @@ export class User {
         enum: SESSION_PROVIDER,
         nullable: true,
     })
-    provider?: SESSION_PROVIDER;
+    provider?: SESSION_PROVIDER | null;
 
     @CreateDateColumn({
         name: "created_at",

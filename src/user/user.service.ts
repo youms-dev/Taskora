@@ -1,10 +1,21 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
+import * as Bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { render } from 'react-email';
+import { ResendCodeDto } from 'src/auth/dto/resend-code.dto';
+import CodeMail from 'src/components/code';
+import { APP_NAME } from 'src/constants/names';
 import { User } from 'src/database/entities/user.entity';
+import { brevo } from 'src/lib/brevo';
+import { redis } from 'src/lib/redis';
 import { supabaseAdmin } from 'src/lib/supabase';
-import { formatString } from 'src/utils/tools';
+import { formatString, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
+import { AddPasswordDto } from './dto/add-password.dto';
+import { CheckCodeDto } from './dto/check-codel.dto';
+import { CheckEmailDto } from './dto/check-email.dto';
 import { RemovePhotoDto } from './dto/remove-photo.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
@@ -114,5 +125,211 @@ export class UserService {
     });
 
     return true;
+  }
+
+  async sendCode(user: User) {
+    const code = crypto.randomInt(0, 100000).toString().padStart(5, "0");
+
+    await redis.set(`change-email-code:${user.email}`, code, {
+      ex: 60 * 5,
+    });
+
+    const mail = await render(CodeMail({
+      name: user.name,
+      code,
+      expireIn: 5,
+    }));
+
+    await brevo.transactionalEmails.sendTransacEmail({
+      subject: user.setting.language == "fr" ? "Code de vérification." : "Verification code.",
+      htmlContent: mail,
+      sender: {
+        name: APP_NAME,
+        email: process.env.APP_EMAIL,
+      },
+      to: [
+        {
+          name: user.name,
+          email: user.email,
+        }
+      ],
+    });
+  }
+
+  async resendCode(data: ResendCodeDto) {
+    const email = data.email.toLowerCase().trim();
+    const key = `change-email-attempts:${email}`;
+    const attempts = await redis.get(key);
+
+    if (attempts && Number(attempts) >= 5) {
+      throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
+    }
+    const user = await this.userRepo.findOne({
+      where: {
+        email,
+      },
+      relations: {
+        setting: true,
+      }
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found!");
+    }
+
+    await this.sendCode(user);
+
+    return true;
+  }
+
+  async checkEmail(data: CheckEmailDto) {
+    const email = data.email.toLowerCase().trim();
+    const newEmail = data.newEmail.toLowerCase().trim();
+    const key = `change-email-attempts:${email}`;
+    const attempts = await redis.incr(key);
+
+    if (attempts == 1) {
+      await redis.expire(key, 60 * (randomNumber(5, 10)));
+    }
+    else if (attempts >= 5) {
+      throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    const user = await this.userRepo.findOne({
+      where: {
+        email,
+      },
+      relations: {
+        setting: true,
+      }
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const exists = await this.userRepo.findOne({
+      where: {
+        email: newEmail,
+      }
+    });
+
+    if (exists) {
+      throw new ConflictException("Email already taken!");
+    }
+
+    await this.sendCode(user);
+
+    await redis.decr(key);
+
+    return true;
+  }
+
+  async checkCode(data: CheckCodeDto) {
+    const email = data.email.toLowerCase().trim();
+    const newEmail = data.newEmail.toLowerCase().trim();
+    const code = data.code;
+    const key = `change-email-attempts:${email}`;
+    const codeKey = `change-email-code:${email}`;
+    const attempts = await redis.incr(key);
+
+    if (attempts == 1) {
+      await redis.expire(key, 60 * (randomNumber(5, 10)));
+    }
+    else if (attempts >= 5) {
+      throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    const user = await this.userRepo.findOne({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const redisCode = await redis.get(codeKey);
+
+    if (!redisCode) {
+      throw new NotFoundException("Code expired!");
+    }
+    else if (redisCode != code) {
+      throw new BadRequestException("Invalid code!");
+    }
+
+    if (data.provider) {
+      await this.userRepo.save({
+        ...user,
+        email: newEmail,
+        provider: data.provider,
+        password: null,
+      });
+
+      await redis.del(key);
+      await redis.del(codeKey);
+
+      return {
+        email: newEmail,
+      }
+    }
+    else if (user.password) {
+      await this.userRepo.save({
+        ...user,
+        email: newEmail,
+        provider: null,
+      });
+
+      await redis.del(key);
+      await redis.del(codeKey);
+
+      return {
+        email: newEmail,
+      }
+    }
+
+    await redis.decr(key);
+
+    return true;
+  }
+
+  async addPassword(data: AddPasswordDto) {
+    const email = data.email.toLowerCase().trim();
+    const newEmail = data.newEmail.toLowerCase().trim();
+    const key = `change-email-attempts:${email}`;
+    const attempts = await redis.get(key);
+
+    if (attempts && Number(attempts) >= 5) {
+      throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    const user = await this.userRepo.findOne({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    if (user.password) {
+      throw new ForbiddenException();
+    }
+
+    await this.userRepo.save({
+      ...user,
+      email: newEmail,
+      provider: null,
+      password: await Bcrypt.hash(data.password, 12),
+    });
+
+    await redis.del(key);
+    await redis.del(`change-email-code:${email}`);
+
+    return {
+      email: newEmail,
+    };
   }
 }

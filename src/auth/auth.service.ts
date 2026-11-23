@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus, Inje
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
-import { compare, hash } from 'bcryptjs';
+import * as Bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { render } from 'react-email';
 import CodeMail from 'src/components/code';
@@ -16,7 +16,7 @@ import { redis } from 'src/lib/redis';
 import { AuthPayload } from 'src/types/auth';
 import { formatString, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
-import { _2FADto } from './dto/2fa.dto';
+import { _2FADto } from './dto/_2fa.dto';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { OAuthLoginDto } from './dto/oaut-login.dto';
@@ -55,7 +55,7 @@ export class AuthService {
         }
 
         const setting = await this.settingRepo.save({});
-        const password = await hash(data.password, 12);
+        const password = await Bcrypt.hash(data.password, 12);
 
         const newUser = await this.userRepo.save({
             email,
@@ -317,7 +317,7 @@ export class AuthService {
             }
         }
 
-        const matches = await compare(data.password, user.password);
+        const matches = await Bcrypt.compare(data.password, user.password);
 
         if (!matches) {
             throw new NotFoundException("Invalid credentials!");
@@ -367,7 +367,7 @@ export class AuthService {
             where: {
                 email,
             },
-        })
+        });
 
         if (!user) {
             throw new NotFoundException("Account not found!");
@@ -465,19 +465,14 @@ export class AuthService {
             where: {
                 email: emailFormatted,
             },
-        })
+            relations: {
+                setting: true,
+            },
+        });
 
         if (!user) {
             throw new NotFoundException("Account not found!");
         }
-
-        const setting = await this.settingRepo.findOne({
-            where: {
-                user: {
-                    email: user.email,
-                }
-            }
-        });
 
         const code = crypto.randomInt(0, 100000).toString().padStart(5, "0");
 
@@ -492,7 +487,7 @@ export class AuthService {
         }));
 
         await brevo.transactionalEmails.sendTransacEmail({
-            subject: setting?.language == "fr" ? "Code de vérification." : "Verification code.",
+            subject: user.setting.language == "fr" ? "Code de vérification." : "Verification code.",
             htmlContent: mail,
             sender: {
                 name: APP_NAME,
