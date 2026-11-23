@@ -6,17 +6,21 @@ import { OAuthButton } from "@/components/oauth-button";
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from "@/constants/errors";
 import { APP_NAME } from "@/constants/names";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
 import { AUTH_PROVIDER } from "@/types/database/user";
+import { ApiError } from "@/types/errors";
 import { Entypo, FontAwesome6, Fontisto } from "@expo/vector-icons";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { Easing, FadeInDown, FadeOutDown, SlideInRight, SlideOutLeft } from "react-native-reanimated";
 
@@ -36,31 +40,86 @@ export default function UpdateEmailPage() {
     const { setToast } = useToast();
     const router = useRouter();
     const provider = useRef<AUTH_PROVIDER>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const { auth } = useAuth();
+    const loadingRef = useRef<boolean>(false);
 
-    const handleSubmit = useCallback(async () => {
-        if (inputsValues.code.trim().length == 0) {
-            setStep(1);
+    const handleSendCode = useCallback(async (oauth: typeof provider.current) => {
+        if (!auth || loadingRef.current) return;
+
+        if (!oauth && inputsValues.email.trim().length == 0) {
+            emailRef.current?.focus();
             return;
         }
 
-        try {
-            router.back();
+        if (oauth) {
+            provider.current = oauth;
         }
-        catch { }
-    }, [inputsValues, i18n.language, setToast]);
+        else {
+            provider.current = null;
+        }
 
-    useEffect(() => {
-        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-            if (step > 1) {
-                setStep(prev => prev > 1 ? prev - 1 : prev);
-                return true;
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            const { data } = await api.post("/user/change-email/check-email", {
+
+            });
+
+            console.log(data);
+        }
+        catch (e) {
+            const { status, data } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("login_429"), "error", 5000);
             }
+            else if (status == 404) {
+                setToast(t("login_404"), "error", 5000);
+            }
+            else if (status == 400 && data.message && Array.isArray(data.message)) {
+                const messages = data.message as Array<string>;
 
-            return false;
-        });
+                if (messages.includes(EMAIL_LENGTH_ERROR)) {
+                    setToast(t("login_error_email_length"), "error", 5000);
+                    emailRef.current?.focus();
+                }
+                else if (messages.includes(EMAIL_FORMAT_ERROR)) {
+                    setToast(t("login_error_email_format"), "error", 5000);
+                    emailRef.current?.focus();
+                }
+                else if (messages.includes(PASSWORD_LENGTH_ERROR)) {
+                    setToast(t("login_error_password_length"), "error", 5000);
+                    passwordRef.current?.focus();
+                }
+                else {
+                    setToast(t("error"), "error");
+                }
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+            console.log(e);
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, i18n.language, setToast, auth]);
 
-        return () => remove();
-    }, [step]);
+    // useEffect(() => {
+    //     const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+    //         if (step > 1) {
+    //             setStep(prev => prev > 1 ? prev - 1 : prev);
+    //             return true;
+    //         }
+
+    //         return false;
+    //     });
+
+    //     return () => remove();
+    // }, [step]);
 
     const changeStep = useCallback((entry: "next" | "prev" | number) => {
         if (typeof entry == "number") {
@@ -159,7 +218,7 @@ export default function UpdateEmailPage() {
                                             ...prev,
                                             email: e,
                                         }))}
-                                        onSubmitEditing={() => changeStep("next")}
+                                        onSubmitEditing={() => handleSendCode(null)}
                                         icon={(
                                             <View
                                                 style={{
@@ -192,7 +251,9 @@ export default function UpdateEmailPage() {
                                     width={200}
                                     height={50}
                                     scale={.95}
-                                    onPress={() => changeStep("next")}
+                                    loaderSize={25}
+                                    loading={loading}
+                                    onPress={() => handleSendCode(null)}
                                 >
                                     <Text className="text-2xl font-bold text-black">
                                         {t("update_email_step_1_item_3")}
@@ -268,9 +329,8 @@ export default function UpdateEmailPage() {
                                 <OAuthButton
                                     name="Google"
                                     icon="google"
-                                    // loading={loading}
-                                    loading={false}
-                                // onPress={() => handleOAuthSignIn(AUTH_PROVIDER.GOOGLE)}
+                                    loading={loading}
+                                    onPress={() => handleSendCode(AUTH_PROVIDER.GOOGLE)}
                                 />
                             </View>
                         </>
