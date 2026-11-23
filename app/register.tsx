@@ -139,8 +139,8 @@ export default function Register() {
     idDevice: string;
   }) => {
     const idUser = await createUser({
-      email: data.email,
-      photo: data.photo,
+      email: data.user.email,
+      photo: data.user.photo,
       provider: data.provider,
     });
 

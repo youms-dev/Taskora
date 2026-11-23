@@ -56,21 +56,21 @@ export const useUsers = () => {
         }
     }
 
-    async function updateUser(value: string | null, email: string, target: "photo" | "name"): Promise<true | unknown> {
+    async function updateUser(value: string | null, id: string, target: "photo" | "name"): Promise<true | unknown> {
         if (!db) return;
 
         try {
-            const user = await db.getFirstAsync("SELECT * FROM user WHERE email = ?", [email.toLowerCase().trim()]);
+            const user = await db.getFirstAsync("SELECT * FROM user WHERE id_user = ?", [id]);
 
             if (!user) {
                 throw 404;
             }
 
             if(target == "photo") {
-                await db.runAsync("UPDATE user SET photo = ? WHERE email = ?", [value, email.toLowerCase().trim()]);
+                await db.runAsync("UPDATE user SET photo = ? WHERE id_user = ?", [value, id]);
             }
             else {
-                await db.runAsync("UPDATE user SET name = ? WHERE email = ?", [value, email.toLowerCase().trim()]);
+                await db.runAsync("UPDATE user SET name = ? WHERE id_user = ?", [value, id]);
             }
 
             return true;

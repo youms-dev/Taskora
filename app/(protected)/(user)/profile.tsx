@@ -5,6 +5,7 @@ import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { Modal } from "@/components/modal";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { LOGOUT } from "@/constants/emitters";
@@ -56,7 +57,7 @@ export default function Profile() {
     const settingOpen = useRef<boolean>(false);
     const nameRef = useRef<TextInput>(null);
     const [editName, setEditName] = useState<boolean>(false);
-    const { user, updatePhoto, getUser } = useAuth();
+    const { user, updatePhoto, getUser, auth, loading: authLoading } = useAuth();
     const { updateUser } = useUsers();
     const [name, setName] = useState<string>(user?.name ?? "");
     const [loading, setLoading] = useState<boolean>(false);
@@ -123,7 +124,7 @@ export default function Profile() {
     }, []);
 
     const handleSave = useCallback(async (photo: string, type: string) => {
-        if (!user) return;
+        if (!auth) return;
 
         setImage(null);
         setCameraActive(false);
@@ -140,7 +141,7 @@ export default function Profile() {
             })();
             const formData = new FormData();
 
-            formData.append("email", user.email);
+            formData.append("idUser", auth.user.id);
             formData.append("file", {
                 uri: photo,
                 name: fileName,
@@ -162,7 +163,7 @@ export default function Profile() {
             handleDeleteFromCache(photo);
             setSaving(false);
         }
-    }, [user]);
+    }, [auth]);
 
     const handleDeleteFromCache = useCallback(async (link: string) => {
         try {
@@ -172,7 +173,7 @@ export default function Profile() {
     }, []);
 
     const removePicture = useCallback(async () => {
-        if (!user) return;
+        if (!auth || !auth.user.photo) return;
 
         setModalActive(false);
 
@@ -180,7 +181,7 @@ export default function Profile() {
             setSaving(true);
 
             await api.patch("/user/remove-photo", {
-                email: user.email,
+                idUser: auth.user.id,
             });
 
             updatePhoto(null);
@@ -191,7 +192,7 @@ export default function Profile() {
         finally {
             setSaving(false);
         }
-    }, [setToast, i18n.language, updatePhoto, user]);
+    }, [setToast, i18n.language, updatePhoto, auth]);
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -237,8 +238,8 @@ export default function Profile() {
         ]
     }));
 
-    const handleUpdate = useCallback(async () => {
-        if (!user) return;
+    const handleUpdateName = useCallback(async () => {
+        if (!auth || !user) return;
 
         if (name.trim().length == 0) {
             nameRef.current?.focus();
@@ -252,11 +253,11 @@ export default function Profile() {
             setLoading(true);
 
             await api.patch("/user/update-name", {
-                email: user.email,
+                idUser: auth.user.id,
                 name,
             });
 
-            await updateUser(formatName(name), user.email, "name");
+            await updateUser(formatName(name), user.idUser, "name");
             getUser();
             setEditName(false);
         }
@@ -275,6 +276,7 @@ export default function Profile() {
                 else {
                     setToast(t("error"), "error", 5000);
                 }
+                nameRef.current?.focus();
             }
             else {
                 setToast(t("error"), "error");
@@ -283,11 +285,14 @@ export default function Profile() {
         finally {
             setLoading(false);
         }
-    }, [setToast, i18n.language, updatePhoto, user, name, getUser]);
+    }, [setToast, i18n.language, updatePhoto, user, name, getUser, auth]);
 
     useEffect(() => {
         if (!editName) {
             setName(user?.name ?? "");
+        }
+        else {
+            nameRef.current?.focus();
         }
 
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -302,14 +307,17 @@ export default function Profile() {
     }, [editName, user]);
 
     return (
-        <Container centerX>
+        <Container
+            centerX
+            safeArea={false}
+        >
             {/* Header */}
 
             <View
                 style={{
                     transform: [
                         {
-                            translateY: 15,
+                            translateY: 45,
                         },
                     ]
                 }}
@@ -373,7 +381,7 @@ export default function Profile() {
                     {/* Section 1 */}
 
                     <View className={clsx(
-                        "flex items-center mt-[30px]",
+                        "flex items-center mt-[70px]",
                         editName && "opacity-50 pointer-events-none",
                     )}>
                         <View className="size-[200px] flex items-center rounded-full">
@@ -416,7 +424,11 @@ export default function Profile() {
                                 !user?.photo && (
                                     <Avatar
                                         size={200}
-                                        name={user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")}
+                                        name={editName && name.trim().length > 0 ?
+                                            name 
+                                            :
+                                            user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")
+                                        }
                                         background={theme == "light" ? "white" : undefined}
                                     />
                                 )
@@ -492,7 +504,7 @@ export default function Profile() {
 
                                         <View className="flex gap-2 pr-[120px]">
                                             <View className="flex flex-row gap-5">
-                                                <TextAnimated className="text-xl">
+                                                <TextAnimated className="text-xl opacity-80">
                                                     {t("profile_name")}
                                                 </TextAnimated>
 
@@ -508,16 +520,32 @@ export default function Profile() {
                                                 </PressableAnimated>
                                             </View>
 
-                                            <TextAnimated className={clsx(
-                                                "text-xl",
-                                                !user?.name && "opacity-60",
-                                            )}>
-                                                {user?.name ?? t("profile_item_1", { name: APP_NAME })}
-                                            </TextAnimated>
+                                            {
+                                                authLoading && !user?.name && (
+                                                    <View className="w-full">
+                                                        <View className="w-[150px] h-[20px] rounded-3xl overflow-hidden">
+                                                            <Skeleton />
+                                                        </View>
+                                                    </View>
+                                                )
+                                            }
+
+                                            {
+                                                (!authLoading || user) && (
+                                                    <TextAnimated className={clsx(
+                                                        "text-xl",
+                                                        !user?.name && "opacity-60",
+                                                    )}>
+                                                        {user?.name ?? t("profile_item_1", { name: APP_NAME })}
+                                                    </TextAnimated>
+                                                )
+                                            }
                                         </View>
                                     </Animated.View>
                                 )
                             }
+
+                            {/* Input */}
 
                             {
                                 editName && (
@@ -570,7 +598,7 @@ export default function Profile() {
                                         <PressableAnimated
                                             scale={.95}
                                             disabled={loading || !editable}
-                                            onPress={handleUpdate}
+                                            onPress={handleUpdateName}
                                             className={clsx(
                                                 "size-[40px] flex justify-center items-center shrink-0 rounded-full bg-emerald-500",
                                                 (loading || !editable) && "opacity-50",
@@ -616,7 +644,7 @@ export default function Profile() {
 
                                 <View className="flex gap-2 pr-[120px]">
                                     <View className="flex flex-row gap-5">
-                                        <TextAnimated className="text-xl">
+                                        <TextAnimated className="text-xl opacity-80">
                                             {t("profile_email")}
                                         </TextAnimated>
 
@@ -634,9 +662,23 @@ export default function Profile() {
                                         </PressableAnimated>
                                     </View>
 
-                                    <TextAnimated className="text-xl">
-                                        {user?.email ?? ""}
-                                    </TextAnimated>
+                                    {
+                                        authLoading && !user && (
+                                            <View className="w-full">
+                                                <View className="w-[150px] h-[20px] rounded-3xl overflow-hidden">
+                                                    <Skeleton />
+                                                </View>
+                                            </View>
+                                        )
+                                    }
+
+                                    {
+                                        (!authLoading || user) && (
+                                            <TextAnimated className="text-xl">
+                                                {user?.email ?? ""}
+                                            </TextAnimated>
+                                        )
+                                    }
                                 </View>
                             </Animated.View>
                         </View>
@@ -699,7 +741,7 @@ export default function Profile() {
             {/* Options */}
 
             <Modal
-                height={screenHeight * .3}
+                height={screenHeight * (auth?.user.photo ? .25 : .2)}
                 active={modalActive}
                 onClose={() => setModalActive(false)}
                 dragHandlerContainerBackground={theme == "dark" ? "rgba(255, 255, 255, .1)" : "white"}
@@ -758,24 +800,28 @@ export default function Profile() {
 
                     {/* Remove */}
 
-                    <PressableAnimated
-                        scale={.95}
-                        onPress={removePicture}
-                        className="self-start flex flex-row items-center gap-[34px]"
-                    >
-                        <Fontisto
-                            name="trash"
-                            size={25}
-                            color={COLORS.red[500]}
-                        />
+                    {
+                        auth?.user.photo && (
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={removePicture}
+                                className="self-start flex flex-row items-center gap-[34px]"
+                            >
+                                <Fontisto
+                                    name="trash"
+                                    size={25}
+                                    color={COLORS.red[500]}
+                                />
 
-                        <Text
-                            numberOfLines={1}
-                            className="text-xl text-red-500"
-                        >
-                            {t("profile_modal_item_3")}
-                        </Text>
-                    </PressableAnimated>
+                                <Text
+                                    numberOfLines={1}
+                                    className="text-xl text-red-500"
+                                >
+                                    {t("profile_modal_item_3")}
+                                </Text>
+                            </PressableAnimated>
+                        )
+                    }
                 </View>
             </Modal>
 

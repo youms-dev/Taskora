@@ -257,9 +257,12 @@
     "update_email_step_2_item_1": "Verify your email address",
     "update_email_step_2_item_2": "Enter the code sent to this email address",
     "update_email_step_2_item_3": "Verify",
-    "update_email_step_3_item_1": "New password",
-    "update_email_step_3_item_2": "Your account doesn't currently have a password yet.\nAdd one to continue.",
-    "update_email_step_3_item_3": "Enter your new account password",
-    "update_email_step_3_item_4": "Counter",
-    "update_email_step_3_item_5": "Add"
+    "update_email_step_3_item_1": "Warning",
+    "update_email_step_3_item_2": "Your account is currently linked to Google. Changing your email address will unlink your account from Google.\nThis means you will no longer be able to sign in to {{name}} using Google.",
+    "update_email_step_3_item_3": "Got it",
+    "update_email_step_4_item_1": "New password",
+    "update_email_step_4_item_2": "Your account doesn't currently have a password yet.\nAdd one to continue.",
+    "update_email_step_4_item_3": "Enter your new account password",
+    "update_email_step_4_item_4": "Counter",
+    "update_email_step_4_item_5": "Add"
 }

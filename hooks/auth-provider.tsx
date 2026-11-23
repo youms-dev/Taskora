@@ -37,7 +37,7 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
         try {
             setLoading(true);
 
-            const data = await getUser(auth.email) as typeof user;
+            const data = await getUser(auth.user.email) as typeof user;
 
             setUser(data);
         }
@@ -51,24 +51,26 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
 
     const handleUpdatePhoto = useCallback(async (photo: string | null) => {
         if (!auth || !user) return;
-        setLoading(true);
+        try {
+            setLoading(true);
 
-        await updateUser(photo, user.email, "photo");
+            await updateUser(photo, user.idUser, "photo");
 
-        await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
-            ...auth,
-            photo,
-        }));
+            await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
+                ...auth,
+                user: {
+                    ...auth.user,
+                    photo,
+                }
+            }));
 
-        setUser({
-            ...user,
-            photo,
-        });
-
-        refresh();
-
-        setLoading(false);
-    }, [user, auth, refresh]);
+            handleGetUser();
+            refresh();
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [user, auth, refresh, handleGetUser]);
 
     useEffect(() => {
         handleGetUser();

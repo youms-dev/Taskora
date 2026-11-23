@@ -1,8 +1,11 @@
 export type AuthType = {
     accessToken: string;
     refreshToken: string;
-    email: string;
-    photo?: string | null;
+    user: {
+        id: string;
+        email: string;
+        photo?: string | null;
+    }
 }
 
 export type LocalAuthType = {

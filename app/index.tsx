@@ -62,13 +62,13 @@ export default function Login() {
   const finalize = useCallback(async (data: AuthType & Pick<UserType, "provider"> & {
     idDevice: string;
   }) => {
-    const user = await getUser(data.email) as UserType | null;
+    const user = await getUser(data.user.email) as UserType | null;
     let idUser = user?.idUser;
 
     if (!user) {
       idUser = await createUser({
-        email: data.email,
-        photo: data.photo,
+        email: data.user.email,
+        photo: data.user.photo,
         provider: data.provider,
       }) as string;
     }

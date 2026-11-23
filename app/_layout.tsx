@@ -13,7 +13,7 @@ import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as BackgroundTask from "expo-background-task";
 import { useLocales } from "expo-localization";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
@@ -50,6 +50,7 @@ export default function Layout() {
     const { i18n } = useTranslation();
     const [db, setDb] = useState<SQLiteDatabase | null>(null);
     const authRef = useRef<typeof auth>(null);
+    const pathname = usePathname();
 
     useEffect(() => {
         (async () => {
@@ -97,10 +98,14 @@ export default function Layout() {
             let authFormatted: AuthType | null = null;
 
             if (authData) {
-                authFormatted = JSON.parse(authData);
+                authFormatted = JSON.parse(authData) as AuthType;
             }
-
-            setAuth(authFormatted);
+            if(authData) {
+                setAuth(authFormatted);
+            }
+            else {
+                setAuth(null);
+            }
         }
         catch { }
         finally {
@@ -127,7 +132,7 @@ export default function Layout() {
 
             await api.post("/auth/logout", {
                 idDevice,
-                email: currentAuth.email,
+                idUser: currentAuth.user.id,
             });
         }
         catch { }
@@ -135,7 +140,9 @@ export default function Layout() {
 
     useEffect(() => {
         handleGetAuth();
+    }, [pathname]);
 
+    useEffect(() => {
         emitter.addListener(REFRESH_AUTH, handleGetAuth);
         emitter.addListener(LOGOUT, handleLogout);
 
