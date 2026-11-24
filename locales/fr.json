@@ -86,7 +86,7 @@
     "register_form_submit": "Soumettre",
     "register_no_account_question": "Vous avez déjà un compte ?",
     "register_sign_in_link": "Connectez-vous",
-    "login_form_counter": "Compteur",
+    "register_form_counter": "Compteur",
     "agenda_page_title": "Agenda",
     "agenda_edit_event": "Modifier",
     "agenda_delete_event": "Supprimer",
@@ -256,8 +256,9 @@
     "update_email_step_1_item_2": "Entrez la nouvelle adresse email",
     "update_email_step_1_item_3": "Soumettre",
     "update_email_step_2_item_1": "Confirmez votre email",
-    "update_email_step_2_item_2": "Entrez le code qui a été envoyé à l'adresse",
+    "update_email_step_2_item_2": "Entrez le code envoyé à votre adresse email actuelle",
     "update_email_step_2_item_3": "Vérifier",
+    "update_email_step_2_item_4": "Renvoyer le code",
     "update_email_step_3_item_1": "Attention",
     "update_email_step_3_item_2": "Votre compte est actuellement associé à Google, la modification de votre adresse email entraînera la perte de ce lien.\nEn d'autres termes, vous ne pourrez plus vous connecter à {{name}} via Google",
     "update_email_step_3_item_3": "Compris",
@@ -265,5 +266,12 @@
     "update_email_step_4_item_2": "Votre compte ne possède actuellement pas de mot de passe.\nAjoutez en un",
     "update_email_step_4_item_3": "Entrez le nouveau mot de passe de votre compte",
     "update_email_step_4_item_4": "Compteur",
-    "update_email_step_4_item_5": "Ajouter"
+    "update_email_step_4_item_5": "Ajouter",
+    "update_email_429": "Trop de tentatives. Réessayez dans quelques minutes !",
+    "update_email_error_email_length": "L'email doit contenir entre 10 et 100 caractères !",
+    "update_email_error_email_format": "Format de l'email invalide !",
+    "update_email_409": "Adresse email déjà prise !",
+    "update_email_404": "Le code a expiré. Demandez en un nouveau",
+    "update_email_400": "Code invalide !",
+    "update_email_success": "Adresse email modifiée avec succès"
 }

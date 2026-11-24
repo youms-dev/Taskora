@@ -4,9 +4,10 @@ import { Container } from "@/components/container";
 import { Input } from "@/components/input";
 import { OAuthButton } from "@/components/oauth-button";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { Rotate } from "@/components/rotate";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
-import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from "@/constants/errors";
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR } from "@/constants/errors";
 import { APP_NAME } from "@/constants/names";
 import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
@@ -15,12 +16,13 @@ import { api } from "@/lib/axios";
 import { AUTH_PROVIDER } from "@/types/database/user";
 import { ApiError } from "@/types/errors";
 import { Entypo, FontAwesome6, Fontisto } from "@expo/vector-icons";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import clsx from "clsx";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, TextInput, View } from "react-native";
+import { BackHandler, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { Easing, FadeInDown, FadeOutDown, SlideInRight, SlideOutLeft } from "react-native-reanimated";
 
@@ -29,6 +31,7 @@ export default function UpdateEmailPage() {
         email: "",
         code: "",
         password: "",
+        oauthEmail: "" as string | null | undefined,
     }
     const [inputsValues, setInputsValues] = useState<typeof initialInputsValue>(initialInputsValue);
     const [step, setStep] = useState<number>(1);
@@ -41,8 +44,15 @@ export default function UpdateEmailPage() {
     const router = useRouter();
     const provider = useRef<AUTH_PROVIDER>(null);
     const [loading, setLoading] = useState<boolean>(false);
-    const { auth } = useAuth();
+    const { auth, user, updateAuth } = useAuth();
     const loadingRef = useRef<boolean>(false);
+
+    const finalize = useCallback(async (email: string) => {
+        if (!user) return;
+        updateAuth(email, "email");
+        setToast(t("update_email_success"), "success");
+        router.back();
+    }, [auth]);
 
     const handleSendCode = useCallback(async (oauth: typeof provider.current) => {
         if (!auth || loadingRef.current) return;
@@ -52,46 +62,60 @@ export default function UpdateEmailPage() {
             return;
         }
 
-        if (oauth) {
-            provider.current = oauth;
-        }
-        else {
-            provider.current = null;
-        }
-
         try {
             setLoading(true);
             loadingRef.current = true;
 
-            const { data } = await api.post("/user/change-email/check-email", {
+            if (oauth) {
+                provider.current = oauth;
+                await GoogleSignin.signOut();
+                const { data, type } = await GoogleSignin.signIn();
 
-            });
+                if (type == "success" && data?.user?.email) {
+                    setInputsValues(prev => ({
+                        ...prev,
+                        oauthEmail: data.user.email.trim(),
+                    }));
 
-            console.log(data);
+                    await api.post("/user/change-email/check-email", {
+                        email: auth.user.email.trim(),
+                        newEmail: data.user.email.trim(),
+                    });
+                    changeStep("next");
+                }
+            }
+            else {
+                provider.current = null;
+                setInputsValues(prev => ({
+                    ...prev,
+                    oauthEmail: null,
+                }));
+                await api.post("/user/change-email/check-email", {
+                    email: auth.user.email.trim(),
+                    newEmail: inputsValues.email.trim(),
+                });
+                changeStep("next");
+            }
         }
         catch (e) {
             const { status, data } = e as ApiError;
 
             if (status == 429) {
-                setToast(t("login_429"), "error", 5000);
+                setToast(t("update_email_429"), "error", 5000);
             }
-            else if (status == 404) {
-                setToast(t("login_404"), "error", 5000);
+            else if (status == 409) {
+                setToast(t("update_email_409"), "error", 5000);
             }
             else if (status == 400 && data.message && Array.isArray(data.message)) {
                 const messages = data.message as Array<string>;
 
                 if (messages.includes(EMAIL_LENGTH_ERROR)) {
-                    setToast(t("login_error_email_length"), "error", 5000);
+                    setToast(t("update_email_error_email_length"), "error", 5000);
                     emailRef.current?.focus();
                 }
                 else if (messages.includes(EMAIL_FORMAT_ERROR)) {
-                    setToast(t("login_error_email_format"), "error", 5000);
+                    setToast(t("update_email_error_email_format"), "error", 5000);
                     emailRef.current?.focus();
-                }
-                else if (messages.includes(PASSWORD_LENGTH_ERROR)) {
-                    setToast(t("login_error_password_length"), "error", 5000);
-                    passwordRef.current?.focus();
                 }
                 else {
                     setToast(t("error"), "error");
@@ -100,7 +124,6 @@ export default function UpdateEmailPage() {
             else {
                 setToast(t("error"), "error");
             }
-            console.log(e);
         }
         finally {
             setLoading(false);
@@ -108,18 +131,122 @@ export default function UpdateEmailPage() {
         }
     }, [inputsValues, i18n.language, setToast, auth]);
 
-    // useEffect(() => {
-    //     const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
-    //         if (step > 1) {
-    //             setStep(prev => prev > 1 ? prev - 1 : prev);
-    //             return true;
-    //         }
+    const handleCheckCode = useCallback(async () => {
+        if (!auth || loadingRef.current || inputsValues.oauthEmail?.trim().length == 0) return;
 
-    //         return false;
-    //     });
+        if (inputsValues.code.trim().length != 5) {
+            codeRef.current?.focus();
+            return;
+        }
 
-    //     return () => remove();
-    // }, [step]);
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            const { data } = await api.patch("/user/change-email/check-code", {
+                email: auth.user.email.trim(),
+                newEmail: (provider.current ? inputsValues.oauthEmail : inputsValues.email)?.trim(),
+                code: inputsValues.code.trim(),
+                provider: provider.current,
+            });
+
+            if (typeof data == "object" && "email" in data) {
+                await finalize(data.email);
+            }
+            else {
+                changeStep(3);
+            }
+        }
+        catch (e) {
+            const { status } = e as ApiError;
+
+
+            if (status == 429) {
+                setToast(t("update_email_429"), "error", 5000);
+            }
+            else if (status == 409) {
+                setToast(t("update_email_409"), "error", 5000);
+            }
+            else if (status == 404) {
+                setToast(t("update_email_404"), "error", 5000);
+            }
+            else if (status == 400) {
+                setToast(t("update_email_400"), "error", 5000);
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, i18n.language, setToast, auth]);
+
+    const handleResendCode = useCallback(async () => {
+        if (!auth || loadingRef.current) return;
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            await api.post("/user/change-email/resend-code", {
+                email: auth.user.email,
+            });
+
+            setToast(t("update_email_code_resent"), "success");
+        }
+        catch (e) {
+            const { status } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("update_email_429"), "error", 5000);
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [i18n.language, setToast, auth]);
+
+    const handleAddPassword = useCallback(async () => {
+        if (!auth || loadingRef.current) return;
+
+        if (inputsValues.password.trim().length < 8) {
+            passwordRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            const { data } = await api.patch("/user/change-email/add-password", {
+                email: auth.user.email.trim(),
+                newEmail: inputsValues.email.trim(),
+                password: inputsValues.password,
+            });
+
+            await finalize(data.email);
+        }
+        catch (e) {
+            const { status } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("update_email_429"), "error", 5000);
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, i18n.language, setToast, auth]);
 
     const changeStep = useCallback((entry: "next" | "prev" | number) => {
         if (typeof entry == "number") {
@@ -141,6 +268,29 @@ export default function UpdateEmailPage() {
             }
         });
     }, []);
+
+    useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (step > 1) {
+                if (step == 3) {
+                    changeStep(1);
+                }
+                else {
+                    changeStep("prev");
+                }
+                setInputsValues(prev => ({
+                    ...prev,
+                    code: "",
+                }));
+
+                return true;
+            }
+
+            return false;
+        });
+
+        return () => remove();
+    }, [step, changeStep]);
 
     return (
         <Container centerX>
@@ -213,6 +363,7 @@ export default function UpdateEmailPage() {
                                     <Input
                                         ref={emailRef}
                                         placeholder="email@example.com"
+                                        autoCapitalize="none"
                                         value={inputsValues.email}
                                         onChangeText={(e) => setInputsValues(prev => ({
                                             ...prev,
@@ -368,7 +519,7 @@ export default function UpdateEmailPage() {
                                     </TextAnimated>
 
                                     <Text className="text-xl text-center text-emerald-500 font-medium">
-                                        {"youms.vantablack@gmail.com"}
+                                        {auth?.user.email}
                                     </Text>
                                 </View>
 
@@ -379,17 +530,36 @@ export default function UpdateEmailPage() {
                                         ...prev,
                                         code: e,
                                     }))}
-                                    onSubmitEditing={() => changeStep("next")}
+                                    onSubmitEditing={handleCheckCode}
                                 />
+
+                                <View className="sm:w-[500px] w-full px-5 mt-3">
+                                    <PressableAnimated
+                                        scale={.95}
+                                        onPress={handleResendCode}
+                                        className={clsx(
+                                            "flex flex-row items-center gap-3",
+                                            loading && "opacity-60",
+                                        )}
+                                    >
+                                        <TextAnimated className="text-lg">
+                                            {t("update_email_step_2_item_4")}
+                                        </TextAnimated>
+
+                                        <Rotate rotate={loading} />
+                                    </PressableAnimated>
+                                </View>
                             </View>
 
                             {/* Button */}
 
-                            <View className="w-full flex flex-row flex-wrap justify-center items-center gap-5 mt-[60px]">
+                            <View className="w-full flex flex-row flex-wrap justify-center items-center gap-5 mt-[50px]">
                                 <Button
                                     width={150}
                                     height={50}
                                     scale={.95}
+                                    loaderSize={25}
+                                    loading={loading}
                                     backgroundColor={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                                     onPress={() => changeStep("prev")}
                                 >
@@ -406,7 +576,9 @@ export default function UpdateEmailPage() {
                                     width={150}
                                     height={50}
                                     scale={.95}
-                                    onPress={() => changeStep("next")}
+                                    loaderSize={25}
+                                    loading={loading}
+                                    onPress={handleCheckCode}
                                 >
                                     <Text className="text-2xl font-bold text-black">
                                         {t("update_email_step_2_item_3")}
@@ -462,8 +634,10 @@ export default function UpdateEmailPage() {
                                     width={150}
                                     height={50}
                                     scale={.95}
+                                    loaderSize={25}
+                                    loading={loading}
                                     backgroundColor={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                                    onPress={() => changeStep("prev")}
+                                    onPress={() => changeStep(1)}
                                 >
                                     <TextAnimated
                                         dark="rgba(0, 0, 0, .8)"
@@ -478,6 +652,8 @@ export default function UpdateEmailPage() {
                                     width={150}
                                     height={50}
                                     scale={.95}
+                                    loaderSize={25}
+                                    loading={loading}
                                     onPress={() => changeStep("next")}
                                 >
                                     <Text className="text-2xl font-bold text-black">
@@ -562,7 +738,7 @@ export default function UpdateEmailPage() {
                                             &nbsp;
                                             <Text className={clsx(
                                                 "font-bold",
-                                                inputsValues.password.trim().length > 8 ? "text-emerald-500" : "text-amber-500"
+                                                inputsValues.password.trim().length >= 8 ? "text-emerald-500" : "text-amber-500"
                                             )}>
                                                 {inputsValues.password.length}
                                             </Text>
@@ -578,6 +754,8 @@ export default function UpdateEmailPage() {
                                     width={150}
                                     height={50}
                                     scale={.95}
+                                    loaderSize={25}
+                                    loading={loading}
                                     backgroundColor={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
                                     onPress={() => changeStep("prev")}
                                 >
@@ -594,7 +772,9 @@ export default function UpdateEmailPage() {
                                     width={150}
                                     height={50}
                                     scale={.95}
-                                // onPress={handleSubmit}
+                                    loaderSize={25}
+                                    loading={loading}
+                                    onPress={handleAddPassword}
                                 >
                                     <Text className="text-2xl font-bold text-black">
                                         {t("update_email_step_4_item_5")}

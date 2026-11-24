@@ -57,7 +57,7 @@ export default function Profile() {
     const settingOpen = useRef<boolean>(false);
     const nameRef = useRef<TextInput>(null);
     const [editName, setEditName] = useState<boolean>(false);
-    const { user, updatePhoto, getUser, auth, loading: authLoading } = useAuth();
+    const { user, updateAuth, auth, loading: authLoading, refresh } = useAuth();
     const { updateUser } = useUsers();
     const [name, setName] = useState<string>(user?.name ?? "");
     const [loading, setLoading] = useState<boolean>(false);
@@ -154,7 +154,7 @@ export default function Profile() {
                 }
             });
 
-            updatePhoto(data);
+            updateAuth(data, "photo");
         }
         catch (e) {
             setToast(t("error"), "error");
@@ -184,7 +184,7 @@ export default function Profile() {
                 idUser: auth.user.id,
             });
 
-            updatePhoto(null);
+            updateAuth(null, "photo");
         }
         catch (e) {
             setToast(t("error"), "error");
@@ -192,7 +192,7 @@ export default function Profile() {
         finally {
             setSaving(false);
         }
-    }, [setToast, i18n.language, updatePhoto, auth]);
+    }, [setToast, i18n.language, updateAuth, auth]);
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -258,7 +258,7 @@ export default function Profile() {
             });
 
             await updateUser(formatName(name), user.idUser, "name");
-            getUser();
+            refresh();
             setEditName(false);
         }
         catch (e) {
@@ -285,7 +285,7 @@ export default function Profile() {
         finally {
             setLoading(false);
         }
-    }, [setToast, i18n.language, updatePhoto, user, name, getUser, auth]);
+    }, [setToast, i18n.language, updateAuth, user, name, auth]);
 
     useEffect(() => {
         if (!editName) {
@@ -425,7 +425,7 @@ export default function Profile() {
                                     <Avatar
                                         size={200}
                                         name={editName && name.trim().length > 0 ?
-                                            name 
+                                            name
                                             :
                                             user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")
                                         }

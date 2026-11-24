@@ -56,7 +56,7 @@ export const useUsers = () => {
         }
     }
 
-    async function updateUser(value: string | null, id: string, target: "photo" | "name"): Promise<true | unknown> {
+    async function updateUser(value: string | null, id: string, target: "photo" | "name" | "email"): Promise<true | unknown> {
         if (!db) return;
 
         try {
@@ -69,8 +69,11 @@ export const useUsers = () => {
             if(target == "photo") {
                 await db.runAsync("UPDATE user SET photo = ? WHERE id_user = ?", [value, id]);
             }
-            else {
+            else if(target == "name") {
                 await db.runAsync("UPDATE user SET name = ? WHERE id_user = ?", [value, id]);
+            }
+            else {
+                await db.runAsync("UPDATE user SET email = ? WHERE id_user = ?", [value, id]);
             }
 
             return true;

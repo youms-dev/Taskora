@@ -8,23 +8,23 @@ import { useUsers } from "./database/use-users";
 type AuthContextType = {
     user: UserType | null;
     loading: boolean;
-    getUser: () => void;
-    updatePhoto: (value: string | null) => void;
+    updateAuth: (value: string | null, target: "photo" | "name" | "email") => void;
     auth: AuthType | null;
+    refresh: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
-    getUser: () => { },
-    updatePhoto: () => { },
+    updateAuth: () => { },
     auth: null,
+    refresh: () => { },
 });
 
 interface Props {
     children: ReactNode;
     auth: AuthContextType["auth"] | null;
-    refresh: () => void;
+    refresh: () => Promise<void>;
 }
 
 export const AuthProvider = ({ children, auth, refresh }: Props) => {
@@ -41,31 +41,39 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
 
             setUser(data);
         }
-        catch (e) {
-            console.log(e);
-        }
         finally {
             setLoading(false);
         }
     }, [auth]);
 
-    const handleUpdatePhoto = useCallback(async (photo: string | null) => {
+    const handleUpdateAuth = useCallback(async (value: string | null, target: "photo" | "email" | "name") => {
         if (!auth || !user) return;
         try {
             setLoading(true);
 
-            await updateUser(photo, user.idUser, "photo");
+            await updateUser(value, user.idUser, target);
 
-            await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
-                ...auth,
-                user: {
-                    ...auth.user,
-                    photo,
-                }
-            }));
+            if (target == "photo") {
+                await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
+                    ...auth,
+                    user: {
+                        ...auth.user,
+                        photo: value,
+                    }
+                }));
+            }
+            else if (target == "email") {
+                await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
+                    ...auth,
+                    user: {
+                        ...auth.user,
+                        email: value,
+                    }
+                }));
+            }
 
+            await refresh();
             handleGetUser();
-            refresh();
         }
         finally {
             setLoading(false);
@@ -81,9 +89,12 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
             value={{
                 user,
                 loading,
-                getUser: handleGetUser,
-                updatePhoto: handleUpdatePhoto,
+                updateAuth: handleUpdateAuth,
                 auth,
+                refresh: async () => {
+                    await refresh();
+                    handleGetUser();
+                },
             }}
         >
             {children}

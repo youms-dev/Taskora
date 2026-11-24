@@ -8,7 +8,7 @@ import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
 import { REFRESH_AUTH } from '@/constants/emitters';
-import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
 import { useSessions } from '@/hooks/database/use-sessions';
@@ -226,10 +226,6 @@ export default function Login() {
         else if (messages.includes(EMAIL_FORMAT_ERROR)) {
           setToast(t("login_error_email_format"), "error", 5000);
           emailRef.current?.focus();
-        }
-        else if (messages.includes(PASSWORD_LENGTH_ERROR)) {
-          setToast(t("login_error_password_length"), "error", 5000);
-          passwordRef.current?.focus();
         }
         else {
           setToast(t("error"), "error");

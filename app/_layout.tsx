@@ -99,8 +99,6 @@ export default function Layout() {
 
             if (authData) {
                 authFormatted = JSON.parse(authData) as AuthType;
-            }
-            if(authData) {
                 setAuth(authFormatted);
             }
             else {
@@ -140,7 +138,7 @@ export default function Layout() {
 
     useEffect(() => {
         handleGetAuth();
-    }, [pathname]);
+    }, []);
 
     useEffect(() => {
         emitter.addListener(REFRESH_AUTH, handleGetAuth);
