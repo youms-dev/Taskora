@@ -11,6 +11,7 @@ import { Toggle } from "@/components/toggle";
 import { LANGUAGE_STORAGE } from "@/constants/async-storage";
 import { COLORS } from "@/constants/colors";
 import { APP_NAME } from "@/constants/names";
+import { useAuth } from "@/hooks/auth-provider";
 import { useLocalAuth } from "@/hooks/local-auth/use-local-auth";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -20,8 +21,10 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { createId } from "@paralleldrive/cuid2";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import clsx from "clsx";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocales } from "expo-localization";
 import { useRouter } from "expo-router";
@@ -45,6 +48,7 @@ export default function Settings() {
     const router = useRouter();
     const { setting, setSetting } = useSettingsData();
     const { localAuth } = useLocalAuth();
+    const { user, auth } = useAuth();
 
     const sound = useMemo(() => {
         if (!setting || !setting.notificationSound) return null;
@@ -55,7 +59,7 @@ export default function Settings() {
     }, [setting]);
 
     const displayedName = useMemo(() => {
-        const tab = ("Youmbi Le-duc"
+        const tab = ((user?.name ?? `user_${createId().slice(1, 10)}`)
             .toLowerCase()
             .split(" ")
         );
@@ -66,7 +70,7 @@ export default function Settings() {
             .join(" ")
             .trim()
         )
-    }, [setting]);
+    }, [user]);
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: ((e) => {
@@ -255,6 +259,9 @@ export default function Settings() {
                             </Animated.View>
 
                             <Animated.View className="w-full h-full flex justify-center items-center gap-12 overflow-hidden z-[1]">
+
+                                {/* Avatar */}
+
                                 <Animated.View style={avatarAnimation}>
                                     <PressableAnimated
                                         scale={.95}
@@ -273,14 +280,39 @@ export default function Settings() {
                                             }}
                                             className="absolute size-[130px] dark:bg-black/60 bg-black/40 rounded-full"
                                         />
-                                        <View className="z-[1]">
-                                            <Avatar
-                                                size={130}
-                                                name="Youmbi Le-duc"
-                                            />
+                                        <View className="size-[130px] z-[1]">
+                                            {
+                                                !user?.photo && (
+                                                    <Avatar
+                                                        name={user?.name ?? ((user?.email ?? "").split("@").shift() ?? "")}
+                                                        size={130}
+                                                    />
+                                                )
+                                            }
+
+                                            {
+                                                user?.photo && (
+                                                    <Image
+                                                        source={{
+                                                            uri: user.photo.startsWith("https://") ?
+                                                                user.photo
+                                                                :
+                                                                process.env.EXPO_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/files/" + user.photo
+                                                        }}
+                                                        style={{
+                                                            width: "100%",
+                                                            height: "100%",
+                                                            borderRadius: 9999,
+                                                        }}
+                                                        contentFit="cover"
+                                                    />
+                                                )
+                                            }
                                         </View>
                                     </PressableAnimated>
                                 </Animated.View>
+
+                                {/* Name */}
 
                                 <Animated.View style={usernameAnimation}>
                                     <PressableAnimated
@@ -291,7 +323,7 @@ export default function Settings() {
                                         className="flex flex-row items-center gap-5"
                                     >
                                         <View className="max-w-[80%] flex items-center">
-                                            <Text className="text-lg font-bold tracking-widest text-white/80"                                         >
+                                            <Text className="text-lg font-bold tracking-widest text-white/80">
                                                 {displayedName}
                                             </Text>
                                         </View>
@@ -305,6 +337,8 @@ export default function Settings() {
                                         </View>
                                     </PressableAnimated>
                                 </Animated.View>
+
+                                {/* Page title */}
 
                                 <Animated.View
                                     style={titleAnimation}
