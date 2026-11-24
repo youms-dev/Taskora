@@ -17,6 +17,10 @@ export const Footer = ({ language }: Props) => {
             </Text>
 
             <Text>
+                {language == "fr" ? "Cordialement" : "Best regards"},
+            </Text>
+
+            <Text>
                 Email :
                 &nbsp;
                 <Link href={`mailto: "${APP_NAME} support" <${process.env.APP_EMAIL}>`}>
@@ -57,15 +61,15 @@ export const Footer = ({ language }: Props) => {
                 } :
                 &nbsp;
                 <Link href={`mailto:"${process.env.DEVELOPER_NAME}" <${process.env.DEVELOPER_EMAIL}>`}>
-                    {process.env.DEVELOPER_NAME}
+                    {process.env.DEVELOPER_EMAIL}
                 </Link>
             </Text>
 
             <Text>
                 Contact :
                 &nbsp;
-                <Link href={`tel:${String(process.env.DEVELOPER_NAME).toLowerCase().replaceAll("\s", "")}`}>
-                    {process.env.DEVELOPER_NAME}
+                <Link href={`tel:${String(process.env.DEVELOPER_CONTACT).toLowerCase().replaceAll("\s", "")}`}>
+                    {process.env.DEVELOPER_CONTACT}
                 </Link>
             </Text>
 

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
@@ -14,7 +14,7 @@ import { User } from 'src/database/entities/user.entity';
 import { brevo } from 'src/lib/brevo';
 import { redis } from 'src/lib/redis';
 import { AuthPayload } from 'src/types/auth';
-import { formatString, randomNumber } from 'src/utils/tools';
+import { formatString, handleGreeting, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
 import { _2FADto } from './dto/_2fa.dto';
 import { LoginDto } from './dto/login.dto';
@@ -287,6 +287,41 @@ export class AuthService {
         };
     }
 
+    async sendLoginMail(user: User) {
+        const lng = user.setting.language == "fr" ? "fr" : "en";
+
+        const mail = await render(MessageMail({
+            language: lng,
+            message: lng == "fr" ?
+                [
+                    `${handleGreeting(lng)}${user.name ? ` ${user.name}` : ""};`,
+                    `Une nouvelle connexion à votre compte ${APP_NAME} vient d'être effectuée.`,
+                    `Si ce n'était pas vous, nous vous recommandons de modifier votre mot de passe impérativement !`,
+                ]
+                :
+                [
+                    `${handleGreeting(lng)}${user.name ? ` ${user.name}` : ""};`,
+                    `Someone just signed in to your ${APP_NAME} account.`,
+                    `If this wasn't you, we strongly recommend changing your password immediately.`,
+                ]
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: lng == "fr" ? `Connexion à ${APP_NAME}` : `Sign in to ${APP_NAME}`,
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: user.name,
+                    email: user.email,
+                }
+            ],
+        });
+    }
+
     async login(data: LoginDto) {
         const email = data.email.toLowerCase().trim();
         const key = `login-attempts:${email}`;
@@ -303,6 +338,9 @@ export class AuthService {
             where: {
                 email,
             },
+            relations: {
+                setting: true,
+            }
         });
 
         if (!user) {
@@ -323,19 +361,7 @@ export class AuthService {
             throw new NotFoundException("Invalid credentials!");
         }
 
-        const setting = await this.settingRepo.findOne({
-            where: {
-                user: {
-                    idUser: user.idUser,
-                }
-            }
-        });
-
-        if (!setting) {
-            throw new InternalServerErrorException("An error occurred!");
-        }
-
-        if (setting._2FA) {
+        if (user.setting._2FA) {
             await this.sendCode(user.email);
             await redis.decr(key);
 
@@ -345,6 +371,8 @@ export class AuthService {
         }
 
         await redis.del(key);
+
+        await this.sendLoginMail(user);
 
         const { password, ...rest } = data;
 
@@ -367,6 +395,9 @@ export class AuthService {
             where: {
                 email,
             },
+            relations: {
+                setting: true,
+            }
         });
 
         if (!user) {
@@ -381,19 +412,7 @@ export class AuthService {
             }
         }
 
-        const setting = await this.settingRepo.findOne({
-            where: {
-                user: {
-                    idUser: user.idUser,
-                }
-            }
-        });
-
-        if (!setting) {
-            throw new InternalServerErrorException("An error occurred!");
-        }
-
-        if (setting._2FA) {
+        if (user.setting._2FA) {
             await this.sendCode(user.email);
             await redis.decr(key);
 
@@ -403,6 +422,8 @@ export class AuthService {
         }
 
         await redis.del(key);
+
+        await this.sendLoginMail(user);
 
         const { provider, ...rest } = data;
 

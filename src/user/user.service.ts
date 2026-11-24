@@ -11,7 +11,7 @@ import { User } from 'src/database/entities/user.entity';
 import { brevo } from 'src/lib/brevo';
 import { redis } from 'src/lib/redis';
 import { supabaseAdmin } from 'src/lib/supabase';
-import { formatString, randomNumber } from 'src/utils/tools';
+import { formatString, handleGreeting, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
 import { AddPasswordDto } from './dto/add-password.dto';
 import { CheckCodeDto } from './dto/check-codel.dto';
@@ -19,6 +19,7 @@ import { CheckEmailDto } from './dto/check-email.dto';
 import { RemovePhotoDto } from './dto/remove-photo.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
+import MessageMail from 'src/components/message';
 
 @Injectable()
 export class UserService {
@@ -244,6 +245,9 @@ export class UserService {
       where: {
         email,
       },
+      relations: {
+        setting: true,
+      }
     });
 
     if (!user) {
@@ -270,6 +274,8 @@ export class UserService {
       await redis.del(key);
       await redis.del(codeKey);
 
+      await this.sendMail(user);
+
       return {
         email: newEmail,
       }
@@ -283,6 +289,8 @@ export class UserService {
 
       await redis.del(key);
       await redis.del(codeKey);
+
+      await this.sendMail(user);
 
       return {
         email: newEmail,
@@ -308,6 +316,9 @@ export class UserService {
       where: {
         email,
       },
+      relations: {
+        setting: true,
+      }
     });
 
     if (!user) {
@@ -328,8 +339,45 @@ export class UserService {
     await redis.del(key);
     await redis.del(`change-email-code:${email}`);
 
+    await this.sendMail(user);
+
     return {
       email: newEmail,
     };
+  }
+
+  async sendMail(user: User) {
+    const lng = user.setting.language == "fr" ? "fr" : "en";
+
+    const mail = await render(MessageMail({
+      language: lng,
+      message: lng == "fr" ?
+        [
+          `${handleGreeting(lng)}${user.name ? ` ${user.name}` : ""};`,
+          `L'adresse email associée à votre compte ${APP_NAME} vient juste d'être modifiée avec succès.`,
+          `Continuez à profiter de ${APP_NAME} sans encombre.`,
+        ]
+        :
+        [
+          `${handleGreeting(lng)}${user.name ? ` ${user.name}` : ""};`,
+          `The email address associated to your ${APP_NAME} account has just been successfully changed.`,
+          `You can continue enjoying ${APP_NAME} without interruption.`,
+        ]
+    }));
+
+    const r = await brevo.transactionalEmails.sendTransacEmail({
+      subject: lng == "fr" ? `Adresse email modifiée` : `Email changed`,
+      htmlContent: mail,
+      sender: {
+        name: APP_NAME,
+        email: process.env.APP_EMAIL,
+      },
+      to: [
+        {
+          name: user.name,
+          email: user.email,
+        }
+      ],
+    });
   }
 }
