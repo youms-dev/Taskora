@@ -1,21 +1,10 @@
-import { IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
-import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from "src/constants/errors";
-import { EMAIL_REGEX } from "src/constants/regex";
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { PASSWORD_LENGTH_ERROR } from "src/constants/errors";
 import { DEVICE_TYPE } from "src/database/entities/session.entity";
+import { IsValidEmail } from "src/decorators/validators/email.decorator";
 
 export class RegisterDto {
-    @MinLength(8, {
-        message: EMAIL_LENGTH_ERROR,
-    })
-    @MaxLength(100, {
-        message: EMAIL_LENGTH_ERROR,
-    })
-    @IsString({
-        message: "email must be a string!",
-    })
-    @Matches(EMAIL_REGEX, {
-        message: EMAIL_FORMAT_ERROR,
-    })
+    @IsValidEmail()
     email: string;
 
     @MinLength(8, {
@@ -27,20 +16,32 @@ export class RegisterDto {
     @IsString({
         message: "password must be a string!",
     })
+    @IsNotEmpty({
+        message: "password cannot be empty!",
+    })
     password: string;
 
     @IsString({
         message: "The device name must be a string!",
+    })
+    @IsNotEmpty({
+        message: "Device name cannot be empty!",
     })
     deviceName: string;
 
     @IsString({
         message: "The brand must be a string!",
     })
+    @IsNotEmpty({
+        message: "Device brand cannot be empty!",
+    })
     deviceBrand: string;
 
     @IsEnum(DEVICE_TYPE, {
         message: "Invalid device type!",
+    })
+    @IsNotEmpty({
+        message: "Device type cannot be empty!",
     })
     deviceType: DEVICE_TYPE;
 

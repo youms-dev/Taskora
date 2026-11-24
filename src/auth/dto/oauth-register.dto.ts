@@ -1,11 +1,8 @@
-import { OmitType } from "@nestjs/mapped-types";
-import { IsEnum } from "class-validator";
-import { SESSION_PROVIDER } from "src/database/entities/user.entity";
+import { IntersectionType, OmitType, PickType } from "@nestjs/mapped-types";
+import { OAuthLoginDto } from "./oaut-login.dto";
 import { RegisterDto } from "./register.dto";
 
-export class OAuthRegisterDto extends OmitType(RegisterDto, ["password"]) {
-    @IsEnum(SESSION_PROVIDER, {
-        message: "provider must be a string",
-    })
-    provider: SESSION_PROVIDER;
-}
+export class OAuthRegisterDto extends IntersectionType(
+    OmitType(RegisterDto, ["password"]),
+    PickType(OAuthLoginDto, ["provider"]),
+) { }
