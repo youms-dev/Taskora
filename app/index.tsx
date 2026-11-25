@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { emitter } from '@/lib/event-emitter';
 import { AuthType } from '@/types/auth';
-import { DeviceTypeEnum } from '@/types/database/session';
+import { DeviceType } from '@/types/database/session';
 import { AUTH_PROVIDER, UserType } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
 import { formatName } from '@/utils/tools';
@@ -78,7 +78,8 @@ export default function Login() {
       idDevice: data.idDevice,
       deviceName: formatName(Device.deviceName ?? ""),
       deviceBrand: formatName(Device.brand ?? ""),
-      deviceType: Platform.OS.toUpperCase() as DeviceTypeEnum,
+      deviceType: Platform.OS.toUpperCase() as DeviceType,
+      deviceModel: Device.modelName ?? "",
     });
 
     const { idDevice, provider, ...rest } = data;
@@ -120,6 +121,7 @@ export default function Login() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
+        deviceModel: Device.modelName,
         provider,
         idDevice,
       });
@@ -191,6 +193,7 @@ export default function Login() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
+        deviceModel: Device.modelName,
         idDevice,
       });
 
@@ -275,7 +278,7 @@ export default function Login() {
   const handleCheckCode = useCallback(async () => {
     if (loadingRef.current) return;
 
-    if (inputsValues.code.trim().length == 0) {
+    if (inputsValues.code.trim().length != 5) {
       codeRef.current?.focus();
       return;
     }
@@ -292,6 +295,7 @@ export default function Login() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
+        deviceModel: Device.modelName,
         idDevice: storeIdDevice,
       });
 
@@ -729,6 +733,7 @@ export default function Login() {
                   ...prev,
                   code: e,
                 }))}
+                onSubmitEditing={handleCheckCode}
               />
 
               {/* Section 3 */}
@@ -808,7 +813,7 @@ export default function Login() {
                           <Text
                             numberOfLines={1}
                             ellipsizeMode="clip"
-                            className="text-2xl text-black/80 font-medium">
+                            className="text-2xl text-black font-bold">
                             {t("login_submit")}
                           </Text>
                         )

@@ -14,7 +14,7 @@ export const useSessions = () => {
 
             if (data.length > 0) {
                 data.map((session) => {
-                    const { id_session, id_user, id_device, device_name, device_brand, device_type, last_connection, created_at, ...rest } = session;
+                    const { id_session, id_user, id_device, device_name, device_brand, device_type, device_model, last_connection, created_at, ...rest } = session;
 
                     dataParsed.push({
                         ...rest,
@@ -24,6 +24,7 @@ export const useSessions = () => {
                         deviceName: device_name,
                         deviceBrand: device_brand,
                         deviceType: device_type,
+                        deviceModel: device_model,
                         lastConnection: last_connection,
                         createdAt: created_at,
                     });
@@ -46,7 +47,25 @@ export const useSessions = () => {
             if (!session) {
                 const id = createId();
 
-                await db.runAsync("INSERT INTO session (id_session, id_user, id_device, device_name, device_brand, device_type) VALUES(?, ?, ?, ?, ?, ?)", [id, data.idUser, data.idDevice, data.deviceName, data.deviceBrand, data.deviceType]);
+                await db.runAsync("INSERT INTO session (id_session, id_user, id_device, device_name, device_brand, device_type, device_model) VALUES(?, ?, ?, ?, ?, ?, ?)", [id, data.idUser, data.idDevice, data.deviceName, data.deviceBrand, data.deviceType, data.deviceModel]);
+            }
+
+            return true;
+        }
+        catch (e) {
+            console.log("error :", e);
+            throw e;
+        }
+    }
+
+    async function deleteSession(idUser: string, idSession: string): Promise<true | unknown> {
+        if (!db) return;
+
+        try {
+            const session = await db.getFirstAsync("SELECT * FROM session WHERE id_session = ? AND id_user = ?", [idSession, idUser]);
+
+            if (session) {
+                await db.runAsync("DELETE FROM session WHERE id_session = ?", [idSession]);
             }
 
             return true;
@@ -60,5 +79,6 @@ export const useSessions = () => {
     return {
         getSessions,
         createSession,
+        deleteSession,
     }
 }

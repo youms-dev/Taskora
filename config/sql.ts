@@ -222,6 +222,7 @@ export const INIT_DATABASE = `
         device_name TEXT NOT NULL,
         device_type TEXT NOT NULL CHECK (device_type IN ('ANDROID', 'IOS')),
         device_brand TEXT NOT NULL,
+        device_model TEXT NOT NULL,
         last_connection TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
         created_at TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
 

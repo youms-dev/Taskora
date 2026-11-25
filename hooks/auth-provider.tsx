@@ -1,5 +1,5 @@
 import { REFRESH_AUTH } from "@/constants/emitters";
-import { AUTH_STORE } from "@/constants/secure-store";
+import { AUTH_STORE, DEVICE_STORE } from "@/constants/secure-store";
 import { emitter } from "@/lib/event-emitter";
 import { AuthType } from "@/types/auth";
 import { UserType } from "@/types/database/user";
@@ -13,6 +13,7 @@ type AuthContextType = {
     updateAuth: (value: string | null, target: "photo" | "name" | "email") => void;
     auth: AuthType | null;
     refresh: () => void;
+    idDevice: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
     updateAuth: () => { },
     auth: null,
     refresh: () => { },
+    idDevice: null,
 });
 
 interface Props {
@@ -32,6 +34,13 @@ export const AuthProvider = ({ children }: Props) => {
     const [user, setUser] = useState<AuthContextType["user"] | null>(null);
     const { getUser, updateUser } = useUsers();
     const [auth, setAuth] = useState<AuthType | null>(null);
+    const [idDevice, setIdDevice] = useState<string | null>(null);
+
+    const handleGetIdDevice = useCallback(async () => {
+        const data = await SecureStore.getItemAsync(DEVICE_STORE);
+
+        setIdDevice(data);
+    }, []);
 
     const handleGetAuth = useCallback(async () => {
         const data = await SecureStore.getItemAsync(AUTH_STORE);
@@ -114,6 +123,10 @@ export const AuthProvider = ({ children }: Props) => {
         }
     }, []);
 
+    useEffect(() => {
+        handleGetIdDevice();
+    }, []);
+
     return (
         <AuthContext.Provider
             value={{
@@ -122,6 +135,7 @@ export const AuthProvider = ({ children }: Props) => {
                 updateAuth: handleUpdateAuth,
                 auth,
                 refresh: handleRefresh,
+                idDevice,
             }}
         >
             {children}

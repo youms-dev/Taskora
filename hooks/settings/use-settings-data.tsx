@@ -34,10 +34,9 @@ export const SettingsProvider = ({ children }: Props) => {
     const { t, i18n } = useTranslation();
 
     const handleGetSetting = useCallback(async () => {
-        if (loadingRef.current || !user) return;
+        if (!user) return;
         try {
             setLoading(true);
-            loadingRef.current = true;
 
             const data = await getSetting(user.idUser) as Required<SettingType>;
 
@@ -48,7 +47,6 @@ export const SettingsProvider = ({ children }: Props) => {
         }
         finally {
             setLoading(false);
-            loadingRef.current = false;
         }
     }, [user]);
 
@@ -63,8 +61,14 @@ export const SettingsProvider = ({ children }: Props) => {
             setLoading(true);
 
             if (prev?._2FA != entry._2FA) {
-                await api.patch("/setting/toggle-2fa");
-                await editSetting(entry);
+                loadingRef.current = true;
+
+                const { data } = await api.patch("/setting/toggle-2fa");
+
+                await editSetting({
+                    ...entry,
+                    _2FA: data,
+                });
             }
             else {
                 await editSetting(entry);
@@ -78,12 +82,13 @@ export const SettingsProvider = ({ children }: Props) => {
         }
         finally {
             setLoading(false);
+            loadingRef.current = false;
         }
     }, [setting, i18n.language]);
 
     useEffect(() => {
         handleGetSetting();
-    }, []);
+    }, [handleGetSetting]);
 
     return (
         <Context.Provider value={{

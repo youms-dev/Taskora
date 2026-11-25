@@ -5,21 +5,148 @@ import { MultiSessionAnimation } from "@/components/sessions/multi-session-anima
 import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
+import { useAuth } from "@/hooks/auth-provider";
+import { useSessions } from "@/hooks/database/use-sessions";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
+import { DeviceType, SessionType } from "@/types/database/session";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
-import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, BackHandler, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, Extrapolation, FadeInUp, FadeOutDown, interpolate, SlideInLeft, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+
+interface Props {
+    session: SessionType;
+    onSelect: () => void;
+    loading: boolean
+}
+
+const Session = memo(({ session, onSelect, loading }: Props) => {
+    const { t, i18n } = useTranslation();
+    const { idDevice } = useAuth();
+    const { theme } = useTheme();
+
+    const isAndroid = useMemo(() => {
+        return (session.deviceType == DeviceType.ANDROID);
+    }, [session]);
+
+    return (
+        <View className="size-full flex flex-row items-center gap-3 dark:bg-white/10 bg-white px-3 py-2 rounded-2xl">
+
+            {/* Device overview */}
+
+            <View
+                style={{
+                    borderRadius: isAndroid ? 10 : 12,
+                }}
+                className="w-[45px] h-full dark:bg-black bg-white"
+            >
+                <View
+                    style={{
+                        borderRadius: isAndroid ? 10 : 12,
+                    }}
+                    className="size-full flex items-center dark:bg-black bg-[rgba(0,0,0,.06)] py-1"
+                >
+                    <View
+                        style={{
+                            transform: [
+                                {
+                                    translateY: 5,
+                                }
+                            ]
+                        }}
+                        className="absolute w-[40%] h-[4px] dark:bg-white/15 bg-black/15 rounded-2xl"
+                    />
+
+                    <View className="size-full flex justify-center items-center">
+                        <MaterialCommunityIcons
+                            name={isAndroid ? "android" : "apple"}
+                            size={25}
+                            color={COLORS.emerald[500]}
+                        />
+                    </View>
+                </View>
+            </View>
+
+            {/* Device data  */}
+
+            <View className="w-[80%] h-full flex justify-center items-center gap-1">
+                <View className="w-full flex flex-row items-center gap-2">
+                    <TextAnimated
+                        numberOfLines={1}
+                        className="text-lg font-medium opacity-90 tracking-widest"
+                    >
+                        {session.deviceName}
+                        &nbsp;
+                        &bull;
+                        &nbsp;
+                        {session.deviceModel}
+                    </TextAnimated>
+                </View>
+
+                <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
+                    <View className="px-3 py-1 dark:bg-black/30 bg-[rgba(0,0,0,.06)] rounded-2xl border dark:border-white/10 border-black/10">
+                        <Text
+                            numberOfLines={1}
+                            className="text-emerald-500 tracking-widest"
+                        >
+                            {(session.deviceBrand).toUpperCase()}
+                        </Text>
+                    </View>
+                </View>
+
+                <View className="w-full flex flex-row justify-between items-center gap-3">
+                    <View className="max-w-[85%]">
+                        <TextAnimated
+                            numberOfLines={1}
+                            className="tracking-widest"
+                        >
+                            {format(session.createdAt, i18n.language == "en" ? "MM-dd-yyyy HH:mm:ss" : "dd-MM-yyyy HH:mm:ss")}
+                        </TextAnimated>
+                    </View>
+
+                    {
+                        idDevice && session.idDevice != idDevice && (
+                            <PressableAnimated
+                                scale={.95}
+                                disabled={loading}
+                                onPress={onSelect}
+                            >
+                                {
+                                    loading ?
+                                        (
+                                            <ActivityIndicator
+                                                size={20}
+                                                color={theme == "dark" ? "rgba(255, 255, 255, .6)" : "rgba(0, 0, 0, .6)"}
+                                            />
+                                        )
+                                        :
+                                        (
+                                            <Entypo
+                                                name="trash"
+                                                size={25}
+                                                color={COLORS.red[500]}
+                                            />
+                                        )
+                                }
+                            </PressableAnimated>
+                        )
+                    }
+                </View>
+            </View>
+        </View>
+    );
+});
 
 export default function SessionsPage() {
     const { theme, themeShared } = useTheme();
     const { t, i18n } = useTranslation();
-    const [devices, setDevices] = useState([]);
+    const [sessions, setSessions] = useState<SessionType[]>([]);
     const deviceHeight = 100;
     const devicesGap = 15;
     const threshold = deviceHeight;
@@ -27,9 +154,13 @@ export default function SessionsPage() {
     const headerContainerWidth = useSharedValue<number>(0);
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const [loading, setLoading] = useState<boolean>(false);
-    const [selected, setSelected] = useState<number | null>(null);
+    const [selected, setSelected] = useState<SessionType | null>(null);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const router = useRouter();
+    const { getSessions, deleteSession } = useSessions();
+    const { setToast } = useToast();
+    const { user, idDevice } = useAuth();
+    const [deleting, setDeleting] = useState<boolean>(false);
 
     const headerContainerAnimation = useAnimatedStyle(() => ({
         borderWidth: 1,
@@ -59,7 +190,7 @@ export default function SessionsPage() {
         )
     }));
 
-    const renderItem = useCallback(({ item, index }: { item: any, index: number }) => {
+    const renderItem = useCallback(({ item, index }: { item: SessionType, index: number }) => {
         return (
             <Animated.View
                 entering={FadeInUp
@@ -74,91 +205,16 @@ export default function SessionsPage() {
                 style={{
                     height: deviceHeight,
                 }}
-                className="w-full flex flex-row items-center gap-3 dark:bg-white/10 bg-white px-3 rounded-2xl py-2"
+                className="w-full rounded-2xl"
             >
-                <View
-                    style={{
-                        borderRadius: 10 // 12 for IOS and 10 for android,
-                    }}
-                    className="w-[45px] h-full dark:bg-black bg-white"
-                >
-                    <View
-                        style={{
-                            borderRadius: 10 // 12 for IOS and 10 for android,
-                        }}
-                        className="size-full flex items-center dark:bg-black bg-[rgba(0,0,0,.06)] py-1"
-                    >
-                        <View
-                            style={{
-                                transform: [
-                                    {
-                                        translateY: 5,
-                                    }
-                                ]
-                            }}
-                            className="absolute w-[40%] h-[4px] dark:bg-white/15 bg-black/15 rounded-2xl"
-                        />
-
-                        <View className="size-full flex justify-center items-center">
-                            <MaterialCommunityIcons
-                                name="android"
-                                // name="apple"
-                                size={25}
-                                color={COLORS.emerald[500]}
-                            // color={theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)"}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                <View className="w-[80%] h-full flex justify-center items-center gap-1">
-                    <View className="w-full flex flex-row items-center gap-2">
-                        <TextAnimated
-                            numberOfLines={1}
-                            className="text-lg font-medium opacity-90 tracking-widest"
-                        >
-                            {Device.deviceName ?? ""}
-                            &nbsp;
-                            &bull;
-                            &nbsp;
-                            {Device.modelName ?? ""}
-                        </TextAnimated>
-                    </View>
-
-                    <View className="w-full flex flex-row items-center gap-2 overflow-hidden">
-                        <View className="px-3 py-1 dark:bg-black/30 bg-[rgba(0,0,0,.06)] rounded-2xl border dark:border-white/10 border-black/10">
-                            <Text
-                                numberOfLines={1}
-                                className="text-emerald-500 tracking-widest"
-                            >
-                                {(Device.brand ?? "").toUpperCase()}
-                            </Text>
-                        </View>
-
-                        <TextAnimated
-                            numberOfLines={1}
-                            className="tracking-widest"
-                        >
-                            {format(new Date(), i18n.language == "en" ? "dd-MM-yyyy HH:mm:ss" : "yyyy-MM-dd HH:mm:ss")}
-                        </TextAnimated>
-                    </View>
-
-                    <View className="w-full flex flex-row justify-end">
-                        <PressableAnimated
-                            scale={.95}
-                            onPress={() => setSelected(index)}
-                        >
-                            <Entypo
-                                name="trash"
-                                size={25}
-                                color={COLORS.red[500]}
-                            />
-                        </PressableAnimated>
-                    </View>
-                </View>
+                <Session
+                    session={item}
+                    onSelect={() => setSelected(item)}
+                    loading={deleting}
+                />
             </Animated.View>
         );
-    }, [theme]);
+    }, [deleting]);
 
     const onScroll = useAnimatedScrollHandler({
         onScroll: (e) => {
@@ -242,6 +298,54 @@ export default function SessionsPage() {
 
         return () => remove();
     }, [selected]);
+
+    const handleGetSessions = useCallback(async () => {
+        if (!user) return;
+
+        try {
+            setLoading(true);
+
+            const data = await getSessions(user.idUser) as typeof sessions;
+
+            setSessions(data);
+        }
+        catch (e) {
+            console.log(e);
+            setToast(t("sqlite_error"), "error");
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    const handleGetDeleteSession = useCallback(async () => {
+        if (deleting || !selected || !user || selected.idDevice == idDevice) return;
+
+        setSelected(null);
+        try {
+            setDeleting(true);
+
+            await api.delete("/session/delete", {
+                data: {
+                    idDevice: selected.idDevice,
+                },
+            });
+
+            await deleteSession(user.idUser, selected.idSession);
+
+            handleGetSessions();
+        }
+        catch (e) {
+            setToast(t("error"), "error");
+        }
+        finally {
+            setDeleting(false);
+        }
+    }, [deleting, selected, user, idDevice]);
+
+    useEffect(() => {
+        handleGetSessions();
+    }, []);
 
     return (
         <Container centerX>
@@ -383,8 +487,8 @@ export default function SessionsPage() {
                 showsVerticalScrollIndicator={false}
                 updateCellsBatchingPeriod={0}
                 scrollEventThrottle={16}
-                data={Array(4)}
-                keyExtractor={(item, i) => i.toString()}
+                data={sessions}
+                keyExtractor={(item) => item.idDevice}
                 renderItem={renderItem}
                 onScroll={onScroll}
                 getItemLayout={getItemLayout}
@@ -403,8 +507,10 @@ export default function SessionsPage() {
                 active={selected != null}
                 message={t("sessions_list_confirm_box_desc")}
                 backdropBackground="rgba(0, 0, 0, .2)"
+                cancelLabel={t("sessions_list_confirm_box_cancel")}
+                submitLabel={t("sessions_list_confirm_box_submit")}
                 onCancel={() => setSelected(null)}
-                onSubmit={() => setSelected(null)}
+                onSubmit={handleGetDeleteSession}
             />
 
             {/* Bottom linear gradient */}

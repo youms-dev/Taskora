@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
 import { emitter } from '@/lib/event-emitter';
 import { AuthType } from '@/types/auth';
-import { DeviceTypeEnum } from '@/types/database/session';
+import { DeviceType } from '@/types/database/session';
 import { AUTH_PROVIDER, UserType } from '@/types/database/user';
 import { ApiError } from '@/types/errors';
 import { formatName } from '@/utils/tools';
@@ -149,7 +149,8 @@ export default function Register() {
       idDevice: data.idDevice,
       deviceName: formatName(Device.deviceName ?? ""),
       deviceBrand: formatName(Device.brand ?? ""),
-      deviceType: Platform.OS.toUpperCase() as DeviceTypeEnum,
+      deviceType: Platform.OS.toUpperCase() as DeviceType,
+      deviceModel: Device.modelName ?? "",
     });
 
     const { idDevice, provider, ...rest } = data;
@@ -190,6 +191,7 @@ export default function Register() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
+        deviceModel: Device.modelName,
         provider: provider,
       });
 
@@ -236,6 +238,7 @@ export default function Register() {
         deviceName: Device.deviceName,
         deviceBrand: Device.brand,
         deviceType: Platform.OS.toUpperCase(),
+        deviceModel: Device.modelName,
       });
 
       await finalize(data);
