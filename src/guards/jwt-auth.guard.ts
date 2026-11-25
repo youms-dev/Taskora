@@ -13,12 +13,9 @@ export class JwtAuthGard extends AuthGuard("jwt") {
     }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        let tmp;
         try {
             const req = context.switchToHttp().getRequest();
             const authorization = req.headers?.authorization;
-
-            tmp = req;
 
             if (!authorization) {
                 throw new UnauthorizedException("Missing token");
@@ -34,6 +31,10 @@ export class JwtAuthGard extends AuthGuard("jwt") {
                 secret: process.env.ACCESS_SECRET,
             });
             const session = await this.sessionService.getSessionByDevice(payload);
+
+            if (!session.refreshToken) {
+                throw new UnauthorizedException();
+            }
 
             req.session = session;
             req.user = session.user;
