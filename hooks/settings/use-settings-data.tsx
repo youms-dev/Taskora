@@ -1,7 +1,10 @@
+import { api } from "@/lib/axios";
 import { SettingType } from "@/types/database/setting";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth-provider";
 import { useSettings } from "../database/use-setting";
+import { useToast } from "../use-toast";
 
 type ContextType = {
     setting: Required<SettingType> | null;
@@ -27,6 +30,8 @@ export const SettingsProvider = ({ children }: Props) => {
     const { getSetting, setSetting: editSetting } = useSettings();
     const loadingRef = useRef<boolean>(false);
     const { user } = useAuth();
+    const { setToast } = useToast();
+    const { t, i18n } = useTranslation();
 
     const handleGetSetting = useCallback(async () => {
         if (loadingRef.current || !user) return;
@@ -47,23 +52,34 @@ export const SettingsProvider = ({ children }: Props) => {
         }
     }, [user]);
 
-    const handleSetSetting = useCallback(async (entry: Required<SettingType>) => {
+    const handleUpdateSetting = useCallback(async (entry: Required<SettingType>) => {
         const prev = setting;
 
         setSetting(entry);
+
         if (loadingRef.current) return;
-        setLoading(true);
+
         try {
-            await editSetting(entry);
-            setSetting(entry);
-            setLoading(false);
+            setLoading(true);
+
+            if (prev?._2FA != entry._2FA) {
+                await api.patch("/setting/toggle-2fa");
+                await editSetting(entry);
+            }
+            else {
+                await editSetting(entry);
+            }
+
+            handleGetSetting();
         }
         catch (e) {
+            setToast(t("error"));
             setSetting(prev);
-            setLoading(false);
-            console.log(e);
         }
-    }, [setting]);
+        finally {
+            setLoading(false);
+        }
+    }, [setting, i18n.language]);
 
     useEffect(() => {
         handleGetSetting();
@@ -74,7 +90,7 @@ export const SettingsProvider = ({ children }: Props) => {
             setting,
             handleGetSetting,
             loading,
-            setSetting: handleSetSetting,
+            setSetting: handleUpdateSetting,
         }}>
             {children}
         </Context.Provider>
