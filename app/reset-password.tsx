@@ -122,9 +122,15 @@ export default function ResetPassword() {
             >
                 <PressableAnimated
                     scale={.95}
-                    onPress={() => router.dismissTo({
-                        pathname: "/",
-                    })}
+                    onPress={() => {
+                        if (router.canGoBack()) {
+                            router.back();
+                            return;
+                        }
+                        router.navigate({
+                            pathname: "/(protected)/(tabs)",
+                        });
+                    }}
                     className="size-full rounded-full"
                 >
                     <View
