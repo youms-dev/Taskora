@@ -176,10 +176,7 @@ export default function Layout() {
                                 backgroundColor: colorScheme == "dark" ? "black" : "white"
                             }}>
                                 <ToastProvider>
-                                    <AuthProvider
-                                        auth={auth}
-                                        refresh={handleGetAuth}
-                                    >
+                                    <AuthProvider>
                                         <Stack
                                             screenOptions={{
                                                 headerShown: false,

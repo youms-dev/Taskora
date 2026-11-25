@@ -1,20 +1,25 @@
 export function createAvatar(entry: string) {
-    const tab = entry.toLowerCase().split(" ");
+    const tab = (entry
+        .toLowerCase()
+        .trim()
+        .split(" ")
+    );
 
-    return (
-        tab
-            .map(l => l.charAt(0).toUpperCase())
-            .filter((_, i, tab) => i == 0 || i == tab.length - 1)
-            .join("")
-            .trim()
+    return (tab
+        .map(l => l.charAt(0).toUpperCase())
+        .filter((_, i, tab) => i == 0 || i == tab.length - 1)
+        .join("")
+        .trim()
     );
 }
 
 export function formatName(entry: string) {
     return (entry
         .toLowerCase()
+        .trim()
         .split(" ")
         .map(l => l.charAt(0).toUpperCase() + l.slice(1))
         .join(" ")
+        .trim()
     );
 }

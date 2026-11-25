@@ -1,5 +1,5 @@
 
-import { LOGOUT } from "@/constants/emitters";
+import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
 import { AUTH_STORE } from "@/constants/secure-store";
 import { AuthType } from "@/types/auth";
 import { ApiError } from "@/types/errors";
@@ -22,16 +22,16 @@ api.interceptors.request.use(
         const authData = await SecureStore.getItemAsync(AUTH_STORE);
 
         if (authData) {
-            const { accessToken } = JSON.parse(authData) as AuthType;
+            const data = JSON.parse(authData) as AuthType;
 
-            if (accessToken) {
-                req.headers.Authorization = `Bearer ${accessToken}`;
+            if (data.accessToken) {
+                req.headers.Authorization = `Bearer ${data.accessToken}`;
             }
         }
 
         return req;
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -68,24 +68,28 @@ api.interceptors.response.use(
         try {
             if (!refreshPromise) {
                 refreshPromise = (async () => {
-                    const authData = await SecureStore.getItemAsync(AUTH_STORE);
+                    const autStore = await SecureStore.getItemAsync(AUTH_STORE);
 
-                    if (!authData) {
+                    if (!autStore) {
                         throw new Error("No authentication data");
                     }
 
-                    const { refreshToken } = JSON.parse(authData) as AuthType;
+                    const authData = JSON.parse(autStore) as AuthType;
 
-                    if (!refreshToken) {
+                    if (!authData.refreshToken) {
                         throw new Error("No refresh token");
                     }
 
-                    const { data } = await axios.post<AuthType>(
-                        `${api.defaults.baseURL}/auth/refresh`,
-                        { refreshToken }
-                    );
+                    const { data } = await axios.post<Pick<AuthType, "accessToken" | "refreshToken">>(`${api.defaults.baseURL}/auth/refresh`, {
+                        refreshToken: authData.refreshToken,
+                    });
 
-                    await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify(data));
+                    await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({
+                        ...authData,
+                        ...data,
+                    } as AuthType));
+
+                    emitter.emit(REFRESH_AUTH);
 
                     return data.accessToken;
                 })();
@@ -96,16 +100,19 @@ api.interceptors.response.use(
             req.headers.Authorization = `Bearer ${accessToken}`;
 
             return api(req);
-        } catch {
+        }
+        catch (e) {
             emitter.emit(LOGOUT);
             await SecureStore.deleteItemAsync(AUTH_STORE);
 
             return Promise.reject({
-                data: { message: "Session expired" },
+                data: {
+                    message: "Session expired",
+                },
                 status: 401,
             } as ApiError);
-
-        } finally {
+        }
+        finally {
             refreshPromise = null;
         }
     }

@@ -78,8 +78,7 @@ export default function UpdateEmailPage() {
                     }));
 
                     await api.post("/user/change-email/check-email", {
-                        email: auth.user.email.trim(),
-                        newEmail: data.user.email.trim(),
+                        email: data.user.email.trim(),
                     });
                     changeStep("next");
                 }
@@ -91,8 +90,7 @@ export default function UpdateEmailPage() {
                     oauthEmail: null,
                 }));
                 await api.post("/user/change-email/check-email", {
-                    email: auth.user.email.trim(),
-                    newEmail: inputsValues.email.trim(),
+                    email: inputsValues.email.trim(),
                 });
                 changeStep("next");
             }
@@ -144,8 +142,7 @@ export default function UpdateEmailPage() {
             loadingRef.current = true;
 
             const { data } = await api.patch("/user/change-email/check-code", {
-                email: auth.user.email.trim(),
-                newEmail: (provider.current ? inputsValues.oauthEmail : inputsValues.email)?.trim(),
+                email: (provider.current ? inputsValues.oauthEmail : inputsValues.email)?.trim(),
                 code: inputsValues.code.trim(),
                 provider: provider.current,
             });
@@ -225,8 +222,7 @@ export default function UpdateEmailPage() {
             loadingRef.current = true;
 
             const { data } = await api.patch("/user/change-email/add-password", {
-                email: auth.user.email.trim(),
-                newEmail: inputsValues.email.trim(),
+                email: inputsValues.email.trim(),
                 password: inputsValues.password,
             });
 
@@ -536,6 +532,7 @@ export default function UpdateEmailPage() {
                                 <View className="sm:w-[500px] w-full px-5 mt-3">
                                     <PressableAnimated
                                         scale={.95}
+                                        disabled={loading}
                                         onPress={handleResendCode}
                                         className={clsx(
                                             "flex flex-row items-center gap-3",

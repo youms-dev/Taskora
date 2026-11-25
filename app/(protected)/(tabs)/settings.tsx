@@ -472,6 +472,9 @@ export default function Settings() {
                         </View>
 
                         <View className="w-full flex items-center gap-8 dark:bg-white/10 bg-white/80 p-5 rounded-2xl">
+
+                            {/* Language */}
+
                             <Select
                                 open
                                 header={(
@@ -534,6 +537,8 @@ export default function Settings() {
                                     </PressableAnimated>
                                 </View>
                             </Select>
+
+                            {/* Confirm */}
 
                             <PressableAnimated
                                 scale={1}

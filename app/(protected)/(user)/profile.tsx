@@ -37,7 +37,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, AppState, BackHandler, Linking, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, AppState, BackHandler, Linking, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, FadeOutDown, FadeOutUp, SlideOutRight, useAnimatedStyle, withSequence, withTiming } from "react-native-reanimated";
 
@@ -254,12 +254,13 @@ export default function Profile() {
 
             await api.patch("/user/update-name", {
                 idUser: auth.user.id,
-                name,
+                name: name.trim(),
             });
 
             await updateUser(formatName(name), user.idUser, "name");
             refresh();
             setEditName(false);
+            setName("");
         }
         catch (e) {
             const { data } = e as ApiError;
@@ -456,6 +457,8 @@ export default function Profile() {
                                 )
                             }
                         </View>
+
+                        {/* Camera button */}
 
                         {
                             !saving && (
@@ -689,8 +692,10 @@ export default function Profile() {
                             "w-full px-3",
                             editName && "opacity-50 pointer-events-none",
                         )}>
-                            <PressableAnimated
-                                scale={1}
+                            <Pressable
+                                onPress={() => router.navigate({
+                                    pathname: "/reset-password",
+                                })}
                                 className="flex flex-row self-start items-center gap-8"
                             >
                                 <Octicons
@@ -702,7 +707,7 @@ export default function Profile() {
                                 <TextAnimated className="text-xl">
                                     {t("profile_change_password")}
                                 </TextAnimated>
-                            </PressableAnimated>
+                            </Pressable>
                         </View>
 
                         {/* Log out */}

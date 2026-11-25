@@ -1,4 +1,6 @@
+import { REFRESH_AUTH } from "@/constants/emitters";
 import { AUTH_STORE } from "@/constants/secure-store";
+import { emitter } from "@/lib/event-emitter";
 import { AuthType } from "@/types/auth";
 import { UserType } from "@/types/database/user";
 import * as SecureStore from "expo-secure-store";
@@ -23,17 +25,31 @@ const AuthContext = createContext<AuthContextType>({
 
 interface Props {
     children: ReactNode;
-    auth: AuthContextType["auth"] | null;
-    refresh: () => Promise<void>;
 }
 
-export const AuthProvider = ({ children, auth, refresh }: Props) => {
+export const AuthProvider = ({ children }: Props) => {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<AuthContextType["user"] | null>(null);
     const { getUser, updateUser } = useUsers();
+    const [auth, setAuth] = useState<AuthType | null>(null);
+
+    const handleGetAuth = useCallback(async () => {
+        const data = await SecureStore.getItemAsync(AUTH_STORE);
+        let auth: AuthType | null = null;
+
+        if (data) {
+            auth = JSON.parse(data) as AuthType;
+        }
+        setAuth(auth);
+
+        return auth;
+    }, []);
 
     const handleGetUser = useCallback(async () => {
+        const auth = await handleGetAuth();
+
         if (!auth) return;
+
         try {
             setLoading(true);
 
@@ -44,10 +60,13 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
         finally {
             setLoading(false);
         }
-    }, [auth]);
+    }, []);
 
     const handleUpdateAuth = useCallback(async (value: string | null, target: "photo" | "email" | "name") => {
+        const auth = await handleGetAuth();
+
         if (!auth || !user) return;
+
         try {
             setLoading(true);
 
@@ -72,17 +91,28 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
                 }));
             }
 
-            await refresh();
             handleGetUser();
+            emitter.emit(REFRESH_AUTH);
         }
         finally {
             setLoading(false);
         }
-    }, [user, auth, refresh, handleGetUser]);
+    }, [user]);
+
+    const handleRefresh = useCallback(() => {
+        handleGetAuth();
+        handleGetUser();
+    }, []);
 
     useEffect(() => {
-        handleGetUser();
-    }, [handleGetUser]);
+        handleRefresh();
+
+        emitter.addListener(REFRESH_AUTH, handleGetAuth);
+
+        return () => {
+            emitter.removeListener(REFRESH_AUTH);
+        }
+    }, []);
 
     return (
         <AuthContext.Provider
@@ -91,10 +121,7 @@ export const AuthProvider = ({ children, auth, refresh }: Props) => {
                 loading,
                 updateAuth: handleUpdateAuth,
                 auth,
-                refresh: async () => {
-                    await refresh();
-                    handleGetUser();
-                },
+                refresh: handleRefresh,
             }}
         >
             {children}

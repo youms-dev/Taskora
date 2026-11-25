@@ -34,7 +34,7 @@ export const SettingsProvider = ({ children }: Props) => {
             setLoading(true);
             loadingRef.current = true;
 
-            const data = await getSetting(user.email) as Required<SettingType>;
+            const data = await getSetting(user.idUser) as Required<SettingType>;
 
             setSetting(data);
         }

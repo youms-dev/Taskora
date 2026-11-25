@@ -8,7 +8,8 @@ export const useSettings = () => {
         if (!db) return;
 
         try {
-            const data = await db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [id]) as SQLiteSettingType;
+            // const data = await db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [id]) as SQLiteSettingType;
+            const data = await db.getFirstAsync("SELECT s.* FROM setting s JOIN user u WHERE u.id_user = ?", [id]) as SQLiteSettingType;
             let dataParsed: SettingType | null = null;
 
             if (data) {

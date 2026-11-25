@@ -80,7 +80,7 @@ export const useTasksData = () => {
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
 
-            if (!synced.current) syncData(data.length);
+            // if (!synced.current) syncData(data.length);
         }
 
         catch (e) {
