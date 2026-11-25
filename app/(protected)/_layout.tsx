@@ -9,7 +9,7 @@ import * as BackgroundTask from "expo-background-task";
 import { addNotificationResponseReceivedListener, AndroidImportance, AndroidNotificationPriority, dismissNotificationAsync, getLastNotificationResponse, NotificationChannelInput, NotificationResponse, NotificationTriggerInput, registerTaskAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync, setNotificationCategoryAsync, setNotificationChannelAsync, setNotificationHandler } from "expo-notifications";
 import { Stack, usePathname, useRouter } from "expo-router";
 import * as TaskManager from "expo-task-manager";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Platform } from "react-native";
 
@@ -24,10 +24,9 @@ export default function ProtectedLayout() {
     const { t, i18n } = useTranslation();
     const { updateTaskNotification, deleteTasks, markTasksDone } = useTasks();
     const router = useRouter();
-    const [locked, setLocked] = useState<boolean>(false);
     const { localAuth } = useLocalAuth();
     const pathname = usePathname();
-    const currentPathname = useRef<string>(pathname);
+    const locked = useRef<boolean>(false);
 
     const setupNotifications = useCallback(async () => {
         await setNotificationCategoryAsync(TASK_REMINDER_CATEGORY, [
@@ -188,73 +187,74 @@ export default function ProtectedLayout() {
     }, []);
 
     const onLock = useCallback(async () => {
-        setLocked(true);
-        currentPathname.current = pathname;
-    }, [pathname]);
-    
-    const onUnLock = useCallback(async() => {
-        setLocked(false);
-        if (currentPathname.current) {
-            router.navigate(currentPathname.current as any);
-            currentPathname.current = pathname;
+        router.push({
+            pathname: "/(protected)/lock-screen",
+        });
+    }, []);
+
+    const onUnlock = useCallback(async () => {
+        locked.current = true;
+        if (router.canGoBack()) {
+            router.back();
+            return;
         }
-    }, [pathname]);
+        router.navigate({
+            pathname: "/(protected)/(tabs)",
+        });
+    }, []);
 
     useEffect(() => {
-        if (localAuth?.enabled && currentPathname.current == pathname) {
+        if (localAuth?.enabled && pathname != "/lock-screen" && !locked.current) {
             onLock();
         }
 
         const { remove } = AppState.addEventListener("change", (state) => {
-            if (localAuth?.enabled && state != "active" && state != "inactive") {
+            if (localAuth?.enabled && state != "active" && state != "inactive" && pathname != "/lock-screen") {
+                locked.current = true;
                 onLock();
             }
         });
 
         emitter.addListener(LOCK, onLock);
-        emitter.addListener(UNLOCK, onUnLock);
+        emitter.addListener(UNLOCK, onUnlock);
 
         return () => {
             remove();
             emitter.removeAllListeners(LOCK);
             emitter.removeAllListeners(UNLOCK);
         }
-    }, [localAuth, onLock, onUnLock]);
+    }, [localAuth, pathname]);
 
     return (
         <SettingsProvider>
             <Stack screenOptions={{
                 headerShown: false,
             }}>
-                <Stack.Protected guard={!locked}>
-                    <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(tabs)" />
 
-                    <Stack.Screen name="(folders)" />
+                <Stack.Screen name="(folders)" />
 
-                    <Stack.Screen name="(task)" />
+                <Stack.Screen name="(task)" />
 
-                    <Stack.Screen name="(user)" />
+                <Stack.Screen name="(user)" />
 
-                    <Stack.Screen
-                        name="sounds"
-                        options={{
-                            animation: "fade_from_bottom",
-                        }}
-                    />
+                <Stack.Screen
+                    name="sounds"
+                    options={{
+                        animation: "fade_from_bottom",
+                    }}
+                />
 
-                    <Stack.Screen name="sync-data" />
+                <Stack.Screen name="sync-data" />
 
-                    <Stack.Screen name="(local-auth)" />
-                </Stack.Protected>
+                <Stack.Screen name="(local-auth)" />
 
-                <Stack.Protected guard={locked}>
-                    <Stack.Screen
-                        name="lock-screen"
-                        options={{
-                            animation: "fade",
-                        }}
-                    />
-                </Stack.Protected>
+                <Stack.Screen
+                    name="lock-screen"
+                    options={{
+                        animation: "fade",
+                    }}
+                />
             </Stack>
         </SettingsProvider>
     );
