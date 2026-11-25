@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createId } from '@paralleldrive/cuid2';
@@ -17,12 +17,15 @@ import { AuthPayload } from 'src/types/auth';
 import { formatString, handleGreeting, randomNumber } from 'src/utils/tools';
 import { Repository } from 'typeorm';
 import { _2FADto } from './dto/_2fa.dto';
+import { CheckCodeDto } from './dto/check-code.dto';
+import { CheckEmailDto } from './dto/check-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { OAuthLoginDto } from './dto/oaut-login.dto';
 import { OAuthRegisterDto } from './dto/oauth-register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -590,6 +593,205 @@ export class AuthService {
             ...session,
             refreshToken: null,
         });
+
+        return true;
+    }
+
+    async sendResetCode(email: string) {
+        const emailFormatted = email.toLowerCase().trim();
+        const key = `reset-password-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, randomNumber(5, 10) * 60);
+        }
+        else if (attempts > 5) {
+            throw new HttpException("Too many requests!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email: emailFormatted,
+            },
+            relations: {
+                setting: true,
+            },
+        });
+
+        if (!user) {
+            throw new NotFoundException("Account not found!");
+        }
+
+        const code = crypto.randomInt(0, 100000).toString().padStart(5, "0");
+
+        await redis.set(`reset-password-code:${user.email}`, code, {
+            ex: 60 * 5,
+        });
+
+        const mail = await render(CodeMail({
+            name: user.name,
+            code,
+            expireIn: 5,
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: user.setting.language == "fr" ? "Code de vérification." : "Verification code.",
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: user.name,
+                    email: user.email,
+                }
+            ],
+        });
+
+        return true;
+    }
+
+    async checkEmail(data: CheckEmailDto) {
+        const email = data.email.toLowerCase().trim();
+        const key = `reset-password-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, 60 * randomNumber(5, 10));
+        }
+        else if (attempts >= 5) {
+            throw new HttpException("Too many attempts!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email,
+            }
+        });
+
+        if (!user) {
+            throw new NotFoundException("User not found!");
+        }
+
+        if (!user.password || user.provider) {
+            throw new ForbiddenException();
+        }
+
+        await redis.decr(key);
+
+        await this.sendResetCode(user.email);
+
+        return true;
+    }
+
+    async checkResetCode(data: CheckCodeDto) {
+        const email = data.email.toLowerCase().trim();
+        const key = `reset-password-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, 60 * randomNumber(5, 10));
+        }
+        else if (attempts >= 5) {
+            throw new HttpException("Too many attempts!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email,
+            }
+        });
+
+        if (!user) {
+            throw new NotFoundException("User not found!");
+        }
+
+        const codeKey = `reset-password-code:${email}`;
+        const redisCode = await redis.get(codeKey);
+
+        if (!redisCode) {
+            throw new NotFoundException("Code expired!");
+        }
+        else if (String(redisCode) != String(data.code)) {
+            throw new BadRequestException("Invalid code!");
+        }
+
+        await redis.decr(key);
+
+        return true;
+    }
+
+    async resetPassword(data: ResetPasswordDto) {
+        const email = data.email.toLowerCase().trim();
+        const key = `reset-password-attempts:${email}`;
+        const attempts = await redis.incr(key);
+
+        if (attempts == 1) {
+            await redis.expire(key, 60 * randomNumber(5, 10));
+        }
+        else if (attempts >= 5) {
+            throw new HttpException("Too many attempts!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const user = await this.userRepo.findOne({
+            where: {
+                email,
+            },
+            relations: {
+                setting: true,
+            },
+        });
+
+        if (!user) {
+            throw new NotFoundException("User not found!");
+        }
+
+        if (!user.password || user.provider) {
+            throw new ForbiddenException();
+        }
+
+        await this.userRepo.save({
+            ...user,
+            password: await Bcrypt.hash(data.password, 12),
+        });
+
+        const lng = (user.setting.language ?? "en") as "fr" | "en";
+
+        const mail = await render(MessageMail({
+            language: lng,
+            message: [
+                `${handleGreeting(lng as any)}${user.name ? ` ${user.name};` : ";"}`,
+                (lng == "fr" ?
+                    `Le mot de passe de votre compte ${APP_NAME} vient juste d'être modifié.`
+                    :
+                    `The password of your ${APP_NAME} account has just been changed.`
+                ),
+                (lng == "fr" ?
+                    `Si ce n'était pas vous, nous vous recommandons de rapidement modifier votre mot de passe, ou de tout simplement contacter le support ${APP_NAME}.`
+                    :
+                    `If it wasn't you, we strongly recommend you to quickly change your password or just contact the ${APP_NAME} support.`
+                ),
+            ],
+        }));
+
+        await brevo.transactionalEmails.sendTransacEmail({
+            subject: lng == "fr" ? "Mot de passe modifié." : "Password changed.",
+            htmlContent: mail,
+            sender: {
+                name: APP_NAME,
+                email: process.env.APP_EMAIL,
+            },
+            to: [
+                {
+                    name: user.name,
+                    email: user.email,
+                }
+            ],
+        });
+
+        await redis.del(key);
+        await redis.del(`reset-password-code:${user.email}`);
 
         return true;
     }
