@@ -4,8 +4,8 @@ import { createId } from '@paralleldrive/cuid2';
 import * as Bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { render } from 'react-email';
-import { ResendCodeDto } from 'src/auth/dto/resend-code.dto';
 import CodeMail from 'src/components/code';
+import MessageMail from 'src/components/message';
 import { APP_NAME } from 'src/constants/names';
 import { User } from 'src/database/entities/user.entity';
 import { brevo } from 'src/lib/brevo';
@@ -16,37 +16,14 @@ import { Repository } from 'typeorm';
 import { AddPasswordDto } from './dto/add-password.dto';
 import { CheckCodeDto } from './dto/check-codel.dto';
 import { CheckEmailDto } from './dto/check-email.dto';
-import { RemovePhotoDto } from './dto/remove-photo.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
-import { UpdatePhotoDto } from './dto/update-photo.dto';
-import MessageMail from 'src/components/message';
 
 @Injectable()
 export class UserService {
   constructor(@InjectRepository(User) private userRepo: Repository<User>) { }
 
-  async getUser(email: string) {
-    const emailFormatted = email.toLowerCase().trim();
-
-    const user = await this.userRepo.findOne({
-      where: {
-        email: emailFormatted,
-      }
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found!");
-    }
-
-    return user;
-  }
-
-  async updatePhoto(data: UpdatePhotoDto, file: any) {
-    const user = await this.userRepo.findOne({
-      where: {
-        idUser: data.idUser,
-      }
-    });
+  async updatePhoto(req: any, file: any) {
+    const user = req.user as User;
 
     if (!user) {
       throw new NotFoundException("User not found!");
@@ -81,12 +58,8 @@ export class UserService {
     return fileData.path;
   }
 
-  async removePhoto(data: RemovePhotoDto) {
-    const user = await this.userRepo.findOne({
-      where: {
-        idUser: data.idUser,
-      }
-    });
+  async removePhoto(req: any) {
+    const user = req.user as User;
 
     if (!user) {
       throw new NotFoundException("User not found!");
@@ -107,18 +80,14 @@ export class UserService {
     return true;
   }
 
-  async updateName(data: UpdateNameDto) {
-    const name = formatString(data.name);
-
-    const user = await this.userRepo.findOne({
-      where: {
-        idUser: data.idUser,
-      }
-    });
+  async updateName(req: any, data: UpdateNameDto) {
+    const user = req.user as User;
 
     if (!user) {
       throw new NotFoundException("User not found!");
     }
+
+    const name = formatString(data.name);
 
     await this.userRepo.save({
       ...user,
@@ -157,25 +126,18 @@ export class UserService {
     });
   }
 
-  async resendCode(data: ResendCodeDto) {
-    const email = data.email.toLowerCase().trim();
-    const key = `change-email-attempts:${email}`;
+  async resendCode(req: any) {
+    const user = req.user as User;
+
+    if (!user) {
+      throw new NotFoundException("User not found!");
+    }
+
+    const key = `change-email-attempts:${user.email}`;
     const attempts = await redis.get(key);
 
     if (attempts && Number(attempts) >= 5) {
       throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
-    }
-    const user = await this.userRepo.findOne({
-      where: {
-        email,
-      },
-      relations: {
-        setting: true,
-      }
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found!");
     }
 
     await this.sendCode(user);
@@ -183,10 +145,15 @@ export class UserService {
     return true;
   }
 
-  async checkEmail(data: CheckEmailDto) {
-    const email = data.email.toLowerCase().trim();
-    const newEmail = data.newEmail.toLowerCase().trim();
-    const key = `change-email-attempts:${email}`;
+  async checkEmail(req: any, data: CheckEmailDto) {
+    const user = req.user as User;
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const newEmail = data.email.toLowerCase().trim();
+    const key = `change-email-attempts:${user.email}`;
     const attempts = await redis.incr(key);
 
     if (attempts == 1) {
@@ -194,19 +161,6 @@ export class UserService {
     }
     else if (attempts >= 5) {
       throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    const user = await this.userRepo.findOne({
-      where: {
-        email,
-      },
-      relations: {
-        setting: true,
-      }
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found");
     }
 
     const exists = await this.userRepo.findOne({
@@ -226,12 +180,17 @@ export class UserService {
     return true;
   }
 
-  async checkCode(data: CheckCodeDto) {
-    const email = data.email.toLowerCase().trim();
-    const newEmail = data.newEmail.toLowerCase().trim();
+  async checkCode(req: any, data: CheckCodeDto) {
+    const user = req.user as User;
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const newEmail = data.email.toLowerCase().trim();
     const code = data.code;
-    const key = `change-email-attempts:${email}`;
-    const codeKey = `change-email-code:${email}`;
+    const key = `change-email-attempts:${user.email}`;
+    const codeKey = `change-email-code:${user.email}`;
     const attempts = await redis.incr(key);
 
     if (attempts == 1) {
@@ -239,19 +198,6 @@ export class UserService {
     }
     else if (attempts >= 5) {
       throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    const user = await this.userRepo.findOne({
-      where: {
-        email,
-      },
-      relations: {
-        setting: true,
-      }
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found");
     }
 
     const redisCode = await redis.get(codeKey);
@@ -302,27 +248,19 @@ export class UserService {
     return true;
   }
 
-  async addPassword(data: AddPasswordDto) {
-    const email = data.email.toLowerCase().trim();
-    const newEmail = data.newEmail.toLowerCase().trim();
-    const key = `change-email-attempts:${email}`;
+  async addPassword(req: any, data: AddPasswordDto) {
+    const user = req.user as User;
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const newEmail = data.email.toLowerCase().trim();
+    const key = `change-email-attempts:${user.email}`;
     const attempts = await redis.get(key);
 
     if (attempts && Number(attempts) >= 5) {
       throw new HttpException("Too many attempts", HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    const user = await this.userRepo.findOne({
-      where: {
-        email,
-      },
-      relations: {
-        setting: true,
-      }
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found");
     }
 
     if (user.password) {
@@ -337,7 +275,7 @@ export class UserService {
     });
 
     await redis.del(key);
-    await redis.del(`change-email-code:${email}`);
+    await redis.del(`change-email-code:${user.email}`);
 
     await this.sendMail(user);
 

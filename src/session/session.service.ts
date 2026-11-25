@@ -14,10 +14,12 @@ export class SessionService {
                 idDevice: data.idDevice ?? "",
                 user: {
                     idUser: data.sub ?? "",
-                }
+                },
             },
             relations: {
-                user: true,
+                user: {
+                    setting: true,
+                },
             }
         });
 

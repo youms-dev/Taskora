@@ -3,6 +3,6 @@ import { RegisterDto } from 'src/auth/dto/register.dto';
 import { CheckEmailDto } from './check-email.dto';
 
 export class AddPasswordDto extends IntersectionType(
-    PickType(CheckEmailDto, ["email", "newEmail"]),
+    PickType(CheckEmailDto, ["email"]),
     PickType(RegisterDto, ["password"]),
 ) { }

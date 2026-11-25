@@ -1,52 +1,50 @@
-import { Body, Controller, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResendCodeDto } from 'src/auth/dto/resend-code.dto';
+import { JwtAuthGard } from 'src/guards/jwt-auth.guard';
 import { AddPasswordDto } from './dto/add-password.dto';
 import { CheckCodeDto } from './dto/check-codel.dto';
 import { CheckEmailDto } from './dto/check-email.dto';
-import { RemovePhotoDto } from './dto/remove-photo.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
-import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { UserService } from './user.service';
 
-// @UseGuards(JwtAuthGard)
+@UseGuards(JwtAuthGard)
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Patch("update-photo")
   @UseInterceptors(FileInterceptor("file"))
-  updatePhoto(@UploadedFile() file, @Body() data: UpdatePhotoDto) {
-    return this.userService.updatePhoto(data, file);
+  updatePhoto(@UploadedFile() file, @Req() req: any) {
+    return this.userService.updatePhoto(req, file);
   }
 
   @Patch("remove-photo")
-  removePhoto(@Body() data: RemovePhotoDto) {
-    return this.userService.removePhoto(data);
+  removePhoto(@Req() req: any) {
+    return this.userService.removePhoto(req);
   }
 
   @Patch("update-name")
-  updateName(@Body() data: UpdateNameDto) {
-    return this.userService.updateName(data);
+  updateName(@Body() data: UpdateNameDto, @Req() req: any) {
+    return this.userService.updateName(req, data);
   }
 
   @Post("change-email/check-email")
-  checkEmail(@Body() data: CheckEmailDto) {
-    return this.userService.checkEmail(data);
+  checkEmail(@Body() data: CheckEmailDto, @Req() req: any) {
+    return this.userService.checkEmail(req, data);
   }
 
   @Post("change-email/resend-code")
-  sendCode(@Body() data: ResendCodeDto) {
-    return this.userService.resendCode(data);
+  resendCode(@Req() req: any) {
+    return this.userService.resendCode(req);
   }
 
   @Patch("change-email/check-code")
-  checkCode(@Body() data: CheckCodeDto) {
-    return this.userService.checkCode(data);
+  checkCode(@Body() data: CheckCodeDto, @Req() req: any) {
+    return this.userService.checkCode(req, data);
   }
 
   @Patch("change-email/add-password")
-  addPassword(@Body() data: AddPasswordDto) {
-    return this.userService.addPassword(data);
+  addPassword(@Body() data: AddPasswordDto, @Req() req: any) {
+    return this.userService.addPassword(req, data);
   }
 }

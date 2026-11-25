@@ -10,6 +10,7 @@ import { PingModule } from "./ping/ping.module";
 import { TaskModule } from "./task/task.module";
 import { UserModule } from "./user/user.module";
 import { SessionModule } from './session/session.module';
+import { SettingModule } from './setting/setting.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SessionModule } from './session/session.module';
     ScheduleModule.forRoot(),
     AuthModule,
     SessionModule,
+    SettingModule,
   ],
   controllers: [AppController],
 })

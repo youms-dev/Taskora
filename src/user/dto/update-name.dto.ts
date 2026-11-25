@@ -1,8 +1,6 @@
-import { PickType } from '@nestjs/mapped-types';
 import { IsValidName } from 'src/decorators/validators/name.decorator';
-import { UpdatePhotoDto } from './update-photo.dto';
 
-export class UpdateNameDto extends PickType(UpdatePhotoDto, ["idUser"]) {
+export class UpdateNameDto {
     @IsValidName()
     name: string;
 }

@@ -542,9 +542,9 @@ export class AuthService {
             }
 
             const newPayload = {
-                id: payload.sub,
+                sub: payload.sub,
                 idDevice: payload.idDevice,
-            }
+            } as AuthPayload;
 
             const accessToken = await this.jwtService.signAsync(newPayload, {
                 secret: process.env.ACCESS_SECRET,
