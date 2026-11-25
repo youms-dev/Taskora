@@ -32,6 +32,6 @@ export class SettingService {
             _2FA: !setting._2FA,
         });
 
-        return true;
+        return !setting._2FA;
     }
 }

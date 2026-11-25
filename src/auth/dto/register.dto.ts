@@ -45,6 +45,14 @@ export class RegisterDto {
     })
     deviceType: DEVICE_TYPE;
 
+    @IsNotEmpty({
+        message: "Device modal can't be empty!",
+    })
+    @IsString({
+        message: "Device model is a string!",
+    })
+    deviceModel: string;
+
     @IsOptional()
     @IsString({
         message: "Photo must be a string!",

@@ -37,6 +37,11 @@ export class Session {
     deviceType: DEVICE_TYPE;
 
     @Column({
+        name: "device_model",
+    })
+    deviceModel: string;
+
+    @Column({
         name: "refresh_token",
         type: "text",
         nullable: true,

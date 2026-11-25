@@ -88,6 +88,7 @@ export class AuthService {
             refreshToken,
             deviceBrand: brand,
             deviceType: data.deviceType,
+            deviceModel: data.deviceModel,
         });
 
         const mail = await render(MessageMail({
@@ -168,6 +169,7 @@ export class AuthService {
             refreshToken,
             deviceBrand: brand,
             deviceType: data.deviceType,
+            deviceModel: data.deviceModel,
         });
 
         const mail = await render(MessageMail({
@@ -273,6 +275,7 @@ export class AuthService {
             refreshToken,
             deviceBrand: brand,
             deviceType: data.deviceType,
+            deviceModel: data.deviceModel,
         });
 
         return {
