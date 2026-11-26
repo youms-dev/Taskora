@@ -14,6 +14,7 @@ import { COLORS } from "@/constants/colors";
 import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE, ICONS } from "@/constants/icons";
 import { EVENT_REMINDER_CATEGORY, REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -258,6 +259,7 @@ export default function CreateTaskPage() {
     const contentRef = useRef<TextInput>(null);
     const { setToast } = useToast();
     const loadingRef = useRef<boolean>(false);
+    const { user } = useAuth();
 
     const sound = useMemo(() => {
         if (!setting || !setting.notificationSound) return null;
@@ -352,7 +354,8 @@ export default function CreateTaskPage() {
     }, []);
 
     const handleSubmit = useCallback(async () => {
-        if (loadingRef.current) return;
+        if (loadingRef.current || !user) return;
+
         if (target == "event") {
             if (!inputsValues.title || inputsValues.title.trim().length == 0) {
                 titleRef.current?.focus();
@@ -459,10 +462,12 @@ export default function CreateTaskPage() {
                 }
 
                 await updateTask(paramTask?.idTask ?? "", task);
+
                 setToast(t("create_edit_success"), "success");
             }
             else {
-                await createTask(task);
+                await createTask(user.idUser, task);
+                
                 setToast(t("create_success"), "success");
             }
 
@@ -497,12 +502,9 @@ export default function CreateTaskPage() {
         }
         finally {
             setLoading(false);
+            loadingRef.current = false;
         }
-    }, [target, sound, inputsValues, setToast, i18n.language]);
-
-    useEffect(() => {
-        loadingRef.current = false;
-    }, [loading]);
+    }, [target, sound, inputsValues, setToast, i18n.language, user]);
 
     return (
         <Container centerX>

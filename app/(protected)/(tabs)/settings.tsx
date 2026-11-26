@@ -48,7 +48,7 @@ export default function Settings() {
     const router = useRouter();
     const { setting, setSetting } = useSettingsData();
     const { localAuth } = useLocalAuth();
-    const { user, auth } = useAuth();
+    const { user } = useAuth();
 
     const sound = useMemo(() => {
         if (!setting || !setting.notificationSound) return null;
@@ -121,8 +121,8 @@ export default function Settings() {
             {
                 translateY: interpolate(
                     scrollY.value,
-                    [0, 100],
-                    [-5, -50],
+                    [0, 50, 100],
+                    [-5, -50, 20],
                     Extrapolation.CLAMP
                 ),
             },

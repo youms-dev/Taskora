@@ -406,31 +406,29 @@ export const ToastProvider = ({ children }: Props) => {
                         type == "default" ? "w-[85%]" : "w-[70%]",
                     )}>
                         <View className={clsx(
-                            "w-full h-full flex flex-row px-3 py-[11px] rounded-2xl border",
+                            "w-full h-full flex flex-row justify-center px-3 py-[11px] rounded-2xl border",
                             type == "default" && "dark:bg-white/10 bg-white dark:border-white/5 border-black/10",
                             type == "error" && "dark:bg-red-500/5 bg-red-500/5 dark:border-red-500/20 border-red-500/20",
                             type == "warning" && "dark:bg-yellow-500/10 bg-yellow-500/5 dark:border-yellow-500/10 border-yellow-500/20",
                             type == "success" && "dark:bg-emerald-500/10 bg-emerald-500/5 dark:border-emerald-500/10 border-emerald-500/20",
                         )}>
-                            <View>
-                                <TextAnimated
-                                    dark={(() => {
-                                        if (type == "success") return COLORS.emerald[500];
-                                        else if (type == "error") return COLORS.red[500];
-                                        else if (type == "warning") return COLORS.amber[400];
-                                        else return "rgba(255, 255, 255, .8)";
-                                    })()}
-                                    light={(() => {
-                                        if (type == "success") return COLORS.emerald[500];
-                                        else if (type == "error") return COLORS.red[500];
-                                        else if (type == "warning") return "#eab308";
-                                        else return "rgba(0, 0, 0, .8)";
-                                    })()}
-                                    className="text-xl tracking-[1px]"
-                                >
-                                    {text}
-                                </TextAnimated>
-                            </View>
+                            <TextAnimated
+                                dark={(() => {
+                                    if (type == "success") return COLORS.emerald[500];
+                                    else if (type == "error") return COLORS.red[500];
+                                    else if (type == "warning") return COLORS.amber[400];
+                                    else return "rgba(255, 255, 255, .8)";
+                                })()}
+                                light={(() => {
+                                    if (type == "success") return COLORS.emerald[500];
+                                    else if (type == "error") return COLORS.red[500];
+                                    else if (type == "warning") return "#eab308";
+                                    else return "rgba(0, 0, 0, .8)";
+                                })()}
+                                className="text-xl tracking-[1px] text-center"
+                            >
+                                {text}
+                            </TextAnimated>
                         </View>
                     </View>
 

@@ -3,9 +3,9 @@ import clsx from "clsx";
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Text, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Easing, SharedValue, withTiming } from "react-native-reanimated";
 import { CalendarDay } from "./calendar-day";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { THRESHOLD } from "./calendar-header";
 
 interface Props {

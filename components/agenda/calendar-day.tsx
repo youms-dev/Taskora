@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { EVENTS_CHANGED, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { emitter } from "@/lib/event-emitter";
 import { TaskType } from "@/types/database/task";
@@ -44,6 +45,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     const eventHeight = 30;
     const isActive = useSharedValue<boolean>(false);
     const tasksLoaded = useRef<boolean>(false);
+    const { user } = useAuth();
 
     const daysHeight = useMemo(() => {
         return (height / (days.length / 7)) - daysGap * 2;
@@ -170,14 +172,20 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     }, [tasks, dayWidth, daysHeight, eventsContainerHeight, onPress]);
 
     const handleGetTasks = useCallback(async (refresh: boolean = false) => {
-        if (!refresh &&
+        if (
             (
-                loading.current ||
+                !refresh
+                &&
                 (
-                    tasksLoaded.current &&
-                    eventsContainerHeight === prevEventsContainerHeight.current
+                    loading.current ||
+                    (
+                        tasksLoaded.current &&
+                        eventsContainerHeight === prevEventsContainerHeight.current
+                    )
                 )
             )
+            ||
+            !user
         ) {
             return;
         }
@@ -189,7 +197,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
             try {
                 const tab: [string, TaskType[]][] = [];
                 await Promise.all(days.map(async (day) => {
-                    const data = await getTasksByDate(day, Math.floor(eventsContainerHeight / eventHeight), 0) as TaskType[];
+                    const data = await getTasksByDate(user.idUser, day, Math.floor(eventsContainerHeight / eventHeight), 0) as TaskType[];
 
                     if (data.length > 0) {
                         tab.push([format(day, "dd MMMM yyyy"), data]);
@@ -208,7 +216,7 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
                 refreshing.value = false;
             }
         }, 100);
-    }, [month, eventsContainerHeight]);
+    }, [month, eventsContainerHeight, user]);
 
     useEffect(() => {
         isActive.value = !!active;

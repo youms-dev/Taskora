@@ -2,6 +2,7 @@ import { daysTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { EVENTS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +77,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     const eventsTmp = useRef<EventType[]>([]);
     const loadingRef = useRef<boolean>(false);
     const [editable, setEditable] = useState<boolean>(false);
+    const { user } = useAuth();
 
     const displayDay = useMemo(() => {
         return !targetDate ? "" : (`${daysTranslation[i18n.language == "fr" ? "fr" : "en"][targetDate.getDay() > 0 ? targetDate.getDay() - 1 : 0]}, ${format(targetDate, i18n.language == "fr" ? "dd / MM / yyyy" : "M / dd / yyyy")}`);
@@ -271,11 +273,11 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
     }, [loading, events, theme]);
 
     const handleGetEvents = useCallback(async (refresh: boolean = false) => {
-        if (loadingRef.current || !targetDate || !active.value || selected) return;
+        if (loadingRef.current || !targetDate || !active.value || selected || !user) return;
         setLoading(true);
 
         try {
-            const data = await getEventsByDate(targetDate, refresh ? events.length : limit, refresh ? 0 : events.length) as EventType[];
+            const data = await getEventsByDate(user.idUser, targetDate, refresh ? events.length : limit, refresh ? 0 : events.length) as EventType[];
 
             if (refresh) setEvents(data);
             else setEvents(prev => [...prev, ...data]);
@@ -286,20 +288,20 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
             setLoading(false);
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language, targetDate, events, selected]);
+    }, [i18n.language, targetDate, events, selected, user]);
 
     const handleGetEventsCount = useCallback(async () => {
-        if (!targetDate || selected) return;
+        if (!targetDate || selected || !user) return;
 
         try {
-            const data = await getEventsCountByDate(targetDate) as number;
+            const data = await getEventsCountByDate(user.idUser, targetDate) as number;
 
             setEventsCount(data);
         }
         catch (e) {
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language, targetDate, selected]);
+    }, [i18n.language, targetDate, selected, user]);
 
     useEffect(() => {
         const onBackPress = () => {

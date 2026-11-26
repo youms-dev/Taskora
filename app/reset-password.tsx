@@ -7,8 +7,12 @@ import { Rotate } from "@/components/rotate";
 import { TextAnimated } from "@/components/text-animated";
 import { TextGradient } from "@/components/text-gradient";
 import { COLORS } from "@/constants/colors";
+import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR } from "@/constants/errors";
 import { APP_NAME } from "@/constants/names";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
+import { ApiError } from "@/types/errors";
 import { Entypo, FontAwesome5, Fontisto } from "@expo/vector-icons";
 import clsx from "clsx";
 import { useRouter } from "expo-router";
@@ -16,7 +20,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, BackHandler, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Animated, { Easing, FadeInDown, SlideInLeft, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, FadeInDown, FadeOutDown, SlideInLeft, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface Props {
     active: boolean;
@@ -66,6 +70,8 @@ export default function ResetPassword() {
     const passwordRef = useRef<TextInput>(null);
     const confirmPasswordRef = useRef<TextInput>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const loadingRef = useRef<boolean>(false);
+    const { setToast } = useToast();
 
     useEffect(() => {
         const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -97,6 +103,207 @@ export default function ResetPassword() {
             });
         }
     }, []);
+
+    const handleCheckEmail = useCallback(async () => {
+        if (loadingRef.current) return;
+
+        if (inputsValues.email.trim().length == 0) {
+            emailRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            await api.post("/auth/reset-password/check-email", {
+                email: inputsValues.email.trim(),
+            });
+
+            changeStep("next");
+        }
+        catch (e) {
+            const { status, data } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("reset_password_429"), "error", 5000);
+            }
+            else if (status == 404) {
+                setToast(t("reset_password_404"), "error");
+            }
+            else if (status == 403) {
+                setToast(t("reset_password_403"), "default", 5000);
+                if (router.canGoBack()) {
+                    router.back();
+                }
+                else {
+                    router.dismissTo({
+                        pathname: "/(protected)/(tabs)",
+                    });
+                }
+            }
+            else if (status == 400 && data.message && Array.isArray(data.message)) {
+                const messages = data.message as Array<string>;
+
+                if (messages.includes(EMAIL_LENGTH_ERROR)) {
+                    setToast(t("reset_password_error_email_length"), "error", 5000);
+                    emailRef.current?.focus();
+                }
+                else if (messages.includes(EMAIL_FORMAT_ERROR)) {
+                    setToast(t("reset_password_error_email_format"), "error", 5000);
+                    emailRef.current?.focus();
+                }
+                else {
+                    setToast(t("error"), "error");
+                }
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, setToast, i18n.language]);
+
+    const handleResendCode = useCallback(async () => {
+        if (loadingRef.current) return;
+
+        if (inputsValues.email.trim().length == 0) {
+            changeStep("prev");
+            emailRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            await api.post("/auth/reset-password/resend-code", {
+                email: inputsValues.email.trim(),
+            });
+
+            setToast(t("reset_password_code_resent"), "success");
+        }
+        catch (e) {
+            const { status } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("reset_password_429"), "error", 5000);
+            }
+            else if (status == 404) {
+                setToast(t("reset_password_404"), "error");
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, setToast, i18n.language]);
+
+    const handleCheckCode = useCallback(async () => {
+        if (loadingRef.current) return;
+
+        if (inputsValues.email.trim().length == 0) {
+            changeStep("prev");
+            emailRef.current?.focus();
+            return;
+        }
+        else if (inputsValues.code.trim().length != 5) {
+            codeRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            await api.post("/auth/reset-password/check-code", {
+                email: inputsValues.email.trim(),
+                code: inputsValues.code.trim(),
+            });
+
+            changeStep("next");
+        }
+        catch (e) {
+            const { status } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("reset_password_429"), "error", 5000);
+            }
+            else if (status == 404) {
+                setToast(t("reset_password_code_404"), "error", 5000);
+            }
+            else if (status == 400) {
+                setToast(t("reset_password_code_400"), "error", 5000);
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, setToast, i18n.language]);
+
+    const handleResetPassword = useCallback(async () => {
+        if (loadingRef.current) return;
+
+        if (inputsValues.password.trim().length < 8) {
+            passwordRef.current?.focus();
+            return;
+        }
+        else if (inputsValues.confirmPassword.trim().length == 0) {
+            confirmPasswordRef.current?.focus();
+            return;
+        }
+        else if (inputsValues.confirmPassword.trim() != inputsValues.password.trim()) {
+            setToast(t("reset_password_mismatch_error"), "warning");
+            confirmPasswordRef.current?.focus();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            loadingRef.current = true;
+
+            await api.patch("/auth/reset-password", {
+                email: inputsValues.email.trim(),
+                password: inputsValues.password,
+            });
+
+            setToast(t("reset_password_success"), "success", 5000);
+
+            if (router.canGoBack()) {
+                router.back();
+            }
+            else {
+                router.dismissTo({
+                    pathname: "/(protected)/(tabs)",
+                });
+            }
+        }
+        catch (e) {
+            console.log(e);
+            const { status } = e as ApiError;
+
+            if (status == 429) {
+                setToast(t("reset_password_429"), "error", 5000);
+            }
+            else {
+                setToast(t("error"), "error");
+            }
+        }
+        finally {
+            setLoading(false);
+            loadingRef.current = false;
+        }
+    }, [inputsValues, setToast, i18n.language]);
 
     return (
         <Container centerX>
@@ -192,6 +399,10 @@ export default function ResetPassword() {
                                     .duration(300)
                                     .easing(Easing.inOut(Easing.quad))
                                 }
+                                exiting={FadeOutDown
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
                                 className="w-full flex items-center px-3"
                             >
 
@@ -266,6 +477,7 @@ export default function ResetPassword() {
                                                 />
                                             </View>
                                         )}
+                                        onSubmitEditing={handleCheckEmail}
                                     />
 
                                     <Button
@@ -274,7 +486,7 @@ export default function ResetPassword() {
                                         scale={.95}
                                         loading={loading}
                                         loaderSize={25}
-                                        onPress={() => changeStep("next")}
+                                        onPress={handleCheckEmail}
                                     >
                                         <Text
                                             numberOfLines={1}
@@ -292,6 +504,10 @@ export default function ResetPassword() {
                         step == 2 && (
                             <Animated.View
                                 entering={FadeInDown
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                exiting={FadeOutDown
                                     .duration(300)
                                     .easing(Easing.inOut(Easing.quad))
                                 }
@@ -335,7 +551,7 @@ export default function ResetPassword() {
                                     </TextAnimated>
 
                                     <Text className="text-lg font-bold text-emerald-500">
-                                        {"youms.vantablack@gmail.com"}
+                                        {inputsValues.email.toLowerCase().trim()}
                                     </Text>
                                 </View>
 
@@ -349,13 +565,14 @@ export default function ResetPassword() {
                                             ...prev,
                                             code: e,
                                         }))}
+                                        onSubmitEditing={handleCheckCode}
                                     />
 
                                     <View className="w-full mt-5">
                                         <PressableAnimated
                                             scale={.95}
                                             disabled={loading}
-                                            // onPress={handleResendCode}
+                                            onPress={handleResendCode}
                                             className="flex flex-row flex-wrap items-center gap-5"
                                         >
                                             <TextAnimated className={clsx(
@@ -376,7 +593,13 @@ export default function ResetPassword() {
                                     <PressableAnimated
                                         scale={.95}
                                         disabled={loading}
-                                        onPress={() => changeStep("prev")}
+                                        onPress={() => {
+                                            changeStep("prev");
+                                            setInputsValues(prev => ({
+                                                ...prev,
+                                                code: "",
+                                            }));
+                                        }}
                                         className={clsx(
                                             "w-[35%] h-[50px] rounded-2xl dark:bg-black bg-white",
                                             loading && "opacity-50",
@@ -408,7 +631,7 @@ export default function ResetPassword() {
                                     <PressableAnimated
                                         scale={.95}
                                         disabled={loading}
-                                        onPress={() => changeStep("next")}
+                                        onPress={handleCheckCode}
                                         className={clsx(
                                             "w-[60%] h-[50px] rounded-2xl dark:bg-black bg-white",
                                             loading && "opacity-50",
@@ -445,6 +668,10 @@ export default function ResetPassword() {
                         step == 3 && (
                             <Animated.View
                                 entering={FadeInDown
+                                    .duration(300)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }
+                                exiting={FadeOutDown
                                     .duration(300)
                                     .easing(Easing.inOut(Easing.quad))
                                 }
@@ -524,7 +751,7 @@ export default function ResetPassword() {
                                                     &nbsp;
                                                     <Text className={clsx(
                                                         "font-bold",
-                                                        inputsValues.password.length > 8 ? "text-emerald-500" : "text-amber-500",
+                                                        inputsValues.password.length >= 8 ? "text-emerald-500" : "text-amber-500",
                                                     )}>
                                                         {inputsValues.password.length}
                                                     </Text>
@@ -602,7 +829,7 @@ export default function ResetPassword() {
                                         <PressableAnimated
                                             scale={.95}
                                             disabled={loading}
-                                            // onPress={() => changeStep("prev")}
+                                            onPress={handleResetPassword}
                                             className={clsx(
                                                 "w-[60%] h-[50px] rounded-2xl dark:bg-black bg-white",
                                                 loading && "opacity-50",

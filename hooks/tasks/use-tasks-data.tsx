@@ -4,6 +4,7 @@ import { cancelScheduledNotificationAsync, dismissNotificationAsync } from "expo
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSharedValue } from "react-native-reanimated";
+import { useAuth } from "../auth-provider";
 import { useFolders } from "../database/use-folders";
 import { useTasks } from "../database/use-tasks";
 import { useToast } from "../use-toast";
@@ -16,12 +17,10 @@ export const useTasksData = () => {
     const scrollY = useSharedValue<number>(0);
     const [currentFilter, setCurrentFilter] = useState<1 | 2 | 3>(1);
     const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-    const { getTasks, syncTasks, getTasksCount, toggleArchiveTasks, deleteTasks, moveTasks, togglePinTask, markTasksDone } = useTasks();
+    const { getTasks, getTasksCount, toggleArchiveTasks, deleteTasks, moveTasks, togglePinTask, markTasksDone } = useTasks();
     const loadingRef = useRef<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const { setToast, setDismiss } = useToast();
-    const synced = useRef<boolean>(false);
-    const syncLoading = useRef<boolean>(false);
     const { getFolders, getFoldersCount, deleteFolder } = useFolders();
     const [tasksCount, setTasksCount] = useState<number>(0);
     const [foldersCount, setFoldersCount] = useState<number>(0);
@@ -39,6 +38,7 @@ export const useTasksData = () => {
     const [folderSelected, setFolderSelected] = useState<FolderType | null>(null);
     const foldersTmp = useRef<FolderType[]>([]);
     const deleting = useRef<boolean>(false);
+    const { user } = useAuth();
 
     const displayedTasks = useMemo(() => {
         if (currentFilter === 2) return tasks.filter(t => t.done);
@@ -50,22 +50,8 @@ export const useTasksData = () => {
         ];
     }, [tasks, currentFilter]);
 
-    const syncData = async (position: number = 0) => {
-        if (syncLoading.current || synced.current) return;
-        try {
-            syncLoading.current = true;
-            await syncTasks(position);
-            synced.current = true;
-            syncLoading.current = false;
-        }
-        catch (e) {
-            syncLoading.current = false;
-            synced.current = false;
-        }
-    };
-
     const handleGetTasks = useCallback(async (refresh: boolean = false) => {
-        if (loadingRef.current) return;
+        if (loadingRef.current || !user) return;
 
         setTasksSelected([]);
         tasksCountTmp.current = 0;
@@ -75,12 +61,10 @@ export const useTasksData = () => {
         if (refresh) loadingRef.current = true;
 
         try {
-            const data = await getTasks(refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length, false) as TaskType[];
+            const data = await getTasks(user.idUser, refresh ? (tasks.length >= LIMIT ? tasks.length : LIMIT) : LIMIT, refresh ? 0 : tasks.length, false) as TaskType[];
 
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(item => !prev.find(t => t.idTask == item.idTask))]);
-
-            // if (!synced.current) syncData(data.length);
         }
 
         catch (e) {
@@ -89,40 +73,46 @@ export const useTasksData = () => {
         finally {
             setLoading(false);
         }
-    }, [tasks, i18n.language, setToast]);
+    }, [tasks, i18n.language, setToast, user]);
 
     const handleGetTasksCount = useCallback(async () => {
+        if (!user) return;
+
         try {
-            const count = await getTasksCount() as number;
+            const count = await getTasksCount(user.idUser) as number;
 
             setTasksCount(count);
         }
         catch (e) {
             setToast(t("sqlite_error"), "error");
         }
-    }, [i18n.language, setToast]);
+    }, [i18n.language, setToast, user]);
 
     useEffect(() => {
         loadingRef.current = loading;
     }, [loading]);
 
     const handleGetFolders = useCallback(async () => {
+        if (!user) return;
+
         try {
-            const data = await getFolders() as FolderType[];
+            const data = await getFolders(user.idUser) as FolderType[];
 
             setFolders(data);
         }
         catch { }
-    }, []);
+    }, [user]);
 
     const handleGetFoldersCount = useCallback(async () => {
+        if (!user) return;
+
         try {
-            const count = await getFoldersCount() as number;
+            const count = await getFoldersCount(user.idUser) as number;
 
             setFoldersCount(count);
         }
         catch { }
-    }, []);
+    }, [user]);
 
     const handleCurrentFilter = useCallback((value: 1 | 2 | 3) => {
         if (loadingRef.current) return;
@@ -130,8 +120,10 @@ export const useTasksData = () => {
     }, []);
 
     const handleArchiveTasks = useCallback(async () => {
-        if (!selectMap.current || selectMap.current.size == 0 || loadingRef.current) return;
+        if (!selectMap.current || selectMap.current.size == 0 || loadingRef.current || !user) return;
+
         setLoading(true);
+
         const selected = [...tasksSelected];
 
         tasksTmp.current = tasks;
@@ -141,12 +133,14 @@ export const useTasksData = () => {
 
         try {
             await toggleArchiveTasks([...selected.map(t => t.idTask)], true);
+
             await Promise.all(selected.map(async (task) => {
                 await cancelScheduledNotificationAsync(task.notificationId);
                 await dismissNotificationAsync(task.notificationId);
             }));
 
             setToast(t("tasks_archived", { many: selected.length > 1 ? "s" : "" }));
+
             tasksTmp.current = [];
             if (tasks.length <= tasksCount) {
                 setLoading(false);
@@ -164,7 +158,7 @@ export const useTasksData = () => {
             tasksTmp.current = [];
             setToast(t("sqlite_error"), "error");
         }
-    }, [tasksSelected, tasks, tasksCount, i18n.language, setToast, handleGetTasks]);
+    }, [tasksSelected, tasks, tasksCount, i18n.language, setToast, handleGetTasks, user]);
 
     const handleArchiveTask = useCallback(async (task: TaskType) => {
         if (loadingRef.current) return;

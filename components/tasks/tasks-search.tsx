@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { SHOW_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -143,6 +144,7 @@ export const TasksSearch = memo(({ context }: Props) => {
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const random = useSharedValue<number>(0);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const { user } = useAuth();
 
     const setRandomInt = () => random.value = Math.random();
 
@@ -255,6 +257,8 @@ export const TasksSearch = memo(({ context }: Props) => {
     }, [theme]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
+        if (!user) return;
+
         if (value.trim().length == 0) {
             setLoading(false);
             setCount(0);
@@ -272,7 +276,7 @@ export const TasksSearch = memo(({ context }: Props) => {
 
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchTasks(value, limit, pagination ? tasksMap.size : 0, null, "task") as {
+                const { data, count } = await searchTasks(user.idUser, value, limit, pagination ? tasksMap.size : 0, null, "task") as {
                     data: TaskType[];
                     count: number;
                 };
@@ -291,7 +295,7 @@ export const TasksSearch = memo(({ context }: Props) => {
                 console.log(e);
             }
         }, 100);
-    }, [tasksMap]);
+    }, [tasksMap, user]);
 
     const renderItem = useCallback(({ item: task, index }: { item: TaskType; index: number }) => (
         <Animated.View
@@ -441,7 +445,7 @@ export const TasksSearch = memo(({ context }: Props) => {
         }
     }));
 
-    const getItemLayout = useCallback((data: any, index: number) => ({
+    const getItemLayout = useCallback((_data: any, index: number) => ({
         length: (taskHeight + tasksGap),
         offset: index * (taskHeight + tasksGap),
         index,

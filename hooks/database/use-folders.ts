@@ -6,17 +6,17 @@ import { createId } from "@paralleldrive/cuid2";
 export const useFolders = () => {
     const { db } = useDatabase();
 
-    async function getFolders(offset: number | null = null, limit: number | null = null): Promise<FolderType[] | unknown> {
+    async function getFolders(idUser: string, offset: number | null = null, limit: number | null = null): Promise<FolderType[] | unknown> {
         if (!db) return;
 
         try {
             let result: SQLiteFolderType[] = [];
 
             if (offset != null && limit != null) {
-                result = await db.getAllAsync("SELECT * FROM folder ORDER BY updated_at DESC LIMIT ? OFFSET ?", [limit, offset]);
+                result = await db.getAllAsync("SELECT * FROM folder WHERE id_user = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [idUser, limit, offset]);
             }
             else {
-                result = await db.getAllAsync("SELECT * FROM folder ORDER BY updated_at DESC");
+                result = await db.getAllAsync("SELECT * FROM folder WHERE id_user = ? ORDER BY updated_at DESC");
             }
 
             const dataParsed: FolderType[] = result.length > 0 ? result.map(item => {
@@ -38,11 +38,11 @@ export const useFolders = () => {
         }
     }
 
-    async function getFoldersCount(): Promise<number | unknown> {
+    async function getFoldersCount(idUser: string): Promise<number | unknown> {
         if (!db) return;
 
         try {
-            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM folder") as { count: number };
+            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM folder WHERE id_user = ?", [idUser]) as { count: number };
 
             return data.count ?? 0;
         }
@@ -76,8 +76,7 @@ export const useFolders = () => {
         }
     }
 
-
-    async function createFolder(title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
+    async function createFolder(idUser: string, title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
         if (!db) return;
         const titleFormatted = (title.charAt(0).toUpperCase() + title.slice(1)).trim();
 
@@ -85,7 +84,7 @@ export const useFolders = () => {
             await db.withTransactionAsync(async () => {
                 const folderId = createId();
 
-                await db.runAsync("INSERT INTO folder (id_folder, title) VALUES (?, ?)", [folderId, titleFormatted]);
+                await db.runAsync("INSERT INTO folder (id_folder, id_user, title) VALUES (?, ?, ?)", [folderId, idUser, titleFormatted]);
 
                 if (tasks.length > 0) {
                     const placeholder = tasks.map(() => '?').join(",");

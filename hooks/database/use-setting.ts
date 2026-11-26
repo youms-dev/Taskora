@@ -4,11 +4,11 @@ import { useDatabase } from "./use-database";
 export const useSettings = () => {
     const { db } = useDatabase();
 
-    async function getSetting(id: string): Promise<SettingType | unknown> {
+    async function getSetting(idUser: string): Promise<SettingType | unknown> {
         if (!db) return;
 
         try {
-            const data = await db.getFirstAsync("SELECT s.* FROM setting s JOIN user u WHERE u.id_user = ?", [id]) as SQLiteSettingType;
+            const data = await db.getFirstAsync("SELECT s.* FROM setting s JOIN user u WHERE u.id_user = ?", [idUser]) as SQLiteSettingType;
             let dataParsed: SettingType | null = null;
 
             if (data) {

@@ -5,11 +5,11 @@ import { createId } from "@paralleldrive/cuid2";
 export const useSessions = () => {
     const { db } = useDatabase();
 
-    async function getSessions(id: string): Promise<SessionType[] | unknown> {
+    async function getSessions(idUser: string): Promise<SessionType[] | unknown> {
         if (!db) return;
 
         try {
-            const data: SQLiteSessionType[] = await db.getAllAsync("SELECT * FROM session WHERE id_user = ?", [id]);
+            const data: SQLiteSessionType[] = await db.getAllAsync("SELECT * FROM session WHERE id_user = ?", [idUser]);
             const dataParsed: SessionType[] = [];
 
             if (data.length > 0) {

@@ -8,6 +8,7 @@ import { COLORS } from "@/constants/colors";
 import { TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
 import { REMINDER_CHANNEL, TASK_REMINDER_CATEGORY } from "@/constants/notifications";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTheme } from "@/hooks/use-theme";
@@ -393,6 +394,7 @@ export default function Archives() {
     const taskHeight = 100;
     const tasksGap = 20;
     const { setting } = useSettingsData();
+    const { user } = useAuth();
 
     const sound = useMemo(() => {
         if (!setting || !setting.notificationSound) return null;
@@ -543,31 +545,34 @@ export default function Archives() {
     }, [theme]);
 
     const handleGetTasks = async (refresh: boolean = false) => {
-        if (loadingRef.current || pathname != "/archives") return;
+        if (loadingRef.current || pathname != "/archives" || !user) return;
+
         loadingRef.current = true;
+
         if (refresh) setProcessing(true);
         else setLoading(true);
+
         try {
-            const data = await getTasks(limit, refresh ? 0 : tasks.length, true) as TaskType[];
+            const data = await getTasks(user.idUser, limit, refresh ? 0 : tasks.length, true) as TaskType[];
 
             if (refresh) setTasks(data);
             else setTasks(prev => [...prev, ...data.filter(t => !prev.find(e => e.idTask == t.idTask))]);
-            loadingRef.current = false;
-            setLoading(false);
-            setProcessing(false);
         }
         catch (e) {
+            console.log(e);
+        }
+        finally {
             loadingRef.current = false;
             setLoading(false);
             setProcessing(false);
-            console.log(e);
         }
     }
 
     const handleGetTasksCount = async () => {
-        if (pathname != "/archives") return;
+        if (pathname != "/archives" || !user) return;
+
         try {
-            const data = await getTasksCount(true) as number;
+            const data = await getTasksCount(user.idUser, true) as number;
 
             setCount(data);
         }

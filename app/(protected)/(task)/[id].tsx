@@ -7,6 +7,7 @@ import { daysTranslation, monthsTranslation } from "@/constants/calendar";
 import { COLORS } from "@/constants/colors";
 import { EVENTS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +71,7 @@ interface TimeComponentProps {
     target: string;
 }
 
-const TimeComponent = ({ remaining, target }: TimeComponentProps) => {
+const TimeComponent = memo(({ remaining, target }: TimeComponentProps) => {
     return (
         <>
             <Text className="text-emerald-500 font-bold">
@@ -82,7 +83,7 @@ const TimeComponent = ({ remaining, target }: TimeComponentProps) => {
             </Text>
         </>
     );
-}
+});
 
 interface DayProps {
     map: Map<string, {
@@ -152,6 +153,7 @@ export default function TaskPage() {
     const scrollCheckPoint = 200;
     const scrollY = useSharedValue<number>(0);
     const contextMenuActive = useSharedValue<boolean>(false);
+    const { user } = useAuth();
 
     if (!id) {
         if (router.canGoBack()) {
@@ -244,8 +246,10 @@ export default function TaskPage() {
     }, [task]);
 
     const handleGetTask = useCallback(async () => {
+        if (!user) return;
+
         try {
-            const data = await getTask(id) as TaskType;
+            const data = await getTask(id, user.idUser) as TaskType;
 
             setLoading(false);
             setTask(data);
@@ -261,7 +265,7 @@ export default function TaskPage() {
                 });
             }
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         handleGetTask();

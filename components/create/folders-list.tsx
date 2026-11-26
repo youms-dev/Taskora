@@ -1,5 +1,7 @@
+import { useAuth } from "@/hooks/auth-provider";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 import { FolderType } from "@/types/database/folder";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { memo, useCallback, useEffect, useState } from "react";
@@ -8,7 +10,6 @@ import { FlatList, Pressable, Text, useWindowDimensions, View } from "react-nati
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { Skeleton } from "../skeleton";
 import { TextAnimated } from "../text-animated";
-import { useToast } from "@/hooks/use-toast";
 
 interface Props {
     selected: FolderType | null;
@@ -28,6 +29,7 @@ export const FoldersList = memo(({ selected, onSelect }: Props) => {
     const limit = 10;
     const [init, setInit] = useState<boolean>(true);
     const { setToast } = useToast();
+    const { user } = useAuth();
 
     const renderItem = useCallback(({ item: folder, index }: { item: FolderType; index: number }) => {
         return (
@@ -128,10 +130,10 @@ export const FoldersList = memo(({ selected, onSelect }: Props) => {
     }, [i18n.language, folders, theme, loading, init]);
 
     const handleGetFolders = useCallback(async () => {
-        if (loading) return;
+        if (loading || !user) return;
         try {
             setLoading(true);
-            const data = await getFolders(folders.length, limit) as FolderType[];
+            const data = await getFolders(user.idUser, folders.length, limit) as FolderType[];
 
             setFolders(data);
             setLoading(false);
@@ -141,18 +143,20 @@ export const FoldersList = memo(({ selected, onSelect }: Props) => {
             setLoading(false);
             setToast(t("sqlite_error"), "error", 5000);
         }
-    }, [folders, loading, count]);
-    
+    }, [folders, loading, count, user]);
+
     const handleGetFoldersCount = useCallback(async () => {
+        if (!user) return;
+
         try {
-            const data = await getFoldersCount() as number;
-            
+            const data = await getFoldersCount(user.idUser) as number;
+
             setCount(data);
         }
         catch (e) {
             setToast(t("sqlite_error"), "error", 5000);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {

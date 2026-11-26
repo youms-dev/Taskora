@@ -25,19 +25,17 @@ interface Props extends TextProps {
  */
 
 export const TextAnimated = ({ children, dark: darkColor = "rgba(255, 255, 255, .8)", light: lightColor = "rgba(0, 0, 0, .8)", style, ...rest }: Props) => {
-    const { theme: appTheme } = useTheme();
-    const theme = useSharedValue<typeof appTheme>("dark");
+    const { themeShared } = useTheme();
     const dark = useSharedValue<typeof darkColor>(darkColor);
     const light = useSharedValue<typeof lightColor>(lightColor);
 
     useEffect(() => {
-        theme.value = appTheme;
         dark.value = darkColor;
         light.value = lightColor;
-    }, [appTheme, darkColor, lightColor]);
+    }, [darkColor, lightColor]);
 
     const animation = useAnimatedStyle(() => ({
-        color: withTiming(theme.value == "dark" ? dark.value : light.value, {
+        color: withTiming(themeShared.value == "dark" ? dark.value : light.value, {
             duration: 200,
             easing: Easing.inOut(Easing.quad),
         }),

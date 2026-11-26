@@ -2,7 +2,7 @@ import { REFRESH_AUTH } from "@/constants/emitters";
 import { AUTH_STORE, DEVICE_STORE } from "@/constants/secure-store";
 import { emitter } from "@/lib/event-emitter";
 import { AuthType } from "@/types/auth";
-import { UserType } from "@/types/database/user";
+import { AUTH_PROVIDER, UserType } from "@/types/database/user";
 import * as SecureStore from "expo-secure-store";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { useUsers } from "./database/use-users";
@@ -10,7 +10,7 @@ import { useUsers } from "./database/use-users";
 type AuthContextType = {
     user: UserType | null;
     loading: boolean;
-    updateAuth: (value: string | null, target: "photo" | "name" | "email") => void;
+    updateAuth: (value: string | null, target: "photo" | "name" | "email", provider?: AUTH_PROVIDER | null) => void;
     auth: AuthType | null;
     refresh: () => void;
     idDevice: string | null;
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: Props) => {
         }
     }, []);
 
-    const handleUpdateAuth = useCallback(async (value: string | null, target: "photo" | "email" | "name") => {
+    const handleUpdateAuth = useCallback(async (value: string | null, target: "photo" | "email" | "name", provider: AUTH_PROVIDER | null = null) => {
         const auth = await handleGetAuth();
 
         if (!auth || !user) return;
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: Props) => {
         try {
             setLoading(true);
 
-            await updateUser(value, user.idUser, target);
+            await updateUser(value, user.idUser, target, provider);
 
             if (target == "photo") {
                 await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({

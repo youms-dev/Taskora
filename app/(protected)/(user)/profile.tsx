@@ -505,7 +505,7 @@ export default function Profile() {
                                             />
                                         </View>
 
-                                        <View className="flex gap-2 pr-[120px]">
+                                        <View className="w-[85%] flex gap-2">
                                             <View className="flex flex-row gap-5">
                                                 <TextAnimated className="text-xl opacity-80">
                                                     {t("profile_name")}
@@ -523,26 +523,28 @@ export default function Profile() {
                                                 </PressableAnimated>
                                             </View>
 
-                                            {
-                                                authLoading && !user?.name && (
-                                                    <View className="w-full">
-                                                        <View className="w-[150px] h-[20px] rounded-3xl overflow-hidden">
-                                                            <Skeleton />
+                                            <View className="w-full flex gap-2">
+                                                {
+                                                    authLoading && !user?.name && (
+                                                        <View className="w-full">
+                                                            <View className="w-[150px] h-[20px] rounded-3xl overflow-hidden">
+                                                                <Skeleton />
+                                                            </View>
                                                         </View>
-                                                    </View>
-                                                )
-                                            }
+                                                    )
+                                                }
 
-                                            {
-                                                (!authLoading || user) && (
-                                                    <TextAnimated className={clsx(
-                                                        "text-xl",
-                                                        !user?.name && "opacity-60",
-                                                    )}>
-                                                        {user?.name ?? t("profile_item_1", { name: APP_NAME })}
-                                                    </TextAnimated>
-                                                )
-                                            }
+                                                {
+                                                    (!authLoading || user) && (
+                                                        <TextAnimated className={clsx(
+                                                            "text-xl",
+                                                            !user?.name && "opacity-60",
+                                                        )}>
+                                                            {user?.name ?? t("profile_item_1", { name: APP_NAME })}
+                                                        </TextAnimated>
+                                                    )
+                                                }
+                                            </View>
                                         </View>
                                     </Animated.View>
                                 )
@@ -688,27 +690,31 @@ export default function Profile() {
 
                         {/* Password */}
 
-                        <View className={clsx(
-                            "w-full px-3",
-                            editName && "opacity-50 pointer-events-none",
-                        )}>
-                            <Pressable
-                                onPress={() => router.navigate({
-                                    pathname: "/reset-password",
-                                })}
-                                className="flex flex-row self-start items-center gap-8"
-                            >
-                                <Octicons
-                                    name="passkey-fill"
-                                    size={25}
-                                    color={theme == "dark" ? "rgba(255, 255, 255, .8))" : "rgba(0, 0, 0, .8)"}
-                                />
+                        {
+                            !user?.provider && (
+                                <View className={clsx(
+                                    "w-full px-3",
+                                    editName && "opacity-50 pointer-events-none",
+                                )}>
+                                    <Pressable
+                                        onPress={() => router.navigate({
+                                            pathname: "/reset-password",
+                                        })}
+                                        className="flex flex-row self-start items-center gap-8"
+                                    >
+                                        <Octicons
+                                            name="passkey-fill"
+                                            size={25}
+                                            color={theme == "dark" ? "rgba(255, 255, 255, .8))" : "rgba(0, 0, 0, .8)"}
+                                        />
 
-                                <TextAnimated className="text-xl">
-                                    {t("profile_change_password")}
-                                </TextAnimated>
-                            </Pressable>
-                        </View>
+                                        <TextAnimated className="text-xl">
+                                            {t("profile_change_password")}
+                                        </TextAnimated>
+                                    </Pressable>
+                                </View>
+                            )
+                        }
 
                         {/* Log out */}
 

@@ -1,5 +1,4 @@
 import { useDatabase } from "@/hooks/database/use-database";
-import { api } from "@/lib/axios";
 import { FolderType } from "@/types/database/folder";
 import { SQLiteTaskType, TaskType } from "@/types/database/task";
 import { endOfDay, startOfDay } from "date-fns";
@@ -7,38 +6,17 @@ import { endOfDay, startOfDay } from "date-fns";
 export const useTasks = () => {
     const { db } = useDatabase();
 
-    async function syncTasks(position: number = 0): Promise<boolean | unknown> {
-        if (!db) return;
-
-        try {
-            const { data }: { data: TaskType[] } = await api.post(`/task/list?skip=${position}`);
-
-            if (data.length > 0) {
-                for (const item of data) {
-                    await db.runAsync(
-                        `INSERT OR IGNORE INTO task (id_task, title, content, done) VALUES (?, ?, ?, ?)`,
-                        [item.idTask, item.title ?? null, item.content ?? null, Number(item.done)]
-                    );
-                }
-            }
-            return true;
-        }
-        catch (e) {
-            throw e;
-        }
-    }
-
-    async function getTasks(limit: number = 10, offset: number = 0, archived: boolean | null = null, type: TaskType["type"] = "task"): Promise<TaskType[] | unknown> {
+    async function getTasks(idUser: string, limit: number = 10, offset: number = 0, archived: boolean | null = null, type: TaskType["type"] = "task"): Promise<TaskType[] | unknown> {
         if (!db) return;
 
         try {
             let result: SQLiteTaskType[] = [];
 
             if (archived != null) {
-                result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? AND type = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [archived ? 1 : 0, type, limit, offset]);
+                result = await db.getAllAsync("SELECT * FROM task WHERE archived = ? AND type = ? AND id_user = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [archived ? 1 : 0, type, limit, offset, idUser]);
             }
             else {
-                result = await db.getAllAsync("SELECT * FROM task WHERE type = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [type, limit, offset]);
+                result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND id_user = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?", [type, limit, offset, idUser]);
             }
 
             const dataParsed: TaskType[] = result.length > 0 ?
@@ -70,13 +48,14 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasksByDate(date: Date, limit: number = 10, offset: number = 0): Promise<TaskType[] | unknown> {
+    async function getTasksByDate(idUser: string, date: Date, limit: number = 10, offset: number = 0): Promise<TaskType[] | unknown> {
         if (!db) return;
         const start = startOfDay(date).getTime();
         const end = endOfDay(date).getTime();
 
         try {
-            const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset]) as SQLiteTaskType[];
+            const result = await db.getAllAsync("SELECT * FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? AND id_user = ? ORDER BY updated_at DESC  LIMIT ? OFFSET ?", ["event", start, end, limit, offset, idUser]) as SQLiteTaskType[];
+
             const dataParsed: TaskType[] = result.length > 0 ? result.map((item) => {
                 const { id_task, id_folder, id_user, start_at, end_at, archived, done, notification_id, remind_before, created_at, updated_at, ...rest } = item;
 
@@ -104,17 +83,17 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasksCount(archived: boolean | null = null): Promise<number | unknown> {
+    async function getTasksCount(idUser: string, archived: boolean | null = null): Promise<number | unknown> {
         if (!db) return;
 
         try {
             let data: { count: number } = { count: 0 };
 
             if (archived != null) {
-                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ? AND type = ?", [archived ? 1 : 0, "task"]) as { count: number };
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE archived = ? AND type = ? AND id_user = ?", [archived ? 1 : 0, "task", idUser]) as { count: number };
             }
             else {
-                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ?", ["task"]) as { count: number };
+                data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND id_user = ?", ["task", idUser]) as { count: number };
             }
 
             return data.count ?? 0;
@@ -124,13 +103,13 @@ export const useTasks = () => {
         }
     }
 
-    async function getTasksCountByDate(date: Date): Promise<number | unknown> {
+    async function getTasksCountByDate(idUser: string, date: Date): Promise<number | unknown> {
         if (!db) return;
         const start = startOfDay(date).getTime();
         const end = endOfDay(date).getTime();
 
         try {
-            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND start_at >= ? AND start_at <= ?", ["event", start, end]) as { count: number };
+            const data = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE type = ? AND start_at >= ? AND start_at <= ? AND id_user = ?", ["event", start, end, idUser]) as { count: number };
 
             return data.count ?? 0;
         }
@@ -139,7 +118,7 @@ export const useTasks = () => {
         }
     }
 
-    async function searchTasks(value: string, limit: number = 0, offset: number = 0, archived: boolean | null = null, type: TaskType["type"] = "task"): Promise<{
+    async function searchTasks(idUser: string, value: string, limit: number = 0, offset: number = 0, archived: boolean | null = null, type: TaskType["type"] = "task"): Promise<{
         data: TaskType[];
         count: number;
     } | unknown> {
@@ -151,20 +130,20 @@ export const useTasks = () => {
             let dataCount: { count: number } = { count: 0 };
 
             if (type == "event") {
-                data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset]) as SQLiteTaskType[];
+                data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? AND id_user = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset, idUser]) as SQLiteTaskType[];
 
-                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ?", [valueFormatted, valueFormatted, type]) as { count: number };
+                dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? AND id_user = ?", [valueFormatted, valueFormatted, type, idUser]) as { count: number };
             }
             else {
                 if (archived != null) {
-                    data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type, limit, offset]) as SQLiteTaskType[];
+                    data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ? AND id_user = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type, limit, offset, idUser]) as SQLiteTaskType[];
 
-                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type]) as { count: number };
+                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND archived = ? AND type = ? AND id_user = ?", [valueFormatted, valueFormatted, archived ? 1 : 0, type, idUser]) as { count: number };
                 }
                 else {
-                    data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset]) as SQLiteTaskType[];
+                    data = await db.getAllAsync("SELECT * FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? AND id_user = ? ORDER BY updated_at LIMIT ? OFFSET ?", [valueFormatted, valueFormatted, type, limit, offset, idUser]) as SQLiteTaskType[];
 
-                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ?", [valueFormatted, valueFormatted, type]) as { count: number };
+                    dataCount = await db.getFirstAsync("SELECT COUNT(*) as count FROM task WHERE (title LIKE ? OR content LIKE ?) AND type = ? AND id_user = ?", [valueFormatted, valueFormatted, type, idUser]) as { count: number };
                 }
             }
 
@@ -223,7 +202,7 @@ export const useTasks = () => {
         }
     }
 
-    async function getTask(id: TaskType["idTask"], type: TaskType["type"] | null = null): Promise<TaskType | unknown> {
+    async function getTask(id: TaskType["idTask"], idUser: string, type: TaskType["type"] | null = null): Promise<TaskType | unknown> {
         if (!db) return;
         try {
             let task: SQLiteTaskType & {
@@ -231,12 +210,12 @@ export const useTasks = () => {
             };
 
             if (type) {
-                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.type = ?", [id, type]) as SQLiteTaskType & {
+                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.type = ? AND t.id_user = ?", [id, type, idUser]) as SQLiteTaskType & {
                     folder_title: FolderType["title"];
                 }
             }
             else {
-                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ?", [id]) as SQLiteTaskType & {
+                task = await db.getFirstAsync("SELECT t.*, f.title as folder_title FROM task t LEFT JOIN folder f ON t.id_folder = f.id_folder WHERE t.id_task = ? AND t.id_user = ?", [id, idUser]) as SQLiteTaskType & {
                     folder_title: FolderType["title"];
                 };
             }
@@ -271,7 +250,7 @@ export const useTasks = () => {
         const placeholder = tasks.map(() => "?").join(",");
 
         try {
-            await db.runAsync(`UPDATE task SET pinned = ? WHERE id_task IN (${placeholder}) AND type = ?`, [Number(pin), ...tasks, "task"]);
+            await db.runAsync(`UPDATE task SET pinned = ? WHERE id_task IN (${placeholder}) AND type = ? AND`, [Number(pin), ...tasks, "task"]);
 
             return true;
         }
@@ -308,15 +287,49 @@ export const useTasks = () => {
         }
     }
 
-    async function createTask(task: Omit<TaskType, "createdAt" | "updatedAt" | "pinned" | "done">): Promise<boolean | unknown> {
+    async function createTask(idUser: string, task: Omit<TaskType, "idUser" | "createdAt" | "updatedAt" | "pinned" | "done">): Promise<boolean | unknown> {
         if (!db) return;
 
         try {
             if (task.type == "task") {
-                await db.runAsync("INSERT INTO task (id_task, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.idFolder ?? null, task.title ? task.title.trim() : null, task.content ? task.content.trim() : null, task.icon ?? null, task.archived ? 1 : 0, task.startAt, task.notificationId, task.type]);
+                await db.runAsync(
+                    "INSERT INTO task (id_task, id_user, id_folder, title, content, icon, archived, start_at, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        task.idTask,
+                        idUser,
+                        task.idFolder ?? null,
+                        (task.title ?
+                            task.title.trim() : null
+                        ),
+                        (task.content ?
+                            task.content.trim() : null
+                        ),
+                        task.icon ?? null,
+                        task.archived ? 1 : 0,
+                        task.startAt,
+                        task.notificationId,
+                        task.type,
+                    ]);
             }
             else {
-                await db.runAsync("INSERT INTO task (id_task, title, content, icon, start_at, end_at, remind_before, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [task.idTask, task.title ? task.title.trim() : null, task.content ? task.content.trim() : null, task.icon ?? null, task.startAt, String(task.endAt), task.remindBefore ?? null, task.notificationId, task.type]);
+                await db.runAsync(
+                    "INSERT INTO task (id_task, id_user, title, content, icon, start_at, end_at, remind_before, notification_id, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        task.idTask,
+                        idUser,
+                        (task.title ?
+                            task.title.trim() : null
+                        ),
+                        (task.content ?
+                            task.content.trim() : null
+                        ),
+                        task.icon ?? null,
+                        task.startAt,
+                        String(task.endAt),
+                        task.remindBefore ?? null,
+                        task.notificationId,
+                        task.type,
+                    ]);
             }
 
             return true;
@@ -372,7 +385,6 @@ export const useTasks = () => {
     }
 
     return {
-        syncTasks,
         getTasks,
         getTasksByDate,
         getTasksCount,

@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { EVENTS_CHANGED, SHOW_NAVBAR } from "@/constants/emitters";
 import { ICON_TYPE } from "@/constants/icons";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasks } from "@/hooks/database/use-tasks";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -140,6 +141,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const random = useSharedValue<number>(0);
     const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+    const { user } = useAuth();
 
     const setRandomInt = useCallback(() => random.value = Math.random(), []);
 
@@ -245,6 +247,8 @@ export const CalendarSearch = memo(({ active }: Props) => {
     }, [theme]);
 
     const handleSearch = useCallback(async (value: string, pagination: boolean = false) => {
+        if (!user) return;
+
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current);
             setLoading(false);
@@ -259,7 +263,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
         setLoading(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                const { data, count } = await searchEvents(value, limit, pagination ? tasksMap.size : 0, false, "event") as {
+                const { data, count } = await searchEvents(user.idUser, value, limit, pagination ? tasksMap.size : 0, false, "event") as {
                     data: TaskType[];
                     count: number;
                 };
@@ -278,7 +282,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
                 console.log(e);
             }
         }, 100);
-    }, [tasksMap]);
+    }, [tasksMap, user]);
 
     const renderItem = useCallback(({ item: event, index }: { item: TaskType; index: number }) => {
         return (
@@ -408,7 +412,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
         }
     }));
 
-    const getItemLayout = useCallback((data: any, index: number) => ({
+    const getItemLayout = useCallback((_data: any, index: number) => ({
         length: (EVENT_HEIGHT + eventsGap),
         offset: index * (EVENT_HEIGHT + eventsGap),
         index,

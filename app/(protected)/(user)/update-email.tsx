@@ -49,7 +49,7 @@ export default function UpdateEmailPage() {
 
     const finalize = useCallback(async (email: string) => {
         if (!user) return;
-        updateAuth(email, "email");
+        updateAuth(email, "email", provider.current);
         setToast(t("update_email_success"), "success");
         router.back();
     }, [auth]);

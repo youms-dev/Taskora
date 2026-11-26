@@ -1,5 +1,5 @@
 import { useDatabase } from "@/hooks/database/use-database";
-import { SQLiteUserType, UserType } from "@/types/database/user";
+import { AUTH_PROVIDER, SQLiteUserType, UserType } from "@/types/database/user";
 import { createId } from "@paralleldrive/cuid2";
 
 export const useUsers = () => {
@@ -42,7 +42,7 @@ export const useUsers = () => {
             }
             const idSetting = createId();
             const idUser = createId();
-            
+
             await db.withTransactionAsync(async () => {
                 await db.runAsync("INSERT INTO setting (id_setting) VALUES(?)", [idSetting]);
 
@@ -56,7 +56,7 @@ export const useUsers = () => {
         }
     }
 
-    async function updateUser(value: string | null, id: string, target: "photo" | "name" | "email"): Promise<true | unknown> {
+    async function updateUser(value: string | null, id: string, target: "photo" | "name" | "email", provider: AUTH_PROVIDER | null = null): Promise<true | unknown> {
         if (!db) return;
 
         try {
@@ -66,14 +66,14 @@ export const useUsers = () => {
                 throw 404;
             }
 
-            if(target == "photo") {
+            if (target == "photo") {
                 await db.runAsync("UPDATE user SET photo = ? WHERE id_user = ?", [value, id]);
             }
-            else if(target == "name") {
+            else if (target == "name") {
                 await db.runAsync("UPDATE user SET name = ? WHERE id_user = ?", [value, id]);
             }
             else {
-                await db.runAsync("UPDATE user SET email = ? WHERE id_user = ?", [value, id]);
+                await db.runAsync("UPDATE user SET email = ?, provider = ? WHERE id_user = ?", [value, provider, id]);
             }
 
             return true;
