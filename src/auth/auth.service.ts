@@ -718,6 +718,7 @@ export class AuthService {
         }
 
         await redis.decr(key);
+        await redis.set(`reset-password:${user.email}`, true);
 
         return true;
     }
@@ -732,6 +733,12 @@ export class AuthService {
         }
         else if (attempts >= 5) {
             throw new HttpException("Too many attempts!", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        const isResetting = await redis.get(`reset-password:${email}`);
+
+        if (!isResetting) {
+            throw new UnauthorizedException("Well well well 👏👏");
         }
 
         const user = await this.userRepo.findOne({
@@ -792,6 +799,7 @@ export class AuthService {
 
         await redis.del(key);
         await redis.del(`reset-password-code:${user.email}`);
+        await redis.del(`reset-password:${user.email}`);
 
         return true;
     }
