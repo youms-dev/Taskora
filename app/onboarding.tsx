@@ -1,356 +1,573 @@
-import { Button } from "@/components/button";
 import { Container } from "@/components/container";
-import { Input } from "@/components/input";
+import { Management } from "@/components/onboarding/managment";
+import { Security } from "@/components/onboarding/security";
+import { Success } from "@/components/onboarding/success";
 import { PressableAnimated } from "@/components/pressable-animated";
+import { TextAnimated } from "@/components/text-animated";
+import { TextGradient } from "@/components/text-gradient";
+import { COLORS } from "@/constants/colors";
+import { REFRESH_AUTH } from "@/constants/emitters";
 import { APP_NAME } from "@/constants/names";
-import { NAME_REGEX } from "@/constants/regex";
-import { useAuth } from "@/hooks/auth-provider";
 import { useTheme } from "@/hooks/use-theme";
-import { useToast } from "@/hooks/use-toast";
-import { ApiError } from "@/types/errors";
-import { checkLength, checkPattern } from "@/utils/tools";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { emitter } from "@/lib/event-emitter";
 import clsx from "clsx";
-import { Image } from "expo-image";
-import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from "expo-image-picker";
-import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
-import PagerView from "react-native-pager-view";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { BackHandler, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import Animated, { Easing, FadeIn, FadeInDown, FadeInUp, FadeOutDown, SlideInLeft, SlideInRight, SlideOutLeft, SlideOutRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+
+interface Props {
+    active: boolean;
+}
+
+const Dot = memo(({ active }: Props) => {
+    const isActive = useSharedValue<boolean>(false);
+
+    const animation = useAnimatedStyle(() => ({
+        width: withTiming(isActive.value ? 50 : 18, {
+            duration: 300,
+            easing: Easing.inOut(Easing.quad),
+        }),
+        borderRadius: isActive.value ? 20 : 9999,
+    }));
+
+    const roundedAnimation = useAnimatedStyle(() => ({
+        borderRadius: isActive.value ? 20 : 9999,
+    }));
+
+    useEffect(() => {
+        isActive.value = active;
+    }, [active]);
+
+    return (
+        <Animated.View
+            style={[
+                animation,
+                roundedAnimation,
+                {
+                    height: 18,
+                }
+            ]}
+            className="dark:bg-black bg-white"
+        >
+            <Animated.View
+                style={roundedAnimation}
+                className={clsx(
+                    "size-full rounded-full",
+                    active ? "bg-emerald-500" : "dark:bg-white/20 bg-black/80",
+                )}
+            />
+        </Animated.View>
+    )
+});
 
 export default function Onboarding() {
-    const [page, setPage] = useState<number>(0);
-    const pagerRef = useRef<PagerView>(null);
-    const [value, setValue] = useState<string>("");
     const { theme } = useTheme();
-    const [image, setImage] = useState<string>("");
-    const [loading, setLoading] = useState<boolean>(false);
-    const { setToast } = useToast();
-    const { user } = useAuth();
+    const [step, setStep] = useState<number>(1);
+    const { t, i18n } = useTranslation();
+    const router = useRouter();
 
-    const changePage = (value: number, animation = false) => {
-        if (!pagerRef.current || loading) return;
-        if (page == 1 && validateName() || page != 1) {
-            if (animation) pagerRef.current.setPage(value);
-            else pagerRef.current.setPageWithoutAnimation(value);
-        }
-        else {
-            pagerRef.current.setScrollEnabled(false);
-        }
-    }
-
-    const validateName = () => {
-        let name = value.trim();
-
-        if (!pagerRef.current) return false;
-        if (name.length == 0) {
-            if (page == 1) pagerRef.current.setScrollEnabled(false);
-            setToast("Veuillez renseigner votre nom !", "warning");
-            return false;
-        }
-        else {
-            if (!checkLength(name, [3, 30])) {
-                setToast("Le nom doit comporter au minimum 3 caractères et au maximum 30 !", "warning");
-                pagerRef.current.setScrollEnabled(false);
-                return false;
+    const changeStep = useCallback((value: "prev" | "next") => {
+        setStep(prev => {
+            if (value == "prev") {
+                return prev > 1 ? prev - 1 : prev + 1;
             }
-            else if (!checkPattern(name, NAME_REGEX)) {
-                setToast("Nom invalide !", "warning");
-                pagerRef.current.setScrollEnabled(false);
-                return false;
-            }
-            else {
-                setToast("Nom valide 😉", "success");
-                pagerRef.current.setScrollEnabled(true);
+            return prev < 4 ? prev + 1 : prev;
+        });
+    }, []);
+
+    const step1Tab = useMemo(() => ([
+        t("onboarding_step_1_section_2_item_2"),
+        t("onboarding_step_1_section_2_item_3"),
+        t("onboarding_step_1_section_2_item_4"),
+    ]), [i18n.language]);
+
+    useEffect(() => {
+        const { remove } = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (step > 1) {
+                changeStep("prev");
                 return true;
             }
-        }
-    }
-
-    useEffect(() => {
-        if (!pagerRef.current) return;
-        if (page == 1 && !validateName()) {
-            pagerRef.current.setScrollEnabled(false);
-        }
-        else {
-            pagerRef.current.setScrollEnabled(true);
-        }
-    }, [page, value]);
-
-    useEffect(() => {
-        if (!pagerRef.current) return;
-        if (loading) {
-            pagerRef.current.setScrollEnabled(false);
-        }
-        else {
-            pagerRef.current.setScrollEnabled(true);
-        }
-    }, [loading]);
-
-    const pickPicture = async () => {
-        const { granted } = await requestMediaLibraryPermissionsAsync();
-
-        if (!granted) {
-            setToast("Nous avons besoin de votre permission pour acceder aux photos 🥲");
-            return;
-        }
-        const { assets, canceled } = await launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 1,
+            return false;
         });
 
-        if (assets && !canceled) {
-            setImage(assets[0].uri);
-        }
-        else {
-            setToast("Aucune photo n'a été sélectionnée 🥲");
-        }
-    }
-
-    const complete = async () => {
-        setLoading(true);
-        if (!validateName()) {
-            validateName();
-            if (pagerRef.current) pagerRef.current.setPage(1);
-            setLoading(false);
-            return;
-        };
-
-        try {
-            // const nameFormatted = value.trim().charAt(0).toUpperCase() + value.trim().slice(1);
-
-            // if (image.trim().length == 0) {
-            //     await api.patch(`/user/update/${user?.id}`, {
-            //         name: nameFormatted,
-            //     });
-            // }
-            // else {
-            //     const { name: fileName, ext: fileExt } = fileDatas(new File(image).name);
-            //     const base64 = new File(image).base64Sync();
-
-            //     if (!fileName || !fileExt) {
-            //         setToast("Fichier corrompu ou illisible !", "error");
-            //         return;
-            //     }
-
-            //     const date = new Date();
-            //     const newName = fileName + date.getMilliseconds() + createId() + "." + fileExt;
-            //     const { data } = await supabase.storage.from("files").upload(newName, decode(base64), {
-            //         upsert: true,
-            //     });
-            //     await api.patch(`/user/update/${user?.id}`, {
-            //         name: nameFormatted,
-            //         photoUrl: data?.path,
-            //     });
-            // }
-            // setToast("Bienvenue ☺️", "success");
-            // setTimeout(async () => {
-            //     await supabase.auth.refreshSession();
-            //     setImage("");
-            //     setValue("");
-            //     setLoading(false);
-            // }, 500);
-        }
-        catch (e) {
-            const error = e as ApiError;
-            console.clear()
-            console.log(error);
-            setLoading(false);
-            setToast("Une erreur s'est produite", "error");
-        }
-    }
+        return () => remove();
+    }, [step]);
 
     return (
         <Container centerX>
-            <View className="w-full h-full flex items-center">
-                <View className="w-full h-[10%] flex flex-row justify-center items-center gap-3 p-3">
-                    <View className="size-[70px] p-1 rounded-full">
-                        <Image
-                            source={require("../assets/images/logo.png")}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                borderWidth: 2,
-                                borderRadius: 9999
-                            }}
-                        />
-                    </View>
-                    <Text
-                        numberOfLines={1}
-                        className="text-2xl dark:text-white text-black font-extrabold"
-                    >
-                        {APP_NAME}
-                    </Text>
-                </View>
 
-                <PagerView
-                    ref={pagerRef}
-                    initialPage={0}
-                    onPageSelected={(e) => setPage(e.nativeEvent.position)}
-                    style={{
-                        width: "100%",
-                        height: "80%",
-                    }}
-                >
-                    <View className="w-full h-full flex justify-center items-center gap-4 px-5">
-                        <Text className="text-6xl animate-bounce">🙂</Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">
-                            Bienvenue sur
-                            &nbsp;
-                            <Text className="text-emerald-500 font-['papyrus']">{APP_NAME}</Text>,
-                        </Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">
-                            votre pense bête portable 😅.
-                        </Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">
-                            L&rsquo;application qui vous permettra de gérer vos différentes tâches de manière simple et efficace.
-                        </Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">
-                            🛡️ Ajoutez, modifiez ou supprimez vos tâches ici en toute sécurité 🔏.
-                        </Text>
-                        <Button
-                            scale={.7}
-                            onPress={() => changePage(1, true)}
-                            className="w-[250px] h-[60px] mt-10"
-                        >
-                            <Text className="text-2xl text-black font-bold">Suivant</Text>
-                            <FontAwesome6 name="arrow-right" size={25} color="black" />
-                        </Button>
-                    </View>
+            {/* Top gradient */}
 
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === "android" ? "padding" : "height"}
-                        className="w-full h-full flex justify-center items-center gap-5 p-3"
-                    >
-                        <Text className="text-2xl text-white">Tout d&rsquo;abord commençons par enregistrer le nom par lequel nous allons vous appeler ☺️</Text>
-                        <View
-                            className="w-full flex items-center"
-                        >
-                            <Input
-                                placeholder="John Doe"
-                                cursorColor={theme === "dark" ? "white" : "black"}
-                                // icon={{
-                                //     name: "user-tie",
-                                // }}
-                                value={value}
-                                onChangeText={(e) => setValue(e)}
-                            />
-                        </View>
-                        <Button
-                            scale={.7}
-                            onPress={() => validateName() && pagerRef.current && pagerRef.current.setPage(2)}
-                            className="w-[250px] h-[60px] mt-10"
-                        >
-                            <Text className="text-2xl text-black font-bold">Suivant</Text>
-                            <FontAwesome6 name="arrow-right" size={25} color="black" />
-                        </Button>
-                    </KeyboardAvoidingView>
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                locations={[0, .6, 1]}
+                className="absolute left-0 top-0 w-full h-[30px] z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .05)", "rgba(0, 0, 0, .05)", "rgba(0, 0, 0, 0)"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    locations={[0, .6, 1]}
+                    className="size-full"
+                />
+            </LinearGradient>
 
-                    <ScrollView
-                        contentContainerClassName=" flex items-center gap-5 p-5"
-                        className="w-full h-full"
+            {/* Back button */}
+
+            {
+                step > 1 && (
+                    <View
+                        style={{
+                            transform: [
+                                {
+                                    translateX: 15,
+                                },
+                                {
+                                    translateY: 5,
+                                },
+                            ]
+                        }}
+                        className="absolute left-0 top-0 z-[20]"
                     >
-                        <Text className="w-full text-2xl dark:text-white text-black">Vous aimeriez sûrement avoir une photo de profile</Text>
-                        <Text className="w-full text-2xl dark:text-white text-black italic">(facultatif)</Text>
-                        <View className="relative size-[300px] rounded-full p-2">
-                            <PressableAnimated
-                                scale={.6}
-                                onPress={() => pickPicture()}
-                                className="absolute bottom-[4px] right-0 size-[50px] flex justify-center items-center bg-emerald-500 rounded-full border-2 dark:border-white border-black z-[1]"
-                            >
-                                <FontAwesome6 name="image" size={30} color="black" />
-                            </PressableAnimated>
-                            <Image
-                                source={image.trim().length == 0 ? require("../assets/images/logo.png") : image}
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    borderWidth: 2,
-                                    borderColor: "transparent",
-                                    borderRadius: 9999,
-                                    aspectRatio: 1 / 1
-                                }}
-                            />
-                        </View>
-                        <View className="w-full flex flex-row flex-wrap justify-center items-center gap-5 px-2">
-                            {
-                                image.trim().length > 0 && (
-                                    <Button
-                                        // background="bg-red-500"
-                                        scale={.7}
-                                        onPress={() => setImage("")}
-                                        className="w-[150px] h-[60px]"
-                                    >
-                                        <FontAwesome6 name="xmark" size={25} color="black" />
-                                        <Text className="text-2xl text-black font-bold">Retirer</Text>
-                                    </Button>
-                                )
+                        <Animated.View
+                            entering={SlideInLeft
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
                             }
-                            <Button
-                                scale={.7}
-                                onPress={() => changePage(3, true)}
-                                className="w-[280px] h-[60px]"
-                            >
-                                <Text className="text-2xl text-black font-bold">Suivant</Text>
-                                <FontAwesome6 name="arrow-right" size={25} color="black" />
-                            </Button>
-                        </View>
-                    </ScrollView>
-
-                    <View className="w-full h-full flex justify-center items-center gap-8 p-5">
-                        <Text className="w-full text-5xl animate-bounce text-center">😊</Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">Voilà; tout est fin prêt.</Text>
-                        <Text className="w-full text-2xl dark:text-white text-black">Profitez de votre application.</Text>
-                        <Text className="w-full text-5xl animate-bounce text-center">😉</Text>
-                        <Button
-                            scale={.7}
-                            loading={loading}
-                            loaderSize={35}
-                            onPress={() => complete()}
-                            className="w-[280px] h-[60px]"
+                            exiting={SlideOutLeft
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
                         >
-                            <Text className="text-2xl text-black font-bold">Terminer</Text>
-                            <FontAwesome6 name="check" size={28} color="black" />
-                        </Button>
-                    </View>
-                </PagerView>
+                            <PressableAnimated
+                                scale={.95}
+                                onPress={() => changeStep("prev")}
+                                className="dark:bg-black bg-white rounded-2xl"
+                            >
+                                <View
+                                    style={{
+                                        transform: [
+                                            {
+                                                translateY: 8,
+                                            },
+                                        ],
+                                        filter: "blur(5px)",
+                                    }}
+                                    className="absolute size-full rounded-2xl bg-black/30"
+                                />
 
-                <View className="w-full h-[10%] flex flex-row justify-center items-center gap-5">
+                                <View className="dark:bg-white/10 bg-black/80 px-5 py-1 rounded-2xl border dark:border-white/5 border-black/5">
+                                    <Text className="text-xl font-medium text-white/80">
+                                        {t("onboarding_prev")}
+                                    </Text>
+                                </View>
+                            </PressableAnimated>
+                        </Animated.View>
+                    </View>
+                )
+            }
+
+            {/* Skip button */}
+
+            <View
+                style={{
+                    transform: [
+                        {
+                            translateX: -15,
+                        },
+                        {
+                            translateY: 5,
+                        },
+                    ]
+                }}
+                className="absolute right-0 top-0 z-[20]"
+            >
+                <Animated.View
+                    entering={SlideInRight
+                        .duration(300)
+                        .easing(Easing.inOut(Easing.quad))
+                    }
+                    exiting={SlideOutRight
+                        .duration(300)
+                        .easing(Easing.inOut(Easing.quad))
+                    }
+                >
                     <PressableAnimated
-                        scale={.8}
-                        onPress={() => changePage(0)}
-                        className={clsx(
-                            "size-[20px] rounded-full",
-                            page >= 0 ? "bg-emerald-500" : "dark:bg-white bg-black"
-                        )}
-                    />
-                    <PressableAnimated
-                        scale={.8}
-                        onPress={() => changePage(1)}
-                        className={clsx(
-                            "size-[20px] rounded-full",
-                            page >= 1 ? "bg-emerald-500" : "dark:bg-white bg-black"
-                        )}
-                    />
-                    <PressableAnimated
-                        scale={.8}
-                        onPress={() => changePage(2)}
-                        className={clsx(
-                            "size-[20px] rounded-full",
-                            page >= 2 ? "bg-emerald-500" : "dark:bg-white bg-black"
-                        )}
-                    />
-                    <PressableAnimated
-                        scale={.8}
-                        onPress={() => changePage(3)}
-                        className={clsx(
-                            "size-[20px] rounded-full",
-                            page == 3 ? "bg-emerald-500" : "dark:bg-white bg-black"
-                        )}
-                    />
-                </View>
+                        scale={.95}
+                        onPress={() => emitter.emit(REFRESH_AUTH)}
+                        className="dark:bg-black bg-white rounded-2xl"
+                    >
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    },
+                                ],
+                                filter: "blur(5px)",
+                            }}
+                            className="absolute size-full rounded-2xl bg-black/30"
+                        />
+
+                        <View className="dark:bg-white/10 bg-black/80 px-5 py-1 rounded-2xl border dark:border-white/5 border-black/5">
+                            <Text className="text-xl font-medium text-white/80">
+                                {t("onboarding_skip")}
+                            </Text>
+                        </View>
+                    </PressableAnimated>
+                </Animated.View>
             </View>
+
+            {/* Dots */}
+
+            <View
+                style={{
+                    transform: [
+                        {
+                            translateY: 55,
+                        },
+                    ]
+                }}
+                className="absolute pointer-events-none"
+            >
+                <Animated.View
+                    entering={FadeInUp
+                        .duration(300)
+                        .easing(Easing.inOut(Easing.quad))
+                    }
+                    className="flex flex-row items-center gap-1"
+                >
+                    {
+                        Array(4).fill(0).map((_, i) => (
+                            <Dot
+                                key={i}
+                                active={step == i + 1}
+                            />
+                        ))
+                    }
+                </Animated.View>
+            </View>
+
+            {/* Steps */}
+
+            <KeyboardAwareScrollView
+                showsVerticalScrollIndicator={false}
+                bottomOffset={15}
+                className="w-full h-full"
+                contentContainerClassName="w-full min-h-full items-center px-3"
+            >
+
+                {/* Step 1 */}
+
+                {
+                    step == 1 && (
+                        <Animated.View
+                            entering={FadeInDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            exiting={FadeOutDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            className="sm:w-[500px] w-full h-full flex items-center pt-[150px]"
+                        >
+
+                            {/* Section 1 */}
+
+                            <View className="w-full items-center gap-3 px-3">
+                                <Animated.View entering={FadeIn
+                                    .duration(1000)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }>
+                                    <TextAnimated className="text-5xl font-extrabold text-center">
+                                        {t("onboarding_step_1_section_1_item_1")}
+                                    </TextAnimated>
+                                </Animated.View>
+
+                                <Animated.View entering={FadeIn
+                                    .delay(1000)
+                                    .duration(1000)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }>
+                                    <TextGradient
+                                        colors={[
+                                            COLORS.emerald[500],
+                                            theme == "dark" ? "rgba(255, 255, 255, .8)" : "rgba(0, 0, 0, .8)",
+                                        ]}
+                                        className="text-5xl font-extrabold"
+                                    >
+                                        {APP_NAME}
+                                    </TextGradient>
+                                </Animated.View>
+                            </View>
+
+                            {/* Section 2 */}
+
+                            <View className="w-full flex gap-3 px-3 mt-[50px]">
+                                <Animated.View entering={FadeIn
+                                    .delay(1800)
+                                    .duration(1000)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }>
+                                    <TextAnimated className="text-xl">
+                                        {t("onboarding_step_1_section_2_item_1")}
+                                    </TextAnimated>
+                                </Animated.View>
+
+                                {
+                                    step1Tab.map((item, i) => (
+                                        <Animated.View
+                                            key={i}
+                                            entering={FadeIn
+                                                .delay(1800 + ((i + 1) * 1000))
+                                                .duration(1000)
+                                                .easing(Easing.inOut(Easing.quad))
+                                            }
+                                            className="flex flex-row gap-3"
+                                        >
+                                            <View
+                                                style={{
+                                                    transform: [
+                                                        {
+                                                            translateY: 9.5,
+                                                        }
+                                                    ]
+                                                }}
+                                                className="size-[8px] rounded-full bg-emerald-500"
+                                            />
+
+                                            <View className="w-[90%]">
+                                                <TextAnimated className="text-xl">
+                                                    {item}
+                                                </TextAnimated>
+                                            </View>
+                                        </Animated.View>
+                                    ))
+                                }
+
+                                <Animated.View entering={FadeIn
+                                    .delay(6000)
+                                    .duration(1000)
+                                    .easing(Easing.inOut(Easing.quad))
+                                }>
+                                    <TextAnimated className="text-xl">
+                                        {t("onboarding_step_1_section_2_item_5")}
+                                    </TextAnimated>
+                                </Animated.View>
+                            </View>
+                        </Animated.View>
+                    )
+                }
+
+                {/* Step 2 */}
+
+                {
+                    step == 2 && (
+                        <Animated.View
+                            entering={FadeInDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            exiting={FadeOutDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            className="sm:w-[500px] w-full h-full flex items-center pt-[100px]"
+                        >
+
+                            {/* Section 1 */}
+
+                            <View className="w-full items-center gap-3 px-3">
+                                <Management />
+                            </View>
+
+                            {/* Section 2 */}
+
+                            <View className="w-full flex gap-3 px-3 mt-10">
+                                <TextAnimated
+                                    dark="rgba(255, 255, 255, .9)"
+                                    light="rgba(0, 0, 0, .9)"
+                                    className="text-xl font-medium"
+                                >
+                                    {t("onboarding_step_2_section_2_item_1")}
+                                </TextAnimated>
+
+                                <TextAnimated className="text-xl">
+                                    {t("onboarding_step_2_section_2_item_2")}
+                                </TextAnimated>
+                            </View>
+
+                        </Animated.View>
+                    )
+                }
+
+                {/* Step 3 */}
+
+                {
+                    step == 3 && (
+                        <Animated.View
+                            entering={FadeInDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            exiting={FadeOutDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            className="sm:w-[500px] w-full h-full flex items-center pt-[100px]"
+                        >
+
+                            {/* Section 1 */}
+
+                            <View className="w-full items-center gap-3 px-3">
+                                <Security />
+                            </View>
+
+                            {/* Section 2 */}
+
+                            <View className="w-full flex gap-3 px-3 mt-10">
+                                <TextAnimated
+                                    dark="rgba(255, 255, 255, .9)"
+                                    light="rgba(0, 0, 0, .9)"
+                                    className="text-xl font-medium"
+                                >
+                                    {t("onboarding_step_3_section_2_item_1")}
+                                </TextAnimated>
+
+                                <TextAnimated className="text-xl">
+                                    {t("onboarding_step_3_section_2_item_2")}
+                                </TextAnimated>
+                            </View>
+
+                        </Animated.View>
+                    )
+                }
+
+                {/* Step 3 */}
+
+                {
+                    step == 4 && (
+                        <Animated.View
+                            entering={FadeInDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            exiting={FadeOutDown
+                                .duration(300)
+                                .easing(Easing.inOut(Easing.quad))
+                            }
+                            className="sm:w-[500px] w-full h-full flex justify-center items-center pb-[100px]"
+                        >
+                            <Success />
+                        </Animated.View>
+                    )
+                }
+            </KeyboardAwareScrollView>
+
+            {/* Next button */}
+
+            <View
+                style={{
+                    transform: [
+                        {
+                            translateY: -50,
+                        }
+                    ],
+                }}
+                className="absolute bottom-0 w-[90%] h-[45px] z-[20]"
+            >
+                <Animated.View
+                    entering={FadeInDown
+                        .delay(7000)
+                        .duration(500)
+                        .easing(Easing.inOut(Easing.quad))
+                    }
+                    className="size-full"
+                >
+                    <PressableAnimated
+                        scale={.95}
+                        onPress={() => {
+                            if (step == 4) {
+                                emitter.emit(REFRESH_AUTH);
+                            }
+                            else {
+                                changeStep("next");
+                            }
+                        }}
+                        className="size-full flex items-center rounded-3xl"
+                    >
+                        <View
+                            style={{
+                                transform: [
+                                    {
+                                        translateY: 8,
+                                    },
+                                ],
+                                filter: "blur(5px)",
+                            }}
+                            className="absolute size-full rounded-3xl bg-black/20"
+                        />
+
+                        <View className="size-full flex flex-row justify-center items-center bg-emerald-500 rounded-3xl">
+                            <Text className="text-black text-2xl font-bold">
+                                {step < 4 ?
+                                    t("onboarding_next")
+                                    :
+                                    t("onboarding_complete")
+                                }
+                            </Text>
+                        </View>
+                    </PressableAnimated>
+                </Animated.View>
+            </View>
+
+            {/* Bottom gradient */}
+
+            <LinearGradient
+                colors={theme == "dark" ?
+                    ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                    :
+                    ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, .9)", "rgba(255, 255, 255, 0)"]
+                }
+                start={{ x: 0, y: 1 }}
+                end={{ x: 0, y: 0 }}
+                locations={[0, .6, 1]}
+                style={{
+                    transform: [
+                        {
+                            translateY: 2,
+                        }
+                    ]
+                }}
+                className="absolute left-0 bottom-0 w-full h-[50px] z-[10]"
+            >
+                <LinearGradient
+                    colors={theme == "dark" ?
+                        ["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, .5)", "rgba(0, 0, 0, 0)"]
+                        :
+                        ["rgba(0, 0, 0, .05)", "rgba(0, 0, 0, .05)", "rgba(0, 0, 0, 0)"]
+                    }
+                    start={{ x: 0, y: 1 }}
+                    end={{ x: 0, y: 0 }}
+                    locations={[0, .6, 1]}
+                    className="size-full"
+                />
+            </LinearGradient>
         </Container>
     );
 }

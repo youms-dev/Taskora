@@ -283,5 +283,19 @@
     "update_email_code_resent": "Code resent successfully",
     "update_email_404": "The code has expired. Please request for a new one!",
     "update_email_400": "Invalid code!",
-    "update_email_success": "Email changed successfully"
+    "update_email_success": "Email changed successfully",
+    "onboarding_prev": "Back",
+    "onboarding_next": "Next",
+    "onboarding_skip": "Skip",
+    "onboarding_complete": "Get started",
+    "onboarding_step_1_section_1_item_1": "Welcome to",
+    "onboarding_step_1_section_2_item_1": "Your personal space to :",
+    "onboarding_step_1_section_2_item_2": "organize your daily life,",
+    "onboarding_step_1_section_2_item_3": "manage your tasks and events,",
+    "onboarding_step_1_section_2_item_4": "and stay on top of everything that matters.",
+    "onboarding_step_1_section_2_item_5": "Whether you're planning ahead or handling today's priorities, Taskora helps you stay organized, focused, and in control of your time.",
+    "onboarding_step_2_section_2_item_1": "Plan your days, your way.",
+    "onboarding_step_2_section_2_item_2": "Organize your tasks and events effortlessly. Keep track of your schedule, manage important dates, and stay on top of everything that matters.",
+    "onboarding_step_3_section_2_item_1": "Stay secure, stay confident.",
+    "onboarding_step_3_section_2_item_2": "Keep your account protected with an extra layer of security. Set up a PIN and manage your security preferences for greater peace of mind."
 }

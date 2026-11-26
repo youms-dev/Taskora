@@ -6,7 +6,6 @@ import { PressableAnimated } from '@/components/pressable-animated';
 import { TextAnimated } from '@/components/text-animated';
 import { TextGradient } from '@/components/text-gradient';
 import { COLORS } from '@/constants/colors';
-import { REFRESH_AUTH } from '@/constants/emitters';
 import { EMAIL_FORMAT_ERROR, EMAIL_LENGTH_ERROR, PASSWORD_LENGTH_ERROR } from '@/constants/errors';
 import { APP_NAME } from '@/constants/names';
 import { AUTH_STORE, DEVICE_STORE } from '@/constants/secure-store';
@@ -15,7 +14,6 @@ import { useUsers } from '@/hooks/database/use-users';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/axios';
-import { emitter } from '@/lib/event-emitter';
 import { AuthType } from '@/types/auth';
 import { DeviceType } from '@/types/database/session';
 import { AUTH_PROVIDER, UserType } from '@/types/database/user';
@@ -158,7 +156,9 @@ export default function Register() {
     await SecureStore.setItemAsync(AUTH_STORE, JSON.stringify({ ...rest }));
     await SecureStore.setItemAsync(DEVICE_STORE, idDevice);
 
-    emitter.emit(REFRESH_AUTH);
+    router.replace({
+      pathname: "/onboarding",
+    });
   }, []);
 
   const handle0AuthSignIn = useCallback(async (provider: AUTH_PROVIDER) => {

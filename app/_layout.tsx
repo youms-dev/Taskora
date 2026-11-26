@@ -5,8 +5,10 @@ import { LOGOUT, REFRESH_AUTH } from "@/constants/emitters";
 import { AUTH_STORE, DEVICE_STORE, LOCAL_AUTH_ATTEMPTS_STORE, LOCAL_AUTH_STORE } from "@/constants/secure-store";
 import { AuthProvider } from "@/hooks/auth-provider";
 import { DatabaseProvider } from "@/hooks/database/use-database";
+import { LocalAuthProvider } from "@/hooks/local-auth/use-local-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ToastProvider } from "@/hooks/use-toast";
+import { api } from "@/lib/axios";
 import { emitter } from "@/lib/event-emitter";
 import { AuthType } from "@/types/auth";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
@@ -14,7 +16,9 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as BackgroundTask from "expo-background-task";
 import { useLocales } from "expo-localization";
 import { Stack, usePathname } from "expo-router";
+import * as ScreenCapture from "expo-screen-capture";
 import * as SecureStore from "expo-secure-store";
+import * as SplashScreen from "expo-splash-screen";
 import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,11 +30,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../config/task-manager";
 import "../lib/i18n";
 import "./global.css";
-import { api } from "@/lib/axios";
-import { LocalAuthProvider } from "@/hooks/local-auth/use-local-auth";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SplashScreen from "expo-splash-screen";
-import * as ScreenCapture from "expo-screen-capture";
 
 SplashScreen.setOptions({
     fade: true,
@@ -150,16 +149,16 @@ export default function Layout() {
         }
     }, []);
 
-    // useEffect(() => {
-    //     const { remove } = AppState.addEventListener("change", async (state) => {
-    //         if (state == "background") {
-    //             console.log("We're in background");
-    //             await BackgroundTask.triggerTaskWorkerForTestingAsync();
-    //         }
-    //     });
+    useEffect(() => {
+        const { remove } = AppState.addEventListener("change", async (state) => {
+            if (state == "background") {
+                console.log("We're in background");
+                await BackgroundTask.triggerTaskWorkerForTestingAsync();
+            }
+        });
 
-    //     () => remove();
-    // }, []);
+        () => remove();
+    }, []);
 
     if (!db || loading) return (
         <SplashScreenComponent />
@@ -177,24 +176,27 @@ export default function Layout() {
                             }}>
                                 <ToastProvider>
                                     <AuthProvider>
-                                        <Stack
-                                            screenOptions={{
-                                                headerShown: false,
-                                                animation: "fade",
-                                                contentStyle: {
-                                                    backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
-                                                }
-                                            }}
-                                        >
+                                        <Stack screenOptions={{
+                                            headerShown: false,
+                                            animation: "fade",
+                                            contentStyle: {
+                                                backgroundColor: colorScheme == "dark" ? "black" : "rgba(0, 0, 0, .05)"
+                                            }
+                                        }}>
                                             <Stack.Protected guard={!auth}>
                                                 <Stack.Screen name="index" />
-                                            </Stack.Protected>
 
-                                            <Stack.Protected guard={!auth}>
                                                 <Stack.Screen
                                                     name="register"
                                                     options={{
                                                         animation: "fade_from_bottom"
+                                                    }}
+                                                />
+
+                                                <Stack.Screen
+                                                    name="onboarding"
+                                                    options={{
+                                                        animation: "fade",
                                                     }}
                                                 />
                                             </Stack.Protected>
@@ -206,10 +208,6 @@ export default function Layout() {
                                                         animation: "fade",
                                                     }}
                                                 />
-                                            </Stack.Protected>
-
-                                            <Stack.Protected guard={false}>
-                                                <Stack.Screen name="onboarding" />
                                             </Stack.Protected>
 
                                             <Stack.Screen name="reset-password" />

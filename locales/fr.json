@@ -283,5 +283,19 @@
     "update_email_409": "Adresse email déjà prise !",
     "update_email_404": "Le code a expiré. Demandez en un nouveau",
     "update_email_400": "Code invalide !",
-    "update_email_success": "Adresse email modifiée avec succès"
+    "update_email_success": "Adresse email modifiée avec succès",
+    "onboarding_prev": "Retour",
+    "onboarding_next": "Suivant",
+    "onboarding_skip": "Passer",
+    "onboarding_complete": "Terminer",
+    "onboarding_step_1_section_1_item_1": "Bienvenue sur",
+    "onboarding_step_1_section_2_item_1": "Votre espace personnel pour :",
+    "onboarding_step_1_section_2_item_2": "organiser votre quotidien,",
+    "onboarding_step_1_section_2_item_3": "gérer vos tâches et vos événements,",
+    "onboarding_step_1_section_2_item_4": "et garder le contrôle sur tout ce qui compte.",
+    "onboarding_step_1_section_2_item_5": "Que vous planifiiez à l'avance ou gériez les priorités du jour, Taskora vous aide à rester organisé, concentré et maître de votre temps.",
+    "onboarding_step_2_section_2_item_1": "Organisez vos journées à votre façon.",
+    "onboarding_step_2_section_2_item_2": "Managez facilement vos tâches et vos événements. Gardez une vue d'ensemble sur votre emploi du temps, gérez vos dates importantes et ne perdez jamais de vue ce qui compte.",
+    "onboarding_step_3_section_2_item_1": "Restez en sécurité, en toute confiance.",
+    "onboarding_step_3_section_2_item_2": "Protégez votre compte grâce à une couche de sécurité supplémentaire. Configurez un code PIN et gérez vos préférences de sécurité pour profiter d'une plus grande tranquillité d'esprit."
 }
