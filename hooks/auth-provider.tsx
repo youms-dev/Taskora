@@ -116,10 +116,10 @@ export const AuthProvider = ({ children }: Props) => {
     useEffect(() => {
         handleRefresh();
 
-        emitter.addListener(REFRESH_AUTH, handleGetAuth);
+        emitter.addListener(REFRESH_AUTH, handleRefresh);
 
         return () => {
-            emitter.removeListener(REFRESH_AUTH);
+            emitter.removeListener(REFRESH_AUTH, handleRefresh);
         }
     }, []);
 

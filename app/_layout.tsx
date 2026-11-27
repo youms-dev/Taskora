@@ -66,8 +66,8 @@ export default function Layout() {
         if (!db) {
             const database = await openDatabaseAsync(DATABASE_NAME);
 
-            setDb(database);
             await database.execAsync(INIT_DATABASE);
+            setDb(database);
             await SplashScreen.hideAsync();
         }
     }, [db]);
@@ -144,8 +144,8 @@ export default function Layout() {
         emitter.addListener(LOGOUT, handleLogout);
 
         return () => {
-            emitter.removeAllListeners(REFRESH_AUTH);
-            emitter.removeAllListeners(LOGOUT);
+            emitter.removeListener(REFRESH_AUTH, handleGetAuth);
+            emitter.removeListener(LOGOUT, handleLogout);
         }
     }, []);
 
@@ -157,7 +157,7 @@ export default function Layout() {
             }
         });
 
-        () => remove();
+        return () => remove();
     }, []);
 
     if (!db || loading) return (

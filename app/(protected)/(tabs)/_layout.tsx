@@ -1,7 +1,7 @@
 import { PressableAnimated } from "@/components/pressable-animated";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
-import { EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TASKS_CHANGED, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
+import { EXPAND_NAVBAR, HIDE_NAVBAR, MINIMIZE_NAVBAR, SHOW_NAVBAR, TOUCHABLE_NAVBAR, UNTOUCHABLE_NAVBAR } from "@/constants/emitters";
 import { useTheme } from "@/hooks/use-theme";
 import { emitter } from "@/lib/event-emitter";
 import Feather from '@expo/vector-icons/Feather';
@@ -96,13 +96,12 @@ export default function TabsLayout() {
         emitter.addListener(UNTOUCHABLE_NAVBAR, onUntouchable);
 
         return () => {
-            emitter.removeAllListeners(HIDE_NAVBAR);
-            emitter.removeAllListeners(SHOW_NAVBAR);
-            emitter.removeAllListeners(MINIMIZE_NAVBAR);
-            emitter.removeAllListeners(EXPAND_NAVBAR);
-            emitter.removeAllListeners(TASKS_CHANGED);
-            emitter.removeAllListeners(TOUCHABLE_NAVBAR);
-            emitter.removeAllListeners(UNTOUCHABLE_NAVBAR);
+            emitter.removeListener(HIDE_NAVBAR, onOpen);
+            emitter.removeListener(SHOW_NAVBAR, onClose);
+            emitter.removeListener(MINIMIZE_NAVBAR, onMinimize);
+            emitter.removeListener(EXPAND_NAVBAR, onExpand);
+            emitter.removeListener(TOUCHABLE_NAVBAR, onTouchable);
+            emitter.removeListener(UNTOUCHABLE_NAVBAR, onUntouchable);
         }
     }, []);
 

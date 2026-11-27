@@ -147,9 +147,16 @@ const drop = `
     DROP TABLE IF EXISTS setting;
 `;
 
+export const SQL_HEADER = `
+    PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
+`;
+
 // ${drop}
 export const INIT_DATABASE = `
-        
+    
+    ${SQL_HEADER}
+
     CREATE TABLE IF NOT EXISTS setting (
         id_setting TEXT PRIMARY KEY NOT NULL,
         language TEXT DEFAULT NULL CHECK (language IN ('fr', 'en')),

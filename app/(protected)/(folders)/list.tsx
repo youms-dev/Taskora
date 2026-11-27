@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/skeleton";
 import { TextAnimated } from "@/components/text-animated";
 import { COLORS } from "@/constants/colors";
 import { FOLDERS_CHANGED } from "@/constants/emitters";
+import { useAuth } from "@/hooks/auth-provider";
 import { useFolders } from "@/hooks/database/use-folders";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +58,7 @@ export default function FolderList() {
     const selectLimit = 50;
     const foldersTmp = useRef<FolderType[]>([]);
     const deleteLoading = useRef<boolean>(false);
+    const { user } = useAuth();
 
     const selectMap = useMemo(() => new Map(
         selected.map(f => [f.idFolder, f]),
@@ -217,11 +219,11 @@ export default function FolderList() {
     }, [loading, i18n.language, theme]);
 
     const handleGetFolders = useCallback(async (refresh: boolean = false) => {
-        if (loading || deleteLoading.current) return;
+        if (loading || deleteLoading.current || !user) return;
 
         try {
             setLoading(true);
-            const data = await getFolders(refresh ? 0 : folders.length, fetchLimit) as FolderType[];
+            const data = await getFolders(user.idUser, refresh ? 0 : folders.length, fetchLimit) as FolderType[];
 
             if (refresh) {
                 setFolders(data);
@@ -236,18 +238,20 @@ export default function FolderList() {
             setToast(t("sqlite_error"), "error");
             console.log(e);
         }
-    }, [loading, i18n.language, folders.length]);
+    }, [loading, i18n.language, folders.length, user]);
 
     const handleGetFoldersCount = useCallback(async () => {
+        if(!user) return;
+
         try {
-            const data = await getFoldersCount() as number;
+            const data = await getFoldersCount(user.idUser) as number;
 
             setFoldersCount(data);
         }
         catch (e) {
             console.log(e);
         }
-    }, [loading, i18n.language, folders.length]);
+    }, [loading, i18n.language, folders.length, user]);
 
 
     const onEndReached = useCallback(async () => {
@@ -558,7 +562,7 @@ export default function FolderList() {
         emitter.addListener(FOLDERS_CHANGED, onFoldersChanged);
 
         return () => {
-            emitter.removeListener(FOLDERS_CHANGED);
+            emitter.removeListener(FOLDERS_CHANGED, onFoldersChanged);
         }
     }, []);
 

@@ -238,10 +238,12 @@ export const CalendarDay = memo(({ active, month, width, height, setTargetDate, 
     }), [dayWidth]);
 
     useEffect(() => {
-        emitter.addListener(EVENTS_CHANGED, () => handleGetTasks(true));
+        const onChange = () => handleGetTasks(true);
+
+        emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            emitter.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED, onChange);
         }
     }, [handleGetTasks]);
 

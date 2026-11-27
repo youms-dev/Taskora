@@ -38,7 +38,7 @@ export const useSessions = () => {
         }
     }
 
-    async function createSession(data: Omit<SessionType, "idSession" | "idSetting" | "createdAt" | "lastConnection">): Promise<true | unknown> {
+    async function createSession(data: Omit<SessionType, "idSession" | "createdAt" | "lastConnection">): Promise<true | unknown> {
         if (!db) return;
 
         try {

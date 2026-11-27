@@ -476,8 +476,8 @@ export default function TaskPage() {
         emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            emitter.removeListener(TASKS_CHANGED);
-            emitter.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED, onChange);
+            emitter.removeListener(EVENTS_CHANGED, onChange);
         }
     }, []);
 

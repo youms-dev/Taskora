@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/auth-provider";
 import { LIMIT, TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { useTheme } from "@/hooks/use-theme";
 import { FolderType } from "@/types/database/folder";
@@ -24,7 +25,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     const { theme } = useTheme();
     const taskHeight = 100;
     const tasksGap = 20;
-    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter, deleting } = context;
+    const { loading, scrollY, tasks, refreshTranslateY, scrolling, currentFolder, handleGetTasks, tasksSelected, tasksCount, currentFilter, deleting, loadingRef, tasksRef } = context;
     const nativeGesture = useMemo(() => Gesture.Native(), []);
     const [mounted, setMounted] = useState<boolean>(false);
     const areTasksSelected = useSharedValue<boolean>(false);
@@ -99,12 +100,12 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
                             easing: Easing.inOut(Easing.quad),
                         });
                         scheduleOnRN(handleGetTasks, true);
-                    };
+                    }
                 })
         );
-    }, []);
+    }, [handleGetTasks]);
 
-    const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), []);
+    const gesture = useMemo(() => Gesture.Simultaneous(nativeGesture, panGesture), [nativeGesture, panGesture]);
 
     useEffect(() => {
         areTasksSelected.value = selectMap.size > 0;
@@ -170,9 +171,10 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     }, [loading, i18n.language, theme]);
 
     const onEndReached = useCallback(() => {
-        if (loading || tasks.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0) return;
+        if (loadingRef.current || tasksRef.current.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0) return;
+
         handleGetTasks();
-    }, [loading, selectMap, currentFilter, folderIndex]);
+    }, [selectMap, currentFilter, folderIndex, handleGetTasks, tasksCount]);
 
     const getItemLayout = useCallback((_data: any, index: number) => ({
         length: (taskHeight + tasksGap),

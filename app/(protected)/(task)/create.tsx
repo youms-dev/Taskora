@@ -32,7 +32,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { randomUUID } from "expo-crypto";
 import { LinearGradient } from "expo-linear-gradient";
-import { cancelScheduledNotificationAsync, dismissNotificationAsync, getPermissionsAsync, requestPermissionsAsync, SchedulableTriggerInputTypes, scheduleNotificationAsync } from "expo-notifications";
+import * as Notification from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -189,9 +189,6 @@ export default function CreateTaskPage() {
         archive: false,
         folder: null,
     };
-
-    console.log("\n");
-    console.log("\n");
 
     if (paramDate && paramDate.length > 0 && paramAction == "create") {
         initialInputsValues = {
@@ -368,9 +365,11 @@ export default function CreateTaskPage() {
                 return;
             }
         }
-        const { granted } = await getPermissionsAsync();
+
+        const { granted } = await Notification.getPermissionsAsync();
+
         if (!granted) {
-            const { granted } = await requestPermissionsAsync();
+            const { granted } = await Notification.requestPermissionsAsync();
 
             if (!granted) {
                 setToast(
@@ -391,6 +390,7 @@ export default function CreateTaskPage() {
         try {
             setLoading(true);
             loadingRef.current = true;
+
             const taskId = randomUUID();
 
             const dateSelected = inputsValues.date;
@@ -406,7 +406,7 @@ export default function CreateTaskPage() {
             }
 
             if (!inputsValues.archive) {
-                notificationId = await scheduleNotificationAsync({
+                notificationId = await Notification.scheduleNotificationAsync({
                     content: {
                         title: inputsValues.title,
                         subtitle: `(${target == "task" ? t("create_section_1_item_1") : t("create_section_1_item_2")})`,
@@ -420,7 +420,7 @@ export default function CreateTaskPage() {
                     },
                     trigger: {
                         channelId: `${REMINDER_CHANNEL}${sound ? sound.split(".").shift()?.toLocaleLowerCase() : "sound02"}`,
-                        type: SchedulableTriggerInputTypes.DATE,
+                        type: Notification.SchedulableTriggerInputTypes.DATE,
                         date: scheduleDate,
                     },
                 });
@@ -457,8 +457,8 @@ export default function CreateTaskPage() {
                         ...task,
                         idTask: paramTask.idTask,
                     };
-                    await cancelScheduledNotificationAsync(paramTask.notificationId);
-                    await dismissNotificationAsync(paramTask.notificationId);
+                    await Notification.cancelScheduledNotificationAsync(paramTask.notificationId);
+                    await Notification.dismissNotificationAsync(paramTask.notificationId);
                 }
 
                 await updateTask(paramTask?.idTask ?? "", task);
@@ -467,7 +467,7 @@ export default function CreateTaskPage() {
             }
             else {
                 await createTask(user.idUser, task);
-                
+
                 setToast(t("create_success"), "success");
             }
 

@@ -803,7 +803,7 @@ export default function Archives() {
         emitter.addListener(TASKS_CHANGED, onChange);
 
         return () => {
-            emitter.removeListener(TASKS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED, onChange);
         }
     }, []);
 

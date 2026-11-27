@@ -8,7 +8,7 @@ export const useSettings = () => {
         if (!db) return;
 
         try {
-            const data = await db.getFirstAsync("SELECT s.* FROM setting s JOIN user u WHERE u.id_user = ?", [idUser]) as SQLiteSettingType;
+            const data = await db.getFirstAsync("SELECT s.* FROM setting s JOIN user u ON s.id_setting = u.id_setting WHERE u.id_user = ?", [idUser]) as SQLiteSettingType;
             let dataParsed: SettingType | null = null;
 
             if (data) {
@@ -37,7 +37,7 @@ export const useSettings = () => {
         if (!db) return;
 
         try {
-            const setting = db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [data.idSetting]);
+            const setting = await db.getFirstAsync("SELECT * FROM setting WHERE id_setting = ?", [data.idSetting]);
 
             if (!setting) {
                 throw 404;

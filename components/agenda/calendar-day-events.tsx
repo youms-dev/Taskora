@@ -478,7 +478,7 @@ export const CalendarDayEvents = memo(({ targetDate, setTargetDate, refreshing }
         emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            emitter.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED, onChange);
         }
     }, []);
 

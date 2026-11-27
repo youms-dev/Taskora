@@ -463,7 +463,7 @@ export const CalendarSearch = memo(({ active }: Props) => {
         emitter.addListener(EVENTS_CHANGED, onChange);
 
         return () => {
-            emitter.removeListener(EVENTS_CHANGED);
+            emitter.removeListener(EVENTS_CHANGED, onChange);
         }
     }, [value]);
 

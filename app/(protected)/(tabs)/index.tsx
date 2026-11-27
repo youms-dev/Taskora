@@ -4,17 +4,30 @@ import { PositionType, TasksHeader } from "@/components/tasks/tasks-header";
 import { TasksPager } from "@/components/tasks/tasks-pager";
 import { TasksSearch } from "@/components/tasks/tasks-search";
 import { FOLDERS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
+import { useAuth } from "@/hooks/auth-provider";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { emitter } from "@/lib/event-emitter";
 import { useEffect } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
 export default function Tasks() {
-    const context = useTasksData();
+    const { user } = useAuth();
+    const context = useTasksData(user);
     const foldersModalActive = useSharedValue<boolean>(false);
     const position = useSharedValue<PositionType>(null);
 
     useEffect(() => {
+        if (!user || context.tasksRef.current.length > 0) return;
+
+        context.handleGetTasksCount();
+        context.handleGetFoldersCount();
+        context.handleGetTasks();
+        context.handleGetFolders();
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+
         const onTasksEdited = () => {
             context.handleGetTasks(true);
             context.handleGetTasksCount();
@@ -30,10 +43,10 @@ export default function Tasks() {
         emitter.addListener(FOLDERS_CHANGED, onFolderCreated);
 
         return () => {
-            emitter.removeListener(TASKS_CHANGED);
-            emitter.removeListener(FOLDERS_CHANGED);
+            emitter.removeListener(TASKS_CHANGED, onTasksEdited);
+            emitter.removeListener(FOLDERS_CHANGED, onFolderCreated);
         }
-    }, []);
+    }, [user, context.handleGetTasks, context.handleGetTasksCount, context.handleGetFolders, context.handleGetFoldersCount]);
 
     return (
         <Container centerX>

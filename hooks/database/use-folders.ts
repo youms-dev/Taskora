@@ -78,7 +78,7 @@ export const useFolders = () => {
 
     async function createFolder(idUser: string, title: FolderType["title"], tasks: TaskType["idTask"][] = []): Promise<boolean | unknown> {
         if (!db) return;
-        const titleFormatted = (title.charAt(0).toUpperCase() + title.slice(1)).trim();
+        const titleFormatted = (title.trim().charAt(0).toUpperCase() + title.trim().slice(1)).trim();
 
         try {
             await db.withTransactionAsync(async () => {
@@ -101,7 +101,7 @@ export const useFolders = () => {
     }
 
     async function deleteFolders(folders: FolderType["idFolder"][]): Promise<boolean | unknown> {
-        if (!db) return;
+        if (!db || folders.length == 0) return;
         const placeholders = folders.map(() => "?").join(",");
 
         try {
@@ -116,7 +116,7 @@ export const useFolders = () => {
 
     async function updateFolder(id: FolderType["idFolder"], title: string): Promise<boolean | unknown> {
         if (!db) return;
-        const titleFormatted = (title.charAt(0).toUpperCase() + title.slice(1)).trim();
+        const titleFormatted = (title.trim().charAt(0).toUpperCase() + title.trim().slice(1)).trim();
 
         try {
             await db.runAsync("UPDATE folder SET title = ? WHERE id_folder = ?", [titleFormatted, id]);

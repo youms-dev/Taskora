@@ -220,8 +220,8 @@ export default function ProtectedLayout() {
 
         return () => {
             remove();
-            emitter.removeAllListeners(LOCK);
-            emitter.removeAllListeners(UNLOCK);
+            emitter.removeListener(LOCK, onLock);
+            emitter.removeListener(UNLOCK, onUnlock);
         }
     }, [localAuth, pathname]);
 

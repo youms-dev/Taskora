@@ -73,7 +73,7 @@ export const useUsers = () => {
                 await db.runAsync("UPDATE user SET name = ? WHERE id_user = ?", [value, id]);
             }
             else {
-                await db.runAsync("UPDATE user SET email = ?, provider = ? WHERE id_user = ?", [value, provider, id]);
+                await db.runAsync("UPDATE user SET email = ?, provider = ? WHERE id_user = ?", [value!.trim().toLowerCase(), provider, id]);
             }
 
             return true;
