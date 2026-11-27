@@ -223,10 +223,19 @@ export const INIT_DATABASE = `
         device_type TEXT NOT NULL CHECK (device_type IN ('ANDROID', 'IOS')),
         device_brand TEXT NOT NULL,
         device_model TEXT NOT NULL,
+        sync_cursor INTEGER NOT NULL DEFAULT 0,
         last_connection TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
         created_at TIMESTAMP DEFAULT ((datetime('now', 'localtime'))),
 
         FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE
+    );
+    
+    CREATE TABLE IF NOT EXISTS sync_queue (
+        id TEXT NOT NULL PRIMARY KEY,
+        id_entity TEXT NOT NULL,
+        entity_table TEXT NOT NULL CHECK (entity_table IN ('FOLDER', 'TASK')),
+        action TEXT NOT NULL CHECK (action IN ('INSERT', 'DELETE')),
+        created_at TIMESTAMP DEFAULT ((datetime('now', 'localtime')))
     );
 
     `;
