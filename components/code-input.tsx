@@ -103,7 +103,7 @@ export const CodeInput = memo(forwardRef<TextInput, Props>(({ value, setValue, .
             <TextInput
                 {...rest}
                 ref={handleRef}
-                keyboardType="number-pad"
+                keyboardType="numeric"
                 onFocus={() => setCodeFocus(true)}
                 onBlur={() => setCodeFocus(false)}
                 value={value}
