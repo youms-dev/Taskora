@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Generated, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "./user.entity";
 
 export enum DEVICE_TYPE {
@@ -47,6 +47,13 @@ export class Session {
         nullable: true,
     })
     refreshToken?: string | null;
+
+    @Column({
+        name: "sync_cursor",
+        type: "bigint",
+        generated: "increment",
+    })
+    syncCursor: number;
 
     @CreateDateColumn({
         name: "created_at",

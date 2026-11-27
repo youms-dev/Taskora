@@ -3,6 +3,7 @@ import { DataSource, DataSourceOptions } from "typeorm";
 import { SeederOptions } from "typeorm-extension";
 import { FolderFactory } from "./database/factories/folder.factory";
 import { SettingFactory } from "./database/factories/setting.factory";
+import { SyncChangesFactory } from "./database/factories/sync-changes.factory";
 import { TaskFactory } from "./database/factories/task.factory";
 import { UserFactory } from "./database/factories/user.factory";
 import { MainSeeder } from "./database/seeding/main.seeder";
@@ -20,7 +21,7 @@ const options: DataSourceOptions & SeederOptions = {
     entities: [__dirname + "/database/entities/*.entity{.ts,.js}"],
     migrations: [__dirname + "/database/migrations/*{.js,.ts}"],
     seeds: [MainSeeder],
-    factories: [UserFactory, TaskFactory, FolderFactory, SettingFactory],
+    factories: [UserFactory, TaskFactory, FolderFactory, SettingFactory, SyncChangesFactory],
 }
 
 export const dataSource = new DataSource(options);
