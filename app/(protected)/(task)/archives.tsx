@@ -84,10 +84,17 @@ const TaskCard = memo(({ task, onRefresh, loading: parentLoading = false, select
     }));
 
     const handleDelete = useCallback(() => {
-        if (loading) return;
+        if (loading || !setting) return;
+
         onDelete(task);
-        setDismiss(handleDeleteTask, () => onRefresh(true), 5, 60);
-    }, [onDelete, task, onRefresh, loading]);
+
+        if (setting.confirmBeforeDelete) {
+            setDismiss(handleDeleteTask, () => onRefresh(true), 5, 60);
+        }
+        else {
+            handleDeleteTask();
+        }
+    }, [onDelete, task, onRefresh, loading, setting]);
 
     const handleDeleteTask = useCallback(async () => {
         if (loading) return;
@@ -723,6 +730,38 @@ export default function Archives() {
         }
     }, [setToast, i18n.language, selectMap, processing, tasksSelected]);
 
+    const handleDeleteTasksUnsafe = useCallback(async () => {
+        if (processing || !setting) return;
+        if (setting.confirmBeforeDelete) return;
+
+        setProcessing(true);
+
+        const tab = [...tasksSelected];
+
+        tasksTmp.current = tasks;
+        setTasks(prev => [...prev.filter(task => !tab.find(t => t.idTask == task.idTask))]);
+        setTasksSelected([]);
+        setCount(prev => prev - tab.length);
+
+        try {
+            await deleteTasks([...tab.map(t => t.idTask)]);
+            await Promise.all(tab.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
+
+            setProcessing(false);
+            handleGetTasks(true);
+        }
+        catch (e) {
+            if (tasksTmp.current.length > 0) setTasks(tasksTmp.current);
+            tasksTmp.current = [];
+            setCount(prev => prev + tab.length);
+            setProcessing(false);
+            setToast(t("sqlite_error"), "error");
+        }
+    }, [setToast, i18n.language, selectMap, processing, tasksSelected, setting]);
+
     useEffect(() => {
         if (pathname == "/archives") {
             handleGetTasksCount();
@@ -972,7 +1011,15 @@ export default function Archives() {
                         />
                     </PressableAnimated>
 
-                    <PressableAnimated onPress={() => handleDeleteTasks(true)}>
+                    <PressableAnimated onPress={() => {
+                        if (!setting) return;
+                        if (setting.confirmBeforeDelete) {
+                            handleDeleteTasks(true);
+                        }
+                        else {
+                            handleDeleteTasksUnsafe();
+                        }
+                    }}>
                         <FontAwesome6
                             name="trash-alt"
                             size={25}

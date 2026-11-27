@@ -5,6 +5,7 @@ import { TasksPager } from "@/components/tasks/tasks-pager";
 import { TasksSearch } from "@/components/tasks/tasks-search";
 import { FOLDERS_CHANGED, TASKS_CHANGED } from "@/constants/emitters";
 import { useAuth } from "@/hooks/auth-provider";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { useTasksData } from "@/hooks/tasks/use-tasks-data";
 import { emitter } from "@/lib/event-emitter";
 import { useEffect } from "react";
@@ -12,7 +13,8 @@ import { useSharedValue } from "react-native-reanimated";
 
 export default function Tasks() {
     const { user } = useAuth();
-    const context = useTasksData(user);
+    const { setting } = useSettingsData();
+    const context = useTasksData(user, setting);
     const foldersModalActive = useSharedValue<boolean>(false);
     const position = useSharedValue<PositionType>(null);
 

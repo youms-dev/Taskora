@@ -8,10 +8,11 @@ import { useSharedValue } from "react-native-reanimated";
 import { useFolders } from "../database/use-folders";
 import { useTasks } from "../database/use-tasks";
 import { useToast } from "../use-toast";
+import { SettingType } from "@/types/database/setting";
 
 export const LIMIT = 10;
 
-export const useTasksData = (user: UserType | null) => {
+export const useTasksData = (user: UserType | null, setting: Required<SettingType> | null) => {
     const [tasks, setTasks] = useState<TaskType[]>([]);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const scrollY = useSharedValue<number>(0);
@@ -211,17 +212,6 @@ export const useTasksData = (user: UserType | null) => {
         }
     }, [tasksCount, i18n.language, setToast, handleGetTasks]);
 
-    useEffect(() => {
-        if (tasksSelected.length > 0) {
-            selectMap.current = new Map(
-                tasksSelected.map(t => [t.idTask, t])
-            );
-        }
-        else {
-            selectMap.current = null;
-        }
-    }, [tasksSelected]);
-
     const handleDeleteTasks = useCallback(async (init: boolean = true, data: TaskType[] | null = null) => {
         if (loadingRef.current && !data) return;
 
@@ -284,6 +274,51 @@ export const useTasksData = (user: UserType | null) => {
             tasksTmp.current = [];
         }
     }, [tasksSelected, tasksCount, i18n.language, setDismiss, setToast, handleGetTasks]);
+
+    const handleDeleteTasksUnsafe = useCallback(async (task: TaskType | null = null) => {
+        if (loadingRef.current) return;
+
+        const selected = task ? [task] : [...tasksSelected];
+
+        deleting.current = true;
+        setLoading(true);
+        loadingRef.current = true;
+
+        tasksTmp.current = [...tasksRef.current];
+        setTasks(prev => [...prev.filter(t => {
+            if (task) {
+                return t.idTask != task.idTask;
+            }
+            return !selectMap.current?.has(t.idTask);
+        })]);
+        setTasksSelected([]);
+        setTasksCount(prev => prev - selected.length);
+
+        try {
+            await deleteTasks([...selected.map(t => t.idTask)]);
+            await Promise.all(selected.map(async (task) => {
+                await cancelScheduledNotificationAsync(task.notificationId);
+                await dismissNotificationAsync(task.notificationId);
+            }));
+
+            if (tasksRef.current.length <= tasksCount) {
+                setLoading(false);
+                loadingRef.current = false;
+                handleGetTasks(true);
+            }
+        }
+        catch (e) {
+            setTasksCount(prev => prev + selected.length);
+            tasksTmp.current.length > 0 && setTasks([...tasksTmp.current]);
+            setToast(t("sqlite_error"), "error");
+        }
+        finally {
+            deleting.current = false;
+            setLoading(false);
+            loadingRef.current = false;
+            tasksTmp.current = [];
+        }
+    }, [tasksSelected, tasksCount, i18n.language, setToast, handleGetTasks]);
 
     const handleDeleteTask = useCallback(async (task: TaskType, init: boolean = true, data: TaskType | null = null) => {
         if (loadingRef.current && !data) return;
@@ -502,6 +537,17 @@ export const useTasksData = (user: UserType | null) => {
         tasksRef.current = [...tasks];
     }, [tasks]);
 
+    useEffect(() => {
+        if (tasksSelected.length > 0) {
+            selectMap.current = new Map(
+                tasksSelected.map(t => [t.idTask, t])
+            );
+        }
+        else {
+            selectMap.current = null;
+        }
+    }, [tasksSelected]);
+
     return ({
         tasks: displayedTasks,
         folders,
@@ -536,6 +582,7 @@ export const useTasksData = (user: UserType | null) => {
         deleting,
         loadingRef,
         tasksRef,
+        handleDeleteTasksUnsafe,
     });
 };
 

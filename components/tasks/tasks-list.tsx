@@ -171,7 +171,7 @@ export const TaskList = memo(({ folder, index: folderIndex, context }: Props) =>
     }, [loading, i18n.language, theme]);
 
     const onEndReached = useCallback(() => {
-        if (loadingRef.current || tasksRef.current.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0) return;
+        if (loadingRef.current || tasksRef.current.length >= tasksCount || selectMap.size > 0 || currentFilter != 1 || folderIndex != 0 || deleting.current) return;
 
         handleGetTasks();
     }, [selectMap, currentFilter, folderIndex, handleGetTasks, tasksCount]);

@@ -14,11 +14,12 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTim
 import { Checkbox } from "../checkbox";
 import { PressableAnimated } from "../pressable-animated";
 import { TextAnimated } from "../text-animated";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 
 export const SELECT_LIMIT = 50;
 
 interface Props {
-    context: Pick<TasksDataContext, "setTasksSelected" | "tasksSelected" | "tasks" | "handleArchiveTasks" | "handleDeleteTasks">;
+    context: Pick<TasksDataContext, "setTasksSelected" | "tasksSelected" | "tasks" | "handleArchiveTasks" | "handleDeleteTasks" | "handleDeleteTasksUnsafe">;
 }
 
 export const TasksFooter = memo(({ context }: Props) => {
@@ -28,9 +29,10 @@ export const TasksFooter = memo(({ context }: Props) => {
     const screenWidthShared = useSharedValue<number>(screenWidth);
     const screenHeightShared = useSharedValue<number>(screenHeight);
     const { t } = useTranslation();
-    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks } = context;
+    const { setTasksSelected, tasksSelected, tasks, handleArchiveTasks, handleDeleteTasks, handleDeleteTasksUnsafe } = context;
     const showAddTaskButton = useSharedValue<boolean>(true);
     const router = useRouter();
+    const { setting } = useSettingsData();
 
     const selectMap = useMemo(() => {
         return new Map(
@@ -129,7 +131,16 @@ export const TasksFooter = memo(({ context }: Props) => {
         }
     }, [tasksSelected, tasks, selectMap]);
 
-    const deleteTasks = useCallback(() => handleDeleteTasks(), [handleDeleteTasks]);
+    const deleteTasks = useCallback(() => {
+        if(!setting) return;
+
+        if(setting.confirmBeforeDelete) {
+            handleDeleteTasks();
+        }
+        else {
+            handleDeleteTasksUnsafe();
+        }
+    }, [handleDeleteTasks, setting, handleDeleteTasksUnsafe]);
 
     return (
         <View className="w-full flex items-center">
@@ -260,6 +271,8 @@ export const TasksFooter = memo(({ context }: Props) => {
     Object.is(prev.context.handleArchiveTasks, next.context.handleArchiveTasks)
     &&
     Object.is(prev.context.handleDeleteTasks, next.context.handleDeleteTasks)
+    &&
+    Object.is(prev.context.handleDeleteTasksUnsafe, next.context.handleDeleteTasksUnsafe)
     &&
     Object.is(prev.context.setTasksSelected, next.context.setTasksSelected)
     &&

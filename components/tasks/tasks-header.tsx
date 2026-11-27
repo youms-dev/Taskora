@@ -64,13 +64,13 @@ export const scrollCheckPoint = 100;
 export type PositionType = number | null;
 
 interface Props {
-    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected" | "handleTogglePinTasks" | "handleMarkDone" | "setFolderSelected">;
+    context: Pick<TasksDataContext, "loading" | "tasks" | "folders" | "currentFilter" | "currentFolder" | "refreshTranslateY" | "setCurrentFolder" | "setSearchSectionActive" | "setCurrentFilter" | "setTasksSelected" | "tasksSelected" | "handleTogglePinTasks" | "handleMarkDone" | "setFolderSelected" | "deleting">;
     foldersModalActive: SharedValue<boolean>;
     position: SharedValue<PositionType>;
 }
 
 export const TasksHeader = memo(({ context, foldersModalActive, position: selectPosition }: Props) => {
-    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone, setFolderSelected } = context;
+    const { loading, tasks, folders, currentFilter, currentFolder, refreshTranslateY, setCurrentFolder, setSearchSectionActive, setCurrentFilter, setTasksSelected, tasksSelected, handleTogglePinTasks, handleMarkDone, setFolderSelected, deleting } = context;
     const { theme } = useTheme();
     const { t, i18n } = useTranslation();
     const foldersFlatListRef = useRef<Animated.FlatList>(null);
@@ -530,7 +530,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
                         <View className="flex items-center">
                             <View className="w-full flex flex-row items-center gap-5 px-3 py-1">
                                 {
-                                    loading && folders.length == 0 && (
+                                    loading && folders.length == 0 && !deleting.current && (
                                         <Animated.View
                                             entering={SlideInLeft
                                                 .duration(300)
@@ -617,7 +617,7 @@ export const TasksHeader = memo(({ context, foldersModalActive, position: select
 
                         <View className="w-full flex flex-row items-center gap-3 px-3 py-1">
                             {
-                                loading && tasks.length == 0 && (
+                                loading && tasks.length == 0 && !deleting.current && (
                                     <Animated.View
                                         entering={SlideInLeft
                                             .delay(100)

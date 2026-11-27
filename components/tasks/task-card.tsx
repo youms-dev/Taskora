@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/colors";
 import { ICON_TYPE } from "@/constants/icons";
+import { useSettingsData } from "@/hooks/settings/use-settings-data";
 import { TasksDataContext } from "@/hooks/tasks/use-tasks-data";
 import { TaskType } from "@/types/database/task";
 import { AntDesign } from "@expo/vector-icons";
@@ -18,7 +19,7 @@ import { SELECT_LIMIT } from "./tasks-footer";
 
 interface TaskCardProps extends Omit<PressableProps, "onLongPress" | "onPress"> {
     task: TaskType;
-    context: Pick<TasksDataContext, "tasksSelected" | "setTasksSelected" | "handleArchiveTask" | "handleDeleteTask" | "loading">;
+    context: Pick<TasksDataContext, "tasksSelected" | "setTasksSelected" | "handleArchiveTask" | "handleDeleteTask" | "loading" | "handleDeleteTasksUnsafe">;
 }
 
 export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
@@ -27,8 +28,9 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     const selection = useSharedValue<boolean>(false);
     const loadingShared = useSharedValue<boolean>(false);
     const height = 100;
-    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading } = context;
+    const { tasksSelected, setTasksSelected, handleArchiveTask, handleDeleteTask, loading, handleDeleteTasksUnsafe } = context;
     const router = useRouter();
+    const { setting } = useSettingsData();
 
     const iconData = useMemo(() => {
         if (task.icon) {
@@ -60,8 +62,15 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     }, [task]);
 
     const deleteTask = useCallback(() => {
-        return handleDeleteTask(task);
-    }, [task]);
+        if (!setting) return;
+
+        if (setting.confirmBeforeDelete) {
+            handleDeleteTask(task);
+        }
+        else {
+            handleDeleteTasksUnsafe(task);
+        }
+    }, [task, setting]);
 
     const gesture = useMemo(() => {
         return (
@@ -305,6 +314,8 @@ export const TaskCard = memo(({ task, context, ...rest }: TaskCardProps) => {
     Object.is(prev.context.handleArchiveTask, next.context.handleArchiveTask)
     &&
     Object.is(prev.context.handleDeleteTask, next.context.handleDeleteTask)
+    &&
+    Object.is(prev.context.handleDeleteTasksUnsafe, next.context.handleDeleteTasksUnsafe)
     &&
     Object.is(prev.context.loading, next.context.loading)
     &&
